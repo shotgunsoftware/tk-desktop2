@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from sgtk.platform import Engine
+import sgtk
 
 
 class DesktopEngine2(Engine):
@@ -26,8 +27,12 @@ class DesktopEngine2(Engine):
         # switch to dark styles.
         self._initialize_dark_look_and_feel()
 
-        # test pop up the about app.
-        print self.commands["Work Area Info..."]["callback"]()
+
+
+        # test pop up the py console.
+        # hack to get this to work due to weird error checks in py console...
+        sgtk.platform.engine.g_current_engine = self
+        print self.commands["Shotgun Python Console..."]["callback"]()
 
     def _emit_log_message(self, handler, record):
         """
