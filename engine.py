@@ -23,6 +23,9 @@ class DesktopEngine2(Engine):
 
     def post_app_init(self):
 
+        # switch to dark styles.
+        self._initialize_dark_look_and_feel()
+
         # test pop up the about app.
         print self.commands["Work Area Info..."]["callback"]()
 
