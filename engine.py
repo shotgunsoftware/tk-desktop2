@@ -20,7 +20,11 @@ class DesktopEngine2(Engine):
         """
         Main initialization entry point.
         """
-        print "helllo desktop2 init!"
+
+    def post_app_init(self):
+
+        # test pop up the about app.
+        print self.commands["Work Area Info..."]["callback"]()
 
     def _emit_log_message(self, handler, record):
         """
@@ -34,3 +38,4 @@ class DesktopEngine2(Engine):
 
         # display message
         print "Desktop engine: %s" % msg_str
+
