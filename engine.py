@@ -16,32 +16,21 @@ class DesktopEngine2(Engine):
     Shotgun Desktop v2 Engine
     """
 
-    def __init__(self, *args, **kwargs):
-        super(DesktopEngine2, self).__init__(*args, **kwargs)
-        self.host_name = ""
-        self.host_version = "0.0.0"
-
-    @property
-    def host_info(self):
+    def init_engine(self):
         """
-        Returns information about the application hosting this engine.
-
-        This should be re-implemented in deriving classes to handle the logic
-        specific to the application the engine is designed for.
-
-        A dictionary with at least a "name" and a "version" key should be returned
-        by derived implementations, with respectively the host application name
-        and its release string as values, e.g. { "name": "Maya", "version": "2017.3"}.
-
-        :returns: A {"name": "unknown", "version" : "unknown"} dictionary.
+        Main initialization entry point.
         """
-        return {
-            "name": self.host_name,
-            "version": self.host_version
-        }
+        print "helllo desktop2 init!"
 
-    @host_info.setter
-    def host_info(self, host_info):
-        name, version = host_info
-        self.host_name = name
-        self.host_version = version
+    def _emit_log_message(self, handler, record):
+        """
+        Called by the engine whenever a new log message is available. All log
+        messages from the toolkit logging namespace will be passed to this
+        method.
+        """
+
+        # call out to handler to format message in a standard way
+        msg_str = handler.format(record)
+
+        # display message
+        print "Desktop engine: %s" % msg_str
