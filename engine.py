@@ -8,6 +8,9 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import json
+import functools
+
 from sgtk.platform import Engine
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator
@@ -58,11 +61,43 @@ class DesktopEngine2(Engine):
         # import and keep a handle on the bundled python module
         self.__tk_desktop2 = self.import_module("tk_desktop2")
         self.__desktopserver = self.__tk_desktop2.desktopserver
-        self.__desktopserver.launch_desktop_server(
-            self._user.host,
-            self._current_login["id"],
-            parent=None,
+        # self.__desktopserver.launch_desktop_server(
+        #     self._user.host,
+        #     self._current_login["id"],
+        #     parent=None,
+        # )
+
+        from PySide2 import QtCore, QtNetwork, QtWebSockets
+        self._server = QtWebSockets.QWebSocketServer(
+            "toolkit",
+            QtWebSockets.QWebSocketServer.NonSecureMode,
         )
+        self._server.listen(QtNetwork.QHostAddress("ws://localhost"), 9000)
+        self._server.newConnection.connect(self._on_new_connection)
+
+    def _on_new_connection(self):
+        """
+
+        """
+        ws = self._server.nextPendingConnection()
+        self.logger.debug("New connection received: %r", ws)
+        ws.disconnected.connect(functools.partial(self._on_disconnect, ws))
+        ws.textMessageReceived.connect(functools.partial(self._on_message_received, ws))
+
+    def _on_disconnect(self, ws):
+        """
+
+        """
+        self.logger.debug("Websocket connection closed: %r", ws)
+
+    def _on_message_received(self, ws, message):
+        """
+
+        """
+        self.logger.debug("Message received: %s", message)
+        if message == "get_protocol_version":
+            self.logger.debug("Replying with protocol version 2.")
+            ws.sendTextMessage(json.dumps(dict(protocol_version=2)))
 
     def _emit_log_message(self, handler, record):
         """
