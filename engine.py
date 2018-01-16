@@ -11,11 +11,15 @@
 from sgtk.platform import Engine
 import sgtk
 
+logger = sgtk.LogManager.get_logger(__name__)
 
 class DesktopEngine2(Engine):
     """
     Shotgun Desktop v2 Engine
     """
+
+    # QObject name for the C++ application engine object
+    APPLICATION_ENGINE_OBJECT_NAME = "ApplicationEngine"
 
     def init_engine(self):
         """
@@ -27,23 +31,45 @@ class DesktopEngine2(Engine):
         # switch to dark styles.
         self._initialize_dark_look_and_feel()
 
-
-
         # test pop up the py console.
         # hack to get this to work due to weird error checks in py console...
         sgtk.platform.engine.g_current_engine = self
-        print self.commands["Shotgun Python Console..."]["callback"]()
+        self.commands["Shotgun Python Console..."]["callback"]()
 
-    def _emit_log_message(self, handler, record):
+    def _get_dialog_parent(self):
         """
-        Called by the engine whenever a new log message is available. All log
-        messages from the toolkit logging namespace will be passed to this
-        method.
+        Return the QWidget parent for all dialogs created through
+        show_dialog and show_modal.
+        """
+        # parenting logic is inside _create_dialog()
+        return None
+
+    def _create_dialog(self, title, bundle, widget, parent):
+        """
+        Create dialog and parent it to main window
         """
 
-        # call out to handler to format message in a standard way
-        msg_str = handler.format(record)
+        from sgtk.platform.qt import QtCore, QtGui
 
-        # display message
-        print "Desktop engine: %s" % msg_str
+        dialog = super(DesktopEngine2, self)._create_dialog(title, bundle, widget, parent)
+
+        logger.debug("Created dialog %s" % dialog)
+
+        application_engine = None
+        app = QtCore.QCoreApplication.instance()
+        for w in app.children():
+            if w.objectName() == self.APPLICATION_ENGINE_OBJECT_NAME:
+                application_engine = w
+                break
+
+        logger.debug("Found application engine %s" % application_engine)
+
+        if application_engine:
+            qml_main_window = application_engine.rootObjects()[0]
+            dialog.winId()
+            logger.debug("Parenting dialog %s to main window %s" % (dialog, qml_main_window))
+            dialog.windowHandle().setTransientParent(qml_main_window)
+
+        return dialog
+
 
