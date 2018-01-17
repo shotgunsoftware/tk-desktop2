@@ -8,12 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import json
-import functools
-
 from sgtk.platform import Engine
 import sgtk
-from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 logger = sgtk.LogManager.get_logger(__name__)
 
