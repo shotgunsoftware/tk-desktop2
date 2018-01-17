@@ -17,6 +17,7 @@ from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 logger = sgtk.LogManager.get_logger(__name__)
 
+
 class DesktopEngine2(Engine):
     """
     Shotgun Desktop v2 Engine
@@ -31,95 +32,53 @@ class DesktopEngine2(Engine):
         """
 
     def post_app_init(self):
-
+        """
+        Initialization that runs after all apps and the QT abstractions have been loaded.
+        """
         # switch to dark styles.
+        # TODO: Update/investigate general VMA stylying
         self._initialize_dark_look_and_feel()
 
-        # test pop up the py console.
+        # as a test pop up the py console.
         # hack to get this to work due to weird error checks in py console...
+        # TODO: Remove this once we have menu management going.
         sgtk.platform.engine.g_current_engine = self
         self.commands["Shotgun Python Console..."]["callback"]()
 
-        # We need to initialize current login
-        # We know for sure there is a default user, since either the migration was done
-        # or we logged in as an actual user with the new installer.
-        human_user = ShotgunAuthenticator(
-            # We don't want to get the script user, but the human user, so tell the
-            # CoreDefaultsManager manager that we are not interested in the script user. Do not use
-            # the regular shotgun_authentication.DefaultsManager to get this user because it will
-            # not know about proxy information.
-            sgtk.util.CoreDefaultsManager(mask_script_user=True)
-        ).get_default_user()
-        # Cache the user so we can refresh the credentials before launching a background process
-        self._user = human_user
-        # Retrieve the current logged in user information. This will be used when creating
-        # event log entries.
-        self._current_login = self.sgtk.shotgun.find_one(
-            "HumanUser",
-            [["login", "is", human_user.login]],
-            ["id", "login"]
-        )
-
-        # import and keep a handle on the bundled python module
-        self.__tk_desktop2 = self.import_module("tk_desktop2")
-        self.__desktopserver = self.__tk_desktop2.desktopserver
-        # self.__desktopserver.launch_desktop_server(
-        #     self._user.host,
-        #     self._current_login["id"],
-        #     parent=None,
-        # )
-
-        from PySide2 import QtCore, QtNetwork, QtWebSockets
-        self._server = QtWebSockets.QWebSocketServer(
-            "toolkit",
-            QtWebSockets.QWebSocketServer.NonSecureMode,
-        )
-        self._server.listen(QtNetwork.QHostAddress("ws://localhost"), 9000)
-        self._server.newConnection.connect(self._on_new_connection)
-
-    def _on_new_connection(self):
-        """
-
-        """
-        ws = self._server.nextPendingConnection()
-        self.logger.debug("New connection received: %r", ws)
-        ws.disconnected.connect(functools.partial(self._on_disconnect, ws))
-        ws.textMessageReceived.connect(functools.partial(self._on_message_received, ws))
-
-    def _on_disconnect(self, ws):
-        """
-
-        """
-        self.logger.debug("Websocket connection closed: %r", ws)
-
-    def _on_message_received(self, ws, message):
-        """
-
-        """
-        self.logger.debug("Message received: %s", message)
-        if message == "get_protocol_version":
-            self.logger.debug("Replying with protocol version 2.")
-            ws.sendTextMessage(json.dumps(dict(protocol_version=2)))
-
     def _get_dialog_parent(self):
         """
-        Return the QWidget parent for all dialogs created through
-        show_dialog and show_modal.
+        Window parenting - returns the QWidget parent to use
+        when creating a new toolkit dialog.
+
+        VMA implementation does nothing because host system is
+        QML based - logic for parenting can be found in _create_dialog().
         """
-        # parenting logic is inside _create_dialog()
         return None
 
     def _create_dialog(self, title, bundle, widget, parent):
         """
-        Create dialog and parent it to main window
-        """
+        Create dialog and parent it to main window.
 
+        Overridden from core implementation to handle QML based
+        window parenting.
+
+        :param title: The title of the window
+        :param bundle: The app, engine or framework object that is associated with this window
+        :param widget: A QWidget instance to be embedded in the newly created dialog.
+        :type widget: :class:`PySide.QtGui.QWidget`
+        """
         from sgtk.platform.qt import QtCore, QtGui
 
-        dialog = super(DesktopEngine2, self)._create_dialog(title, bundle, widget, parent)
+        dialog = super(DesktopEngine2, self)._create_dialog(
+            title,
+            bundle,
+            widget,
+            parent
+        )
 
         logger.debug("Created dialog %s" % dialog)
 
+        # TODO: validate implementation
         application_engine = None
         app = QtCore.QCoreApplication.instance()
         for w in app.children():
@@ -136,5 +95,4 @@ class DesktopEngine2(Engine):
             dialog.windowHandle().setTransientParent(qml_main_window)
 
         return dialog
-
 

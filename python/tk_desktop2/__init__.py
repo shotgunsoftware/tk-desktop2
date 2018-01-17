@@ -10,4 +10,3 @@
 
 import sgtk
 
-desktopserver = sgtk.platform.get_framework("tk-framework-desktopserver")

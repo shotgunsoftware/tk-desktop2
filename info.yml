@@ -26,5 +26,5 @@ requires_shotgun_version:
 requires_core_version: "v0.18.116"
 
 frameworks:
-  - {"name": "tk-framework-desktopserver", "version": "v1.x.x"}
+
 
