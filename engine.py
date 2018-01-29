@@ -18,9 +18,8 @@ class DesktopEngine2(Engine):
     """
     Shotgun Desktop v2 Engine
     """
-
-    # QObject name for the C++ application engine object
-    APPLICATION_ENGINE_OBJECT_NAME = "ApplicationEngine"
+    # QObject name for the C++ actions model
+    ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
 
     def init_engine(self):
         """
@@ -31,64 +30,41 @@ class DesktopEngine2(Engine):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
-        # switch to dark styles.
-        # TODO: Update/investigate general VMA stylying
-        self._initialize_dark_look_and_feel()
-
-        # as a test pop up the py console.
-        # hack to get this to work due to weird error checks in py console...
-        # TODO: Remove this once we have menu management going.
-        sgtk.platform.engine.g_current_engine = self
-        self.commands["Shotgun Python Console..."]["callback"]()
-
-    def _get_dialog_parent(self):
-        """
-        Window parenting - returns the QWidget parent to use
-        when creating a new toolkit dialog.
-
-        VMA implementation does nothing because host system is
-        QML based - logic for parenting can be found in _create_dialog().
-        """
-        return None
-
-    def _create_dialog(self, title, bundle, widget, parent):
-        """
-        Create dialog and parent it to main window.
-
-        Overridden from core implementation to handle QML based
-        window parenting.
-
-        :param title: The title of the window
-        :param bundle: The app, engine or framework object that is associated with this window
-        :param widget: A QWidget instance to be embedded in the newly created dialog.
-        :type widget: :class:`PySide.QtGui.QWidget`
-        """
         from sgtk.platform.qt import QtCore, QtGui
 
-        dialog = super(DesktopEngine2, self)._create_dialog(
-            title,
-            bundle,
-            widget,
-            parent
-        )
-
-        logger.debug("Created dialog %s" % dialog)
-
-        # TODO: validate implementation
-        application_engine = None
-        app = QtCore.QCoreApplication.instance()
-        for w in app.children():
-            if w.objectName() == self.APPLICATION_ENGINE_OBJECT_NAME:
-                application_engine = w
+        logger.debug("Attempting to bind against underlying C++ actions model...")
+        self._actions_model = None
+        for q_object in QtCore.QCoreApplication.instance().children():
+            if q_object.objectName() == self.ACTION_MODEL_OBJECT_NAME:
+                self._actions_model = q_object
+                logger.debug("Found actions model %s" % self._actions_model)
                 break
 
-        logger.debug("Found application engine %s" % application_engine)
+        if self._actions_model:
+            # install signals
+            self._actions_model.currentContextChanged.connect(self._populate_context_menu)
+            self._actions_model.actionTriggered.connect(self._execute_action)
+        else:
+            logger.error(
+                "Could not bind to actions model '%s'. "
+                "No actions will be rendered" % self.ACTION_MODEL_OBJECT_NAME
+            )
 
-        if application_engine:
-            qml_main_window = application_engine.rootObjects()[0]
-            dialog.winId()
-            logger.debug("Parenting dialog %s to main window %s" % (dialog, qml_main_window))
-            dialog.windowHandle().setTransientParent(qml_main_window)
+    def _populate_context_menu(self):
+        from sgtk.platform.qt import QtCore, QtGui
+        print "Context menu populate!"
+        self._actions_model.clear()
 
-        return dialog
+        for (command_name, command_data) in self.commands.iteritems():
+            print "parsing %s %s" % (command_name, command_data)
+            display_name = command_data["properties"].get("title") or command_name
+            tooltip = command_data["properties"].get("description") or ""
+            self._actions_model.appendAction(display_name, tooltip, command_name)
+
+    def _execute_action(self, path, action_id):
+        print "Trigger command: %s %s" % (path, action_id)
+
+        self.commands[action_id]["callback"]()
+
+
 
