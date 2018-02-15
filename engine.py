@@ -14,6 +14,8 @@ import time
 
 logger = sgtk.LogManager.get_logger(__name__)
 
+global SGTK_PLUGIN_CONSTANTS
+
 class DesktopEngine2(Engine):
     """
     Shotgun Desktop v2 Engine
@@ -21,11 +23,14 @@ class DesktopEngine2(Engine):
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
 
-    # the plugin id associated with this engine
-    PLUGIN_ID = "basic.desktop2"
-
+    # todo - these should really be passed down from the plugin
     # our engine name
     ENGINE_NAME = "tk-desktop2"
+    # configuration to load -- TODO - rename to tk-config-basic later on
+    BASE_CONFIG = "sgtk:descriptor:app_store?name=tk-config-basic2"
+    BASE_CONFIG = "sgtk:descriptor:dev?path=/Users/manne/Documents/work_dev/toolkit/tk-config-basic2"
+    # toolkit plugin id
+    PLUGIN_ID = "basic.desktop2"
 
     # how often we check if shotgun configs have changed
     CONFIG_CHECK_TIMEOUT_SECONDS = 30
@@ -36,6 +41,7 @@ class DesktopEngine2(Engine):
         """
         self._cached_configs = {}
         self._last_update_check = None
+        self._running_with_ui = False
 
     def post_app_init(self):
         """
@@ -44,104 +50,103 @@ class DesktopEngine2(Engine):
         from sgtk.platform.qt import QtCore, QtGui
 
         fw = self.frameworks["tk-framework-shotgunutils"]
-        multi_context = fw.import_module("multi_context")
+        external_config = fw.import_module("external_config")
         task_manager = fw.import_module("task_manager")
+        shotgun_globals = fw.import_module("shotgun_globals")
 
         qt_parent = QtCore.QCoreApplication.instance()
 
-        # create a background task manager
-        self._task_manager = task_manager.BackgroundTaskManager(
-            qt_parent,
-            start_processing=True,
-            max_threads=2
-        )
+        if qt_parent:
+            self._running_with_ui = True
 
-        self._initialize_dark_look_and_feel()
-
-        logger.debug("Attempting to bind against underlying C++ actions model...")
-        self._actions_model = None
-        self._command_handler = None
-
-        for q_object in QtCore.QCoreApplication.instance().children():
-            if q_object.objectName() == self.ACTION_MODEL_OBJECT_NAME:
-                self._actions_model = q_object
-                logger.debug("Found actions model %s" % self._actions_model)
-                break
-
-        if self._actions_model:
-            # install signals
-            self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
-            self._actions_model.actionTriggered.connect(self._execute_action)
-
-            self._command_handler = multi_context.CommandHandler(
-                self.PLUGIN_ID,
-                self._task_manager,
-                qt_parent
+            # create a background task manager
+            self._task_manager = task_manager.BackgroundTaskManager(
+                qt_parent,
+                start_processing=True,
+                max_threads=2
             )
-            self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
-            self._command_handler.configurations_changed.connect(self._on_configurations_changed)
 
-        else:
-            logger.error(
-                "Could not bind to actions model '%s'. "
-                "No actions will be rendered" % self.ACTION_MODEL_OBJECT_NAME
-            )
+            # set it up with the shotgun globals
+            shotgun_globals.register_bg_task_manager(self._task_manager)
+
+            # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
+            self._initialize_dark_look_and_feel()
+
+            logger.debug("Attempting to bind against underlying C++ actions model...")
+            self._actions_model = None
+            self._command_handler = None
+
+            for q_object in QtCore.QCoreApplication.instance().children():
+                if q_object.objectName() == self.ACTION_MODEL_OBJECT_NAME:
+                    self._actions_model = q_object
+                    logger.debug("Found actions model %s" % self._actions_model)
+                    break
+
+            if self._actions_model:
+                # install signals
+                self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
+                self._actions_model.actionTriggered.connect(self._execute_action)
+
+                self._command_handler = external_config.RemoteConfigurationLoader(
+                    self.PLUGIN_ID,
+                    self.BASE_CONFIG,
+                    self._task_manager,
+                    qt_parent
+                )
+                self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
+                self._command_handler.configurations_changed.connect(self._on_configurations_changed)
+
+            else:
+                logger.error(
+                    "Could not bind to actions model '%s'. "
+                    "No actions will be rendered" % self.ACTION_MODEL_OBJECT_NAME
+                )
 
 
     def _emit_log_message(self, handler, record):
         """
         Called by the engine whenever a new log message is available.
-        All log messages from the toolkit logging namespace will be passed to this method.
-
-        .. note:: To implement logging in your engine implementation, subclass
-                  this method and display the record in a suitable way - typically
-                  this means sending it to a built-in DCC console. In addition to this,
-                  ensure that your engine implementation *does not* subclass
-                  the (old) :meth:`Engine.log_debug`, :meth:`Engine.log_info` family
-                  of logging methods.
-
-                  For a consistent output, use the formatter that is associated with
-                  the log handler that is passed in. A basic implementation of
-                  this method could look like this::
-
-                      # call out to handler to format message in a standard way
-                      msg_str = handler.format(record)
-
-                      # display message
-                      print msg_str
-
-        .. warning:: This method may be executing called from worker threads. In DCC
-                     environments, where it is important that the console/logging output
-                     always happens in the main thread, it is recommended that you
-                     use the :meth:`async_execute_in_main_thread` to ensure that your
-                     logging code is writing to the DCC console in the main thread.
 
         :param handler: Log handler that this message was dispatched from
         :type handler: :class:`~python.logging.LogHandler`
         :param record: Std python logging record
         :type record: :class:`~python.logging.LogRecord`
         """
+        # TODO - a console setup is pending design in VMR
+        #        for now, just print to stdout
         print "[tk-desktop2] %s" % handler.format(record)
 
-
     def destroy_engine(self):
+        """
+        Engine shutdown
+        """
+        fw = self.frameworks["tk-framework-shotgunutils"]
+        shotgun_globals = fw.import_module("shotgun_globals")
 
         try:
+            if self._actions_model:
+                # make sure that we release signals from the C++ object
+                self._actions_model.currentEntityPathChanged.disconnect(self._populate_context_menu)
+                self._actions_model.actionTriggered.disconnect(self._execute_action)
+                self._actions_model = None
+
             if self._command_handler:
                 self._command_handler.shut_down()
 
             # shut down main threadpool
-            self._task_manager.shut_down()
+            if self._task_manager:
+                shotgun_globals.unregister_bg_task_manager(self._task_manager)
+                self._task_manager.shut_down()
 
         except Exception, e:
             self.log_exception("Error running Engine teardown logic")
 
-
-
     def _path_to_entity(self, path):
-
+        """
+        Converts a VMR path to shotgun entities
+        """
+        # TODO - replace with internal VMR conversion method
         # /projects/65/shots/862/tasks/568
-        logger.debug("path to entity: %s" % path)
         entity_type = "Task"
         project_id = int(path.split("/")[2])
         entity_id = int(path.split("/")[-1])
@@ -151,7 +156,7 @@ class DesktopEngine2(Engine):
         """
         Request to populate a context menu in viewmaster
         """
-        logger.debug("Viewmaster current entity path changed")
+        logger.debug("VMR current entity path changed to %s" % self._actions_model.currentEntityPath())
 
         from sgtk.platform.qt import QtCore, QtGui
 
@@ -159,7 +164,6 @@ class DesktopEngine2(Engine):
             self._actions_model.currentEntityPath()
         )
         self._actions_model.clear()
-        self._actions_model.appendAction("Loading Actions...", "", "_LOADING")
 
         if project_id in self._cached_configs:
             logger.debug("Configurations cached in memory.")
@@ -173,14 +177,21 @@ class DesktopEngine2(Engine):
                 self._command_handler.refresh()
 
             # populate items
-            logger.debug("Requesting actions.")
-            self._request_actions(self._cached_configs[project_id])
+            logger.debug("Requesting commands.")
+            for config in self._cached_configs[project_id]:
+                # this will emit _on_commands_loaded when a configuration has loaded
+                # todo: populate link entity type
+                config.request_commands(
+                    self.ENGINE_NAME,
+                    entity_type,
+                    entity_id,
+                    link_entity_type=None
+                )
 
         else:
             logger.debug("No configurations cached. Requesting load of configuration data for project %s" % project_id)
             # we don't have any confinguration objects cached yet.
             # request it - _on_configurations_loaded will triggered when configurations are loaded
-            self._actions_model.appendAction("Loading Actions...", "", "_LOADING")
             self._command_handler.request_configurations(project_id)
 
 
@@ -192,6 +203,7 @@ class DesktopEngine2(Engine):
         @return:
         """
         logger.debug("Configs loaded for project %s" % project_id)
+
         # cache our configs
         self._cached_configs[project_id] = configs
 
@@ -199,36 +211,39 @@ class DesktopEngine2(Engine):
         for config in configs:
             config.commands_loaded.connect(self._on_commands_loaded)
 
-        # and request actions to be loaded
-        self._request_actions(configs)
-
-
-    def _request_actions(self, configs):
-        """
-        Given a list of config objects, request commmands
-        @param configs:
-        @return:
-        """
-        (entity_type, entity_id, project_id) = self._path_to_entity(
+        # and request commands to be loaded
+        (entity_type, entity_id, curr_project_id) = self._path_to_entity(
             self._actions_model.currentEntityPath()
         )
 
-        self._actions_model.clear()
-        self._actions_model.appendAction("reload code", "", "_RELOAD")
-        self._actions_model.appendAction("Loading Actions...", "", "_LOADING")
-        for config in configs:
-            config.request_commands(self.ENGINE_NAME, entity_type, entity_id, link_entity_type=None)
+        # make sure that the user hasn't switched to a different item
+        # while things were loading
+        if curr_project_id == project_id:
+            self._actions_model.clear()
+            self._actions_model.appendAction("Loading actions...", "", "_LOADING")
+            for config in configs:
+                # this will emit _on_commands_loaded when a configuration has loaded
+                config.request_commands(self.ENGINE_NAME, entity_type, entity_id, link_entity_type=None)
 
     def _on_commands_loaded(self, commands):
-        logger.error("COMMANDSLODED")
-        self._actions_model.appendAction("COMMAND", "", "_RELOAD")
+        """
+        Commands loaded for a configuration
+        """
+        # todo - don't clear when we have multiple configs coming in.
+        self._actions_model.clear()
+        self._actions_model.appendAction(u"Reload Code \U0001F60E", "", "_RELOAD")
+        for command in commands:
+            self._actions_model.appendAction(
+                command.display_name,
+                command.tooltip,
+                command.to_string()
+            )
 
     def _on_configurations_changed(self):
         """
         indicates that the state of shotgun has changed
         """
-        logger.debug(">>>> SHOTGUN CNFIG CHANGE DETECTED!")
-        # clear our cache
+        # our cached configuration objects are no longer valid
         self._cached_configs = {}
 
         # load in new configurations for current project
@@ -238,23 +253,20 @@ class DesktopEngine2(Engine):
         # reload our configurations - _on_configurations_loaded will triggered when configurations are loaded
         self._command_handler.request_configurations(project_id)
 
-    def _execute_action(self, path, action_id):
+    def _execute_action(self, path, action_str):
         """
         Triggered from the engine when a user clicks an action
         @param path:
         @param action_id:
         @return:
         """
-        logger.debug("Trigger command: %s %s" % (path, action_id))
+        logger.debug("Trigger command: %s" % path)
 
-        if action_id == "_RELOAD":
+        if action_str == "_RELOAD":
             sgtk.platform.restart()
 
         else:
-            (entity_type, entity_id, project_id) = self._path_to_entity(path)
-            self._command_handler.execute_command(
-                "tk-desktop2",
-                entity_type,
-                entity_id,
-                action_id
-            )
+            external_config = self.frameworks["tk-framework-shotgunutils"].import_module("external_config")
+            action = external_config.RemoteCommand.from_string(action_str)
+            action.execute()
+
