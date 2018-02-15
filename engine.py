@@ -57,46 +57,45 @@ class DesktopEngine2(Engine):
 
         qt_parent = QtCore.QCoreApplication.instance()
 
-        if qt_parent:
-            self._running_with_ui = True
+        self._running_with_ui = True
 
-            # create a background task manager
-            self._task_manager = task_manager.BackgroundTaskManager(
-                qt_parent,
-                start_processing=True,
-                max_threads=2
+        # create a background task manager
+        self._task_manager = task_manager.BackgroundTaskManager(
+            qt_parent,
+            start_processing=True,
+            max_threads=2
+        )
+
+        # set it up with the shotgun globals
+        shotgun_globals.register_bg_task_manager(self._task_manager)
+
+        # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
+        self._initialize_dark_look_and_feel()
+
+        try:
+            logger.debug("Attempting to bind against underlying C++ actions model...")
+            self._actions_model = self._get_action_model()
+        except RuntimeError:
+            logger.error(
+                "Could not retrieve internal ActionModel interface. "
+                "No actions will be displayed."
             )
+            self._actions_model = None
+            self._command_handler = None
+        else:
+            # install signals from actions model
+            self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
+            self._actions_model.actionTriggered.connect(self._execute_action)
 
-            # set it up with the shotgun globals
-            shotgun_globals.register_bg_task_manager(self._task_manager)
-
-            # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
-            self._initialize_dark_look_and_feel()
-
-            try:
-                logger.debug("Attempting to bind against underlying C++ actions model...")
-                self._actions_model = self._get_action_model()
-            except RuntimeError:
-                logger.error(
-                    "Could not retrieve internal ActionModel interface. "
-                    "No actions will be displayed."
-                )
-                self._actions_model = None
-                self._command_handler = None
-            else:
-                # install signals from actions model
-                self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
-                self._actions_model.actionTriggered.connect(self._execute_action)
-
-                # hook up remote configuration loader
-                self._command_handler = external_config.RemoteConfigurationLoader(
-                    self.PLUGIN_ID,
-                    self.BASE_CONFIG,
-                    self._task_manager,
-                    qt_parent
-                )
-                self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
-                self._command_handler.configurations_changed.connect(self._on_configurations_changed)
+            # hook up remote configuration loader
+            self._command_handler = external_config.RemoteConfigurationLoader(
+                self.PLUGIN_ID,
+                self.BASE_CONFIG,
+                self._task_manager,
+                qt_parent
+            )
+            self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
+            self._command_handler.configurations_changed.connect(self._on_configurations_changed)
 
     def _get_action_model(self):
         """
