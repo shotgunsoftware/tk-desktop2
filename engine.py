@@ -133,7 +133,7 @@ class DesktopEngine2(Engine):
             if self._command_handler:
                 self._command_handler.shut_down()
 
-            # shut down main threadpool
+            # shut down main thread pool
             if self._task_manager:
                 shotgun_globals.unregister_bg_task_manager(self._task_manager)
                 self._task_manager.shut_down()
@@ -177,23 +177,13 @@ class DesktopEngine2(Engine):
                 self._command_handler.refresh()
 
             # populate items
-            logger.debug("Requesting commands.")
-            for config in self._cached_configs[project_id]:
-                # this will emit _on_commands_loaded when a configuration has loaded
-                # todo: populate link entity type
-                config.request_commands(
-                    self.ENGINE_NAME,
-                    entity_type,
-                    entity_id,
-                    link_entity_type=None
-                )
+            self._request_commands(project_id, entity_type, entity_id)
 
         else:
             logger.debug("No configurations cached. Requesting load of configuration data for project %s" % project_id)
             # we don't have any confinguration objects cached yet.
             # request it - _on_configurations_loaded will triggered when configurations are loaded
             self._command_handler.request_configurations(project_id)
-
 
     def _on_configurations_loaded(self, project_id, configs):
         """
@@ -219,11 +209,20 @@ class DesktopEngine2(Engine):
         # make sure that the user hasn't switched to a different item
         # while things were loading
         if curr_project_id == project_id:
-            self._actions_model.clear()
-            self._actions_model.appendAction("Loading actions...", "", "_LOADING")
-            for config in configs:
-                # this will emit _on_commands_loaded when a configuration has loaded
-                config.request_commands(self.ENGINE_NAME, entity_type, entity_id, link_entity_type=None)
+            self._request_commands(project_id, entity_type, entity_id)
+
+    def _request_commands(self, project_id, entity_type, entity_id):
+
+        logger.debug("Requesting commands.")
+        self._actions_model.clear()
+        self._actions_model.appendAction("Loading actions...", "", "_LOADING")
+        for config in self._cached_configs[project_id]:
+            config.request_commands(
+                self.ENGINE_NAME,
+                entity_type,
+                entity_id,
+                link_entity_type=None  #todo: <-- fix
+            )
 
     def _on_commands_loaded(self, commands):
         """
