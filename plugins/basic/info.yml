@@ -22,8 +22,8 @@ base_configuration:
   # always use the latest version available, simply omit the version token.
   # type: app_store
   # name: tk-config-basic
-  type: baked
-  path: /git/tk-config-basic2
+  type: git
+  path: git@github.com:/shotgunsoftware/tk-config-basic2.git
 
 # The Plugin Id helps uniquely identify this plugin and can be
 # used to override and customize it. For more information, see
