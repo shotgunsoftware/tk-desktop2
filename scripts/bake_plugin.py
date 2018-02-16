@@ -18,9 +18,26 @@ import tempfile
 import shutil
 import subprocess
 
+_DESC = """
+Bake a plugin with an immutable config allowing it to be released with an external
+standalone application. This script ensures that the config descriptor associated
+with the plugin is turned into a 'baked' descriptor prior to building the plugin.
+If no explicit version is specified in the config descriptor, the latest one is
+retrieved before baking.
+"""
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(asctime)s %(funcName)s: %(message)s")
 
 def bake_plugin(plugin_name, tk_core_path, output_path, debug=False):
+    """
+    Bake the given plugin with the given tk-core.
+
+    :param str plugin_name: The name of the plugin to bake.
+    :param str tk_core_path: Full path to a tk-core copy.
+    :param str output_path: Output path for the baked plugin.
+    :param bool debug: Whether or not debug messages should be issued.
+    :raises: ValueError if provided values are not correct.
+    """
     if debug:
         logging.setLevel(logging.DEBUG)
     logging.info("Baking plugin %s" % plugin_name)
@@ -43,7 +60,7 @@ def bake_plugin(plugin_name, tk_core_path, output_path, debug=False):
 
     import sgtk
     from tank_vendor import yaml
-    from tank.descriptor import Descriptor, descriptor_uri_to_dict, descriptor_dict_to_uri
+    from tank.descriptor import Descriptor, descriptor_uri_to_dict
     from tank.bootstrap import constants as bootstrap_constants
     from tank.descriptor import create_descriptor
 
@@ -57,19 +74,16 @@ def bake_plugin(plugin_name, tk_core_path, output_path, debug=False):
         )
     if isinstance(base_config_def, str):
         # convert to dict so we can introspect
-        base_config_uri_dict = descriptor_uri_to_dict(base_config_def)
-        base_config_uri_str = base_config_def
-    else:
-        base_config_uri_dict = base_config_def
-        base_config_uri_str = descriptor_dict_to_uri(base_config_def)
-    logging.info(base_config_uri_dict)
+        base_config_def = descriptor_uri_to_dict(base_config_def)
+
+    logging.info("Resolving and baking %s" % base_config_def)
     # Check the config required by the plugin, and turn it into a baked one.
-    if base_config_uri_dict["type"] != bootstrap_constants.BAKED_DESCRIPTOR_TYPE:
+    if base_config_def["type"] != bootstrap_constants.BAKED_DESCRIPTOR_TYPE:
         cfg_descriptor = create_descriptor(
             None,
             Descriptor.CONFIG,
-            base_config_uri_dict,
-            resolve_latest=bool("version" not in base_config_uri_dict)
+            base_config_def,
+            resolve_latest=bool("version" not in base_config_def)
         )
         cfg_descriptor.ensure_local()
         local_path = cfg_descriptor.get_path()
@@ -80,12 +94,11 @@ def bake_plugin(plugin_name, tk_core_path, output_path, debug=False):
             "path": local_path
         }
         manifest_data["base_configuration"] = baked_descriptor
-        logging.info(manifest_data)
     try:
         temp_dir = tempfile.mkdtemp(suffix="tk-desktop2")
         temp_plugin_path = os.path.join(temp_dir, plugin_name)
         shutil.copytree(plugin_path, temp_plugin_path)
-        logging.info("%s" % temp_dir)
+        logging.info("Saving baked manifest data %s" % manifest_data )
         # Save the manifest file with a baked config.
         with open(os.path.join(temp_plugin_path, "info.yml"), "w") as pf:
             yaml.dump(manifest_data, pf)
@@ -96,21 +109,33 @@ def bake_plugin(plugin_name, tk_core_path, output_path, debug=False):
             temp_plugin_path,
             output_path,
         ]
+        if debug:
+            bake_cmd.append("-d")
         logging.info("Running %s" % " ".join(bake_cmd))
         subprocess.check_call(bake_cmd)
     finally:
-        pass
+        try:
+            logging.info("Cleaning up temp folder...")
+            shutil.rmtree(temp_dir)
+        except:
+            pass
 
 def main():
-    usage = "usage: %prog [options]"
-    parser = OptionParser(usage=usage)
+    """
+    Parse options and bake a plugin.
+    """
+    parser = OptionParser(
+        description=_DESC,
+        usage="usage: %prog [options]"
+    )
 
     parser.add_option(
         "-t",
         "--tk-core",
         default=os.environ.get("TK_CORE_PATH"),
         dest="tk_core_path",
-        help="Full path to a tk-core folder"
+        help="Full path to a tk-core folder, the TK_CORE_PATH environment variable"
+             " is used if omitted."
     )
     parser.add_option(
         "-o",
@@ -122,7 +147,7 @@ def main():
         "-p",
         "--plugin",
         default="basic",
-        help="The plugin to bake"
+        help="The plugin to bake, 'basic' by default"
     )
 
     parser.add_option(
@@ -137,7 +162,7 @@ def main():
     if not options.output_path:
         parser.error("An output path is required")
     if not options.tk_core_path:
-        parser.error("A path to tk-core is needed")
+        parser.error("A path to a tk-core copy is needed")
     # Let's cook it!
     bake_plugin(
         options.plugin,
@@ -147,5 +172,6 @@ def main():
 
 if __name__ == "__main__":
     """
+    Main entry point.
     """
     main()
