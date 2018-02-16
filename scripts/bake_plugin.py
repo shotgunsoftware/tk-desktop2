@@ -17,6 +17,7 @@ import logging
 import tempfile
 import shutil
 import subprocess
+import glob
 
 _DESC = """
 Bake a plugin with an immutable config allowing it to be released with an external
@@ -113,6 +114,16 @@ def bake_plugin(plugin_name, tk_core_path, output_path, debug=False):
             bake_cmd.append("-d")
         logging.info("Running %s" % " ".join(bake_cmd))
         subprocess.check_call(bake_cmd)
+        # Workaround for tk-core needing a shotgun.yml file to bootstrap.
+        caches_out = glob.glob(os.path.join(
+            output_path,
+            "bundle_cache/baked/tk-config-plugin/*/config/core"
+        ))
+        for cache_out in caches_out:
+            if not os.path.exists(os.path.join(cache_out, "shotgun.yml")):
+                logging.info("Patching %s" % cache_out)
+                with open(os.path.join(cache_out, "shotgun.yml"), "w") as pf:
+                    pf.write("#Workaround for tk-core bootstrap\nhost: dummy")
     finally:
         try:
             logging.info("Cleaning up temp folder...")
