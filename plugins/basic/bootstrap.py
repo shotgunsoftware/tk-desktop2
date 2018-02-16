@@ -17,8 +17,6 @@ import sgtk
 def bootstrap_plugin():
     """
     Bootstrap this plugin.
-
-    :param str plugin_root_dir:
     """
     # Initialize logging to disk
     sgtk.LogManager().initialize_base_file_handler("tk-desktop2")
