@@ -29,7 +29,7 @@ class DesktopEngine2(Engine):
     # Engine instance name
     ENGINE_NAME = "tk-desktop2"
     # Configuration to load
-    BASE_CONFIG = "sgtk:descriptor:app_store?name=tk-config-basic2"  # TODO - rename to tk-config-basic
+    BASE_CONFIG = "sgtk:descriptor:app_store?name=tk-config-basic2"  # TODO - Rename to tk-config-basic
     # Toolkit plugin id
     PLUGIN_ID = "basic.desktop2"
 
@@ -39,8 +39,8 @@ class DesktopEngine2(Engine):
         """
         # list of cached configuration objects, keyed by projet id
         self._cached_configs = {}
-        # last time stamp we checked for new configs.
-        self._last_update_check = None
+        # last time stamp we checked for new configs (unix time)
+        self._last_update_check = 0
         # flag to indicate that the engine is running
         self._running_with_ui = False
 
@@ -55,47 +55,49 @@ class DesktopEngine2(Engine):
         task_manager = fw.import_module("task_manager")
         shotgun_globals = fw.import_module("shotgun_globals")
 
+        self._actions_model = None
+        self._command_handler = None
+        self._task_manager = None
+
         qt_parent = QtCore.QCoreApplication.instance()
+        if qt_parent:
+            self._running_with_ui = True
 
-        self._running_with_ui = True
-
-        # create a background task manager
-        self._task_manager = task_manager.BackgroundTaskManager(
-            qt_parent,
-            start_processing=True,
-            max_threads=2
-        )
-
-        # set it up with the shotgun globals
-        shotgun_globals.register_bg_task_manager(self._task_manager)
-
-        # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
-        self._initialize_dark_look_and_feel()
-
-        try:
-            logger.debug("Attempting to bind against underlying C++ actions model...")
-            self._actions_model = self._get_action_model()
-        except RuntimeError:
-            logger.error(
-                "Could not retrieve internal ActionModel interface. "
-                "No actions will be displayed."
+            # create a background task manager
+            self._task_manager = task_manager.BackgroundTaskManager(
+                qt_parent,
+                start_processing=True,
+                max_threads=2
             )
-            self._actions_model = None
-            self._command_handler = None
-        else:
-            # install signals from actions model
-            self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
-            self._actions_model.actionTriggered.connect(self._execute_action)
 
-            # hook up remote configuration loader
-            self._command_handler = external_config.RemoteConfigurationLoader(
-                self.PLUGIN_ID,
-                self.BASE_CONFIG,
-                self._task_manager,
-                qt_parent
-            )
-            self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
-            self._command_handler.configurations_changed.connect(self._on_configurations_changed)
+            # set it up with the shotgun globals
+            shotgun_globals.register_bg_task_manager(self._task_manager)
+
+            # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
+            self._initialize_dark_look_and_feel()
+
+            try:
+                logger.debug("Attempting to bind against underlying C++ actions model...")
+                self._actions_model = self._get_action_model()
+            except RuntimeError:
+                logger.error(
+                    "Could not retrieve internal ActionModel interface. "
+                    "No actions will be displayed."
+                )
+            else:
+                # install signals from actions model
+                self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
+                self._actions_model.actionTriggered.connect(self._execute_action)
+
+                # hook up remote configuration loader
+                self._command_handler = external_config.RemoteConfigurationLoader(
+                    self.PLUGIN_ID,
+                    self.BASE_CONFIG,
+                    self._task_manager,
+                    qt_parent
+                )
+                self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
+                self._command_handler.configurations_changed.connect(self._on_configurations_changed)
 
     def _get_action_model(self):
         """
@@ -172,6 +174,7 @@ class DesktopEngine2(Engine):
         entity_id = int(path.split("/")[-1])
         return entity_type, entity_id, project_id
 
+
     def _populate_context_menu(self):
         """
         Populate the actions model with items suitable for the
@@ -187,10 +190,12 @@ class DesktopEngine2(Engine):
         """
         logger.debug("Requesting commands for %s" % self._actions_model.currentEntityPath())
 
+        # clear loading indicator
+        self._actions_model.clear()
+
         (entity_type, entity_id, project_id) = self._path_to_entity(
             self._actions_model.currentEntityPath()
         )
-        self._actions_model.clear()
 
         if project_id in self._cached_configs:
             logger.debug("Configurations cached in memory.")
@@ -243,21 +248,24 @@ class DesktopEngine2(Engine):
         logger.debug("Configs loaded for project %s" % project_id)
 
         # cache our configs
-        self._cached_configs[project_id] = configs
+        if configs and len(configs) > 0:
+            self._cached_configs[project_id] = configs
 
-        # wire up signals from our cached command objects
-        for config in configs:
-            config.commands_loaded.connect(self._on_commands_loaded)
+            # wire up signals from our cached command objects
+            for config in configs:
+                config.commands_loaded.connect(self._on_commands_loaded)
 
-        # and request commands to be loaded
+            # and request commands to be loaded
+            # make sure that the user hasn't switched to a different item
+            # while things were loading
+            (entity_type, entity_id, curr_project_id) = self._path_to_entity(
+                self._actions_model.currentEntityPath()
+            )
+            if curr_project_id == project_id:
+                self._request_commands(project_id, entity_type, entity_id)
 
-        # make sure that the user hasn't switched to a different item
-        # while things were loading
-        (entity_type, entity_id, curr_project_id) = self._path_to_entity(
-            self._actions_model.currentEntityPath()
-        )
-        if curr_project_id == project_id:
-            self._request_commands(project_id, entity_type, entity_id)
+        else:
+            logger.debug("No configuration associated with project id %s" % project_id)
 
     def _request_commands(self, project_id, entity_type, entity_id):
         """
@@ -273,10 +281,11 @@ class DesktopEngine2(Engine):
         logger.debug(
             "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
         )
-        # set up a placeholder in the context model
-        self._actions_model.clear()
-        self._actions_model.appendAction("Loading actions...", "", "_LOADING")
         for config in self._cached_configs[project_id]:
+
+            # indicate that we are loading data for this config
+            self._add_config_loading_state(config)
+
             config.request_commands(
                 self.ENGINE_NAME,
                 entity_type,
@@ -284,32 +293,35 @@ class DesktopEngine2(Engine):
                 link_entity_type=None  # TODO: <-- fix
             )
 
-    def _on_commands_loaded(self, commands):
+    def _on_commands_loaded(self, config, commands):
         """
         Called when commands have been loaded for a given configuration.
 
         Note that this may be called several times for a project, if the project
         has got several pipeline configurations (for example dev sandboxes).
 
+        :param config: Associated RemoteConfiguration instance
         :param list commands: List of RemoteCommand instances.
         """
-        # TODO - don't clear when we have multiple configs coming in.
-        self._actions_model.clear()
-
-        # this is *very* helpful :-)
-        # TODO: remove at some point
-        self._actions_model.appendAction(u"Reload Code \U0001F60E", "", "_RELOAD")
-
         for command in commands:
             # populate the actions model with actions.
             # serialize the remote command object so we can
             # unfold it at a later point without having to
             # retain any internal state
+            if config.is_primary:
+                display_name = command.display_name
+            else:
+                display_name = "%s: %s" % (config.pipeline_configuration_name, command.display_name)
+
             self._actions_model.appendAction(
-                command.display_name,
+                display_name,
                 command.tooltip,
                 command.to_string()
             )
+
+        # first remove any loading message associated with this batch
+        self._remove_config_loading_state(config)
+        self._actions_model.appendAction("Reload Code", "", "_RELOAD")
 
     def _execute_action(self, path, action_str):
         """
@@ -321,9 +333,36 @@ class DesktopEngine2(Engine):
         if action_str == "_RELOAD":
             sgtk.platform.restart()
 
-        else:
+        elif action_str != "":
             # deserialize and execute
             external_config = self.frameworks["tk-framework-shotgunutils"].import_module("external_config")
             action = external_config.RemoteCommand.from_string(action_str)
             action.execute()
 
+    def _add_config_loading_state(self, configuration):
+        """
+        Adds a loading message for the given config.
+        """
+        if configuration.is_primary:
+            self._actions_model.appendAction("Loading...", "", "")
+        else:
+            self._actions_model.appendAction(
+                "%s: Loading..." % configuration.pipeline_configuration_name, "", ""
+            )
+
+    def _remove_config_loading_state(self, configuration):
+        """
+        Removes a loading message for the given config.
+        """
+        if configuration.is_primary:
+            label = "Loading..."
+        else:
+            label = "%s: Loading..." % configuration.pipeline_configuration_name
+
+        root_item = self._actions_model.invisibleRootItem()
+        for idx in range(self._actions_model.rowCount()):
+            item = self._actions_model.item(idx)
+            if item.text() == label:
+                # remove it
+                root_item.takeRow(idx)
+                break
