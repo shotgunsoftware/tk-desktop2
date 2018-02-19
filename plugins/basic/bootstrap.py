@@ -14,19 +14,21 @@ import imp
 import uuid
 import sgtk
 
+ENGINE_NAME = "tk-desktop2"
+
 def bootstrap_plugin():
     """
     Bootstrap this plugin.
     """
     # Initialize logging to disk
-    sgtk.LogManager().initialize_base_file_handler("tk-desktop2")
+    sgtk.LogManager().initialize_base_file_handler(ENGINE_NAME)
     sgtk.LogManager().global_debug = True #manifest.debug_logging
 
     # log to stderr
     sgtk.LogManager().initialize_custom_handler()
 
     logger = sgtk.LogManager.get_logger("bootstrap")
-    logger.info("Bootstrapping tk-desktop2...")
+    logger.debug("Bootstrapping %s..." % ENGINE_NAME)
 
     # Figure out our location
     plugin_root_dir = os.path.abspath(os.path.dirname(__file__))
@@ -66,8 +68,8 @@ def bootstrap_plugin():
     manifest.initialize_manager(manager, plugin_root_dir)
 
     # start up in site mode.
-    engine = manager.bootstrap_engine("tk-desktop2", entity=None)
-    logger.info("tk-desktop2 is ready.")
+    engine = manager.bootstrap_engine(ENGINE_NAME, entity=None)
+    logger.debug("%s is ready." % engine.name)
 
 if __name__ == "__main__":
     bootstrap_plugin()
