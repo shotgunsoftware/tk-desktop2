@@ -11,20 +11,21 @@
 import sys
 import os
 import imp
-import uuid
 import sgtk
 
 ENGINE_NAME = "tk-desktop2"
 
-def bootstrap_plugin():
+def bootstrap_plugin(global_debug=True):
     """
     Bootstrap this plugin.
+
+    :param bool global_debug: Whether or not Sgtk global debug should be activated.
     """
     # Initialize logging to disk
     sgtk.LogManager().initialize_base_file_handler(ENGINE_NAME)
-    sgtk.LogManager().global_debug = True #manifest.debug_logging
+    sgtk.LogManager().global_debug = global_debug
 
-    # log to stderr
+    # Log to stderr
     sgtk.LogManager().initialize_custom_handler()
 
     logger = sgtk.LogManager.get_logger("bootstrap")
@@ -35,7 +36,10 @@ def bootstrap_plugin():
     plugin_python_path = os.path.join(plugin_root_dir, "python")
 
     # As a baked plugin we do have manifest.py we can use to bootstrap.
-    # Import it.
+
+    # Instead of adding an extra path in the PYTHONPATH to be able to load the
+    # manifest module and clean up the PYTHONPATH up after the import, we use
+    # `imp` utilities to load the manifest module.
     try:
         mfile, pathname, description = imp.find_module(
             "sgtk_plugin_basic_desktop2", [plugin_python_path]
@@ -46,12 +50,9 @@ def bootstrap_plugin():
         )
         raise
 
-    # We use a uuid to make sure the code imported here will not conflict with
-    # other plugins
-    module_uid = "bootstrap%s" % uuid.uuid4().hex
     try:
         sgtk_plugin_basic_desktop2 = imp.load_module(
-            "%s.%s" % (module_uid, "sgtk_plugin_basic_desktop2"),
+            "sgtk_plugin_basic_desktop2",
             mfile,
             pathname,
             description
