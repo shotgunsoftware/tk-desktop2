@@ -11,6 +11,8 @@
 from sgtk.platform import Engine
 import sgtk
 import time
+import os
+import sys
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -91,6 +93,8 @@ class DesktopEngine2(Engine):
 
                 # hook up remote configuration loader
                 self._command_handler = external_config.RemoteConfigurationLoader(
+                    self._get_python_interpreter_path(),
+                    self.ENGINE_NAME,
                     self.PLUGIN_ID,
                     self.BASE_CONFIG,
                     self._task_manager,
@@ -174,6 +178,18 @@ class DesktopEngine2(Engine):
         entity_id = int(path.split("/")[-1])
         return entity_type, entity_id, project_id
 
+    def _get_python_interpreter_path(self):
+        """
+        Returns the path to the desktop2 python interpreter
+
+        :returns: Path to python
+        """
+        if sys.platform == "darwin":
+            return os.path.join(sys.prefix, "bin", "python")
+        if sys.platform == "win32":
+            return os.path.join(sys.prefix, "python.exe")
+        else:
+            return os.path.join(sys.prefix, "bin", "python")
 
     def _populate_context_menu(self):
         """
@@ -217,6 +233,7 @@ class DesktopEngine2(Engine):
             logger.debug("No configurations cached. Requesting load of configuration data for project %s" % project_id)
             # we don't have any configuration objects cached yet.
             # request it - _on_configurations_loaded will triggered when configurations are loaded
+            self._actions_model.appendAction("Loading Configurations...", "", "")
             self._command_handler.request_configurations(project_id)
 
     def _on_configurations_changed(self):
@@ -245,7 +262,10 @@ class DesktopEngine2(Engine):
         :param list configs: List of RemoteConfiguration instances belonging to the
             project_id.
         """
-        logger.debug("Configs loaded for project %s" % project_id)
+        logger.debug("New configs loaded for project %s" % project_id)
+
+        # clear any loading indication
+        self._actions_model.clear()
 
         # cache our configs
         if configs and len(configs) > 0:
@@ -287,7 +307,6 @@ class DesktopEngine2(Engine):
             self._add_config_loading_state(config)
 
             config.request_commands(
-                self.ENGINE_NAME,
                 entity_type,
                 entity_id,
                 link_entity_type=None  # TODO: <-- fix
@@ -303,6 +322,8 @@ class DesktopEngine2(Engine):
         :param config: Associated RemoteConfiguration instance
         :param list commands: List of RemoteCommand instances.
         """
+        # TODO - don't populate if the current context for the action model has changed.
+
         for command in commands:
             # populate the actions model with actions.
             # serialize the remote command object so we can
