@@ -45,6 +45,7 @@ class DesktopEngine2(Engine):
         # last time stamp we checked for new configs (unix time)
         self._last_update_check = 0
         # flag to indicate that the engine is running
+        # TODO - will be replaced with better solution once we have QT support in VMR python.
         self._running_with_ui = False
 
     def post_app_init(self):
@@ -62,6 +63,7 @@ class DesktopEngine2(Engine):
         self._command_handler = None
         self._task_manager = None
 
+        # todo - once we have QT support in VMR python this will go away
         qt_parent = QtCore.QCoreApplication.instance()
         if qt_parent:
             self._running_with_ui = True
