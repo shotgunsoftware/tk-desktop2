@@ -11,6 +11,7 @@
 from sgtk.platform import Engine
 import sgtk
 import time
+import threading
 import os
 import sys
 
@@ -358,7 +359,13 @@ class DesktopEngine2(Engine):
             # deserialize and execute
             external_config = self.frameworks["tk-framework-shotgunutils"].import_module("external_config")
             action = external_config.RemoteCommand.from_string(action_str)
-            action.execute()
+
+            class Worker(threading.Thread):
+                def run(self):
+                    action.execute()
+
+            worker = Worker()
+            worker.start()
 
     def _add_config_loading_state(self, configuration):
         """
