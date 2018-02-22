@@ -114,6 +114,12 @@ class DesktopEngine2(Engine):
         :raises: RuntimeError if not found
         """
         from sgtk.platform.qt import QtCore, QtGui
+
+        # TODO - this will change when we have more of an interface
+        # in place on the C++ side as part of the toolkit baked bundling.
+        if QtCore.QCoreApplication.instance() is None:
+            raise RuntimeError("No QApplication found!")
+
         for q_object in QtCore.QCoreApplication.instance().children():
             if q_object.objectName() == self.ACTION_MODEL_OBJECT_NAME:
                 return q_object
@@ -160,10 +166,10 @@ class DesktopEngine2(Engine):
                 shotgun_globals.unregister_bg_task_manager(self._task_manager)
                 self._task_manager.shut_down()
 
-        except Exception, e:
-            self.log_exception("Error running engine teardown logic")
-        else:
             logger.debug("Engine shutdown complete.")
+
+        except Exception as e:
+            self.log_exception("Error running engine teardown logic")
 
     def _path_to_entity(self, path):
         """
@@ -187,8 +193,6 @@ class DesktopEngine2(Engine):
 
         :returns: Path to python
         """
-        if sys.platform == "darwin":
-            return os.path.join(sys.prefix, "bin", "python")
         if sys.platform == "win32":
             return os.path.join(sys.prefix, "python.exe")
         else:
@@ -221,7 +225,7 @@ class DesktopEngine2(Engine):
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
             cache_out_of_date = (time.time() - self._last_update_check) > self.CONFIG_CHECK_TIMEOUT_SECONDS
-            if self._last_update_check is None or cache_out_of_date:
+            if cache_out_of_date:
                 # time to check with Shotgun if there are updates
                 logger.debug("Requesting a check to see if any changes have happened in Shotgun.")
                 self._last_update_check = time.time()
