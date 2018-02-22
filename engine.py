@@ -78,7 +78,7 @@ class DesktopEngine2(Engine):
             # set it up with the Shotgun globals
             shotgun_globals.register_bg_task_manager(self._task_manager)
 
-            # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
+            # todo - need to revisit this and set up a proper dark theme for VMR internally.
             self._initialize_dark_look_and_feel()
 
             try:
