@@ -60,7 +60,7 @@ class DesktopEngine2(Engine):
         shotgun_globals = fw.import_module("shotgun_globals")
 
         self._actions_model = None
-        self._command_handler = None
+        self._config_loader = None
         self._task_manager = None
 
         # todo - once we have QT support in VMR python this will go away
@@ -94,8 +94,8 @@ class DesktopEngine2(Engine):
                 self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
                 self._actions_model.actionTriggered.connect(self._execute_action)
 
-                # hook up remote configuration loader
-                self._command_handler = external_config.RemoteConfigurationLoader(
+                # hook up external configuration loader
+                self._config_loader = external_config.ExternalConfigurationLoader(
                     self._get_python_interpreter_path(),
                     self.ENGINE_NAME,
                     self.PLUGIN_ID,
@@ -103,8 +103,8 @@ class DesktopEngine2(Engine):
                     self._task_manager,
                     qt_parent
                 )
-                self._command_handler.configurations_loaded.connect(self._on_configurations_loaded)
-                self._command_handler.configurations_changed.connect(self._on_configurations_changed)
+                self._config_loader.configurations_loaded.connect(self._on_configurations_loaded)
+                self._config_loader.configurations_changed.connect(self._on_configurations_changed)
 
     def _get_action_model(self):
         """
@@ -156,9 +156,9 @@ class DesktopEngine2(Engine):
                 self._actions_model.actionTriggered.disconnect(self._execute_action)
                 self._actions_model = None
 
-            if self._command_handler:
+            if self._config_loader:
                 logger.debug("Shutting down command handler interface.")
-                self._command_handler.shut_down()
+                self._config_loader.shut_down()
 
             # shut down main thread pool
             if self._task_manager:
@@ -230,18 +230,18 @@ class DesktopEngine2(Engine):
                 logger.debug("Requesting a check to see if any changes have happened in Shotgun.")
                 self._last_update_check = time.time()
                 # refresh - this may trigger a call to _on_configurations_changed
-                self._command_handler.refresh()
+                self._config_loader.refresh_shotgun_global_state()
 
             # request that menu items are emitted for the currently
             # cached configurations.
             self._request_commands(project_id, entity_type, entity_id)
 
         else:
-            logger.debug("No configurations cached. Requesting load of configuration data for project %s" % project_id)
+            logger.debug("No configurations cached. Requesting configuration data for project %s" % project_id)
             # we don't have any configuration objects cached yet.
-            # request it - _on_configurations_loaded will triggered when configurations are loaded
-            self._actions_model.appendAction("Loading Configurations...", "", "")
-            self._command_handler.request_configurations(project_id)
+            # request it - _on_configurations_loaded will be triggered when configurations are loaded
+            self._add_loading_menu_indicator()
+            self._config_loader.request_configurations(project_id)
 
     def _on_configurations_changed(self):
         """
@@ -250,6 +250,7 @@ class DesktopEngine2(Engine):
         """
         logger.debug("Shotgun has changed. Discarding cached configurations.")
         # our cached configuration objects are no longer valid
+        # note: GC will disconnect any signals.
         self._cached_configs = {}
 
         # load in new configurations for current project
@@ -259,40 +260,44 @@ class DesktopEngine2(Engine):
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
         logger.debug("Requesting new configurations for %s." % project_id)
-        self._command_handler.request_configurations(project_id)
+        self._config_loader.request_configurations(project_id)
 
     def _on_configurations_loaded(self, project_id, configs):
         """
         Called when external configurations for the given project have been loaded.
 
-        :param int project_id: Project id that configurations are assocaited with
-        :param list configs: List of RemoteConfiguration instances belonging to the
+        :param int project_id: Project id that configurations are associated with
+        :param list configs: List of ExternalConfiguration instances belonging to the
             project_id.
         """
         logger.debug("New configs loaded for project %s" % project_id)
 
         # clear any loading indication
-        self._actions_model.clear()
+        self._remove_loading_menu_indicator()
+
+        # and request commands to be loaded
+        # make sure that the user hasn't switched to a different item
+        # while things were loading
+        (entity_type, entity_id, curr_project_id) = self._path_to_entity(
+            self._actions_model.currentEntityPath()
+        )
 
         # cache our configs
-        if configs and len(configs) > 0:
+        if len(configs) > 0:
             self._cached_configs[project_id] = configs
 
             # wire up signals from our cached command objects
             for config in configs:
                 config.commands_loaded.connect(self._on_commands_loaded)
 
-            # and request commands to be loaded
-            # make sure that the user hasn't switched to a different item
-            # while things were loading
-            (entity_type, entity_id, curr_project_id) = self._path_to_entity(
-                self._actions_model.currentEntityPath()
-            )
             if curr_project_id == project_id:
                 self._request_commands(project_id, entity_type, entity_id)
 
         else:
-            logger.debug("No configuration associated with project id %s" % project_id)
+            if curr_project_id == project_id:
+                logger.debug(
+                    "No configuration associated with project id %s" % project_id
+                )
 
     def _request_commands(self, project_id, entity_type, entity_id):
         """
@@ -311,7 +316,7 @@ class DesktopEngine2(Engine):
         for config in self._cached_configs[project_id]:
 
             # indicate that we are loading data for this config
-            self._add_config_loading_state(config)
+            self._add_loading_menu_indicator(config)
 
             config.request_commands(
                 entity_type,
@@ -326,14 +331,14 @@ class DesktopEngine2(Engine):
         Note that this may be called several times for a project, if the project
         has got several pipeline configurations (for example dev sandboxes).
 
-        :param config: Associated RemoteConfiguration instance
-        :param list commands: List of RemoteCommand instances.
+        :param config: Associated ExternalConfiguration instance
+        :param list commands: List of ExternalCommand instances.
         """
         # TODO - don't populate if the current context for the action model has changed.
 
         for command in commands:
             # populate the actions model with actions.
-            # serialize the remote command object so we can
+            # serialize the external command object so we can
             # unfold it at a later point without having to
             # retain any internal state
             if config.is_primary:
@@ -347,48 +352,54 @@ class DesktopEngine2(Engine):
                 command.to_string()
             )
 
-        # first remove any loading message associated with this batch
-        self._remove_config_loading_state(config)
-        self._actions_model.appendAction("Reload Code", "", "_RELOAD")
+        # remove any loading message associated with this batch
+        self._remove_loading_menu_indicator(config)
 
     def _execute_action(self, path, action_str):
         """
         Triggered from the engine when a user clicks an action
 
         :param str path: entity path representation.
-        :param str action_str: serialized remotecommand payload.
+        :param str action_str: serialized :class:`ExternalCommand` payload.
         """
-        if action_str == "_RELOAD":
-            sgtk.platform.restart()
-
-        elif action_str != "":
+        # the 'loading' menu items currently don't have an action payload,
+        # just an empty string.
+        if action_str != "":
             # deserialize and execute
             external_config = self.frameworks["tk-framework-shotgunutils"].import_module("external_config")
-            action = external_config.RemoteCommand.from_string(action_str)
-
-            class Worker(threading.Thread):
-                def run(self):
-                    action.execute()
-
-            worker = Worker()
+            action = external_config.ExternalCommand.from_string(action_str)
+            # run in a thread to not block
+            worker = threading.Thread(target=action.execute)
             worker.start()
 
-    def _add_config_loading_state(self, configuration):
+    def _add_loading_menu_indicator(self, configuration=None):
         """
-        Adds a loading message for the given config.
+        Adds a menu item saying "loading" for the given config.
+
+        :param configuration: :class:`ExternalConfiguration` to create
+            loading indicator for or None if a general indicator
+            should be created
         """
-        if configuration.is_primary:
+        if configuration is None:
+            self._actions_model.appendAction("Loading Configurations...", "", "")
+        elif configuration.is_primary:
             self._actions_model.appendAction("Loading...", "", "")
         else:
             self._actions_model.appendAction(
                 "%s: Loading..." % configuration.pipeline_configuration_name, "", ""
             )
 
-    def _remove_config_loading_state(self, configuration):
+    def _remove_loading_menu_indicator(self, configuration=None):
         """
         Removes a loading message for the given config.
+
+        :param configuration: :class:`ExternalConfiguration` to remove
+            load indicator for. If set to None, the general indicator
+            is removed.
         """
-        if configuration.is_primary:
+        if configuration is None:
+            label = "Loading Configurations..."
+        elif configuration.is_primary:
             label = "Loading..."
         else:
             label = "%s: Loading..." % configuration.pipeline_configuration_name
