@@ -25,7 +25,7 @@ class DesktopEngine2(Engine):
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
 
-    # how often we check if shotgun configs have changed
+    # how often we check if Shotgun configs have changed
     CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
     # TODO - these constants should be passed down from the taap plugin
@@ -75,7 +75,7 @@ class DesktopEngine2(Engine):
                 max_threads=2
             )
 
-            # set it up with the shotgun globals
+            # set it up with the Shotgun globals
             shotgun_globals.register_bg_task_manager(self._task_manager)
 
             # todo - need to revisit this and sset up a proper dark theme for VMR intenrally.
@@ -167,7 +167,7 @@ class DesktopEngine2(Engine):
 
     def _path_to_entity(self, path):
         """
-        Converts a desktop-2 style path to shotgun entities
+        Converts a desktop-2 style path to Shotgun entities
 
         :param str path: entity path representation.
         :returns: tuple with entity type, entity id and project id
@@ -199,7 +199,7 @@ class DesktopEngine2(Engine):
         Populate the actions model with items suitable for the
         current context.
 
-        It will check that shotgun itself hasn't changed (for example someone
+        It will check that Shotgun itself hasn't changed (for example someone
         updating the software entity, which would in turn affect the list of actions).
         this happens periodically, at the most every CONFIG_CHECK_TIMEOUT_SECONDS seconds
         and if a change is detected, _on_configurations_changed is asynchronously invoked.
@@ -219,11 +219,11 @@ class DesktopEngine2(Engine):
         if project_id in self._cached_configs:
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
-            # ping a check to check that shotgun pipeline configs are up to date
+            # ping a check to check that Shotgun pipeline configs are up to date
             cache_out_of_date = (time.time() - self._last_update_check) > self.CONFIG_CHECK_TIMEOUT_SECONDS
             if self._last_update_check is None or cache_out_of_date:
-                # time to check with shotgun if there are updates
-                logger.debug("Requesting a check to see if any changes have happened in shotgun.")
+                # time to check with Shotgun if there are updates
+                logger.debug("Requesting a check to see if any changes have happened in Shotgun.")
                 self._last_update_check = time.time()
                 # refresh - this may trigger a call to _on_configurations_changed
                 self._command_handler.refresh()
@@ -241,7 +241,7 @@ class DesktopEngine2(Engine):
 
     def _on_configurations_changed(self):
         """
-        Indicates that the state of shotgun has changed
+        Indicates that the state of Shotgun has changed
         and that we should discard any cached configurations and reload them.
         """
         logger.debug("Shotgun has changed. Discarding cached configurations.")
