@@ -179,13 +179,16 @@ class DesktopEngine2(Engine):
         :returns: tuple with entity type, entity id and project id
         """
         # TODO - replace with internal VMR conversion method
+        try:
+            # format example:
+            # /projects/65/shots/862/tasks/568
+            entity_type = "Task"
+            project_id = int(path.split("/")[2])
+            entity_id = int(path.split("/")[-1])
+            return entity_type, entity_id, project_id
+        except Exception, e:
+            raise RuntimeError("Could not parse path '%s'" % path)
 
-        # format example:
-        # /projects/65/shots/862/tasks/568
-        entity_type = "Task"
-        project_id = int(path.split("/")[2])
-        entity_id = int(path.split("/")[-1])
-        return entity_type, entity_id, project_id
 
     def _get_python_interpreter_path(self):
         """
@@ -194,9 +197,9 @@ class DesktopEngine2(Engine):
         :returns: Path to python
         """
         if sys.platform == "win32":
-            return os.path.join(sys.prefix, "python.exe")
+            return os.path.abspath(os.path.join(sys.prefix, "python.exe"))
         else:
-            return os.path.join(sys.prefix, "bin", "python")
+            return os.path.abspath(os.path.join(sys.prefix, "bin", "python"))
 
     def _populate_context_menu(self):
         """
@@ -362,7 +365,7 @@ class DesktopEngine2(Engine):
             self._actions_model.appendAction(
                 display_name,
                 command.tooltip,
-                command.to_string()
+                command.serialize()
             )
 
         # remove any loading message associated with this batch
@@ -373,14 +376,20 @@ class DesktopEngine2(Engine):
         Triggered from the engine when a user clicks an action
 
         :param str path: entity path representation.
-        :param str action_str: serialized :class:`ExternalCommand` payload.
+        :param unicode action_str: serialized :class:`ExternalCommand` payload.
         """
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
         if action_str != "":
             # deserialize and execute
             external_config = self.frameworks["tk-framework-shotgunutils"].import_module("external_config")
-            action = external_config.ExternalCommand.from_string(action_str)
+
+            # pyside has mangled the string into unicode. make it utf-8 again.
+            if isinstance(action_str, unicode):
+                action_str = action_str.encode("utf-8")
+
+            # and create a command object.
+            action = external_config.ExternalCommand.deserialize(action_str)
             # run in a thread to not block
             worker = threading.Thread(target=action.execute)
             worker.start()
