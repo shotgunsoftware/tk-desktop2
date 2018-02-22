@@ -319,22 +319,35 @@ class DesktopEngine2(Engine):
             self._add_loading_menu_indicator(config)
 
             config.request_commands(
+                project_id,
                 entity_type,
                 entity_id,
                 link_entity_type=None  # TODO: <-- fix
             )
 
-    def _on_commands_loaded(self, config, commands):
+    def _on_commands_loaded(self, project_id, config, commands):
         """
         Called when commands have been loaded for a given configuration.
 
         Note that this may be called several times for a project, if the project
         has got several pipeline configurations (for example dev sandboxes).
 
-        :param config: Associated ExternalConfiguration instance
+        :param int project_id: Project id associated with the request.
+        :param config: Associated ExternalConfiguration instance.
         :param list commands: List of ExternalCommand instances.
         """
-        # TODO - don't populate if the current context for the action model has changed.
+        # make sure that the user hasn't switched to a different item
+        # while things were loading
+        (_, _, curr_project_id) = self._path_to_entity(
+            self._actions_model.currentEntityPath()
+        )
+        if curr_project_id != project_id:
+            # user switched to other object. Do not update the menu.
+            return
+
+        # TODO - this is pending design and the UI and UI implementation
+        # is also in motion so this implement is placeholder for the time being.
+        # Need to add more robust support for grouping, loading and defaults.
 
         for command in commands:
             # populate the actions model with actions.
@@ -380,6 +393,9 @@ class DesktopEngine2(Engine):
             loading indicator for or None if a general indicator
             should be created
         """
+        # TODO - this is pending design and the UI and UI implementation
+        # is also in motion so this implement is placeholder for the time being.
+        # Need to add more robust support for grouping, loading and defaults.
         if configuration is None:
             self._actions_model.appendAction("Loading Configurations...", "", "")
         elif configuration.is_primary:
@@ -397,6 +413,9 @@ class DesktopEngine2(Engine):
             load indicator for. If set to None, the general indicator
             is removed.
         """
+        # TODO - this is pending design and the UI and UI implementation
+        # is also in motion so this implement is placeholder for the time being.
+        # Need to add more robust support for grouping, loading and defaults.
         if configuration is None:
             label = "Loading Configurations..."
         elif configuration.is_primary:
