@@ -292,6 +292,7 @@ class DesktopEngine2(Engine):
             # wire up signals from our cached command objects
             for config in configs:
                 config.commands_loaded.connect(self._on_commands_loaded)
+                config.commands_load_fail.connect(self._on_commands_load_failed)
 
             if curr_project_id == project_id:
                 self._request_commands(project_id, entity_type, entity_id)
@@ -370,6 +371,42 @@ class DesktopEngine2(Engine):
 
         # remove any loading message associated with this batch
         self._remove_loading_menu_indicator(config)
+
+    def _on_commands_load_failed(self, project_id, config, reason):
+        """
+        Called when commands have been loaded for a given configuration.
+
+        Note that this may be called several times for a project, if the project
+        has got several pipeline configurations (for example dev sandboxes).
+
+        :param int project_id: Project id associated with the request.
+        :param config: Associated ExternalConfiguration instance.
+        :param str reason: Details around the failure.
+        """
+        # make sure that the user hasn't switched to a different item
+        # while things were loading
+        (_, _, curr_project_id) = self._path_to_entity(
+            self._actions_model.currentEntityPath()
+        )
+        if curr_project_id != project_id:
+            # user switched to other object. Do not update the menu.
+            return
+
+        # TODO - this is pending design and the UI and UI implementation
+        # is also in motion so this implement is placeholder for the time being.
+        # Need to add more robust support for grouping, loading and defaults.
+        if config.is_primary:
+            display_name = "Error Loading Actions"
+        else:
+            display_name = "%s: Error Loading Actions" % config.pipeline_configuration_name
+
+        self._actions_model.appendAction(display_name, reason, "")
+
+        logger.error("Could not load actions for %s: %s" % (config, reason))
+
+        # remove any loading message associated with this batch
+        self._remove_loading_menu_indicator(config)
+
 
     def _execute_action(self, path, action_str):
         """
