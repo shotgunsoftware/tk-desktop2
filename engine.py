@@ -17,6 +17,12 @@ import sys
 
 logger = sgtk.LogManager.get_logger(__name__)
 
+class PathParseError(RuntimeError):
+    """
+    Raised when a desktop2 style path cannot be parsed
+    into shotgun-style dictionaries.
+    """
+
 
 class DesktopEngine2(Engine):
     """
@@ -187,7 +193,7 @@ class DesktopEngine2(Engine):
             entity_id = int(path.split("/")[-1])
             return entity_type, entity_id, project_id
         except Exception, e:
-            raise RuntimeError("Could not parse path '%s'" % path)
+            raise PathParseError("Could not parse path '%s'" % path)
 
 
     def _get_python_interpreter_path(self):
@@ -214,14 +220,21 @@ class DesktopEngine2(Engine):
         Configurations for the current project are then requested to generate
         actions suitable for the current context.
         """
-        logger.debug("Requesting commands for %s" % self._actions_model.currentEntityPath())
+        current_path = self._actions_model.currentEntityPath()
+        logger.debug("Requesting commands for %s" % current_path)
 
         # clear loading indicator
         self._actions_model.clear()
 
-        (entity_type, entity_id, project_id) = self._path_to_entity(
-            self._actions_model.currentEntityPath()
-        )
+        try:
+            (entity_type, entity_id, project_id) = self._path_to_entity(
+                current_path
+            )
+        except PathParseError:
+            logger.warning("Cannot parse '%s'" % current_path)
+            # don't know how to handle this entity.
+            # return with a cleared menu.
+            return
 
         if project_id in self._cached_configs:
             logger.debug("Configurations cached in memory.")
@@ -429,6 +442,7 @@ class DesktopEngine2(Engine):
             action = external_config.ExternalCommand.deserialize(action_str)
             # run in a thread to not block
             worker = threading.Thread(target=action.execute)
+            worker.daemon = True
             worker.start()
 
     def _add_loading_menu_indicator(self, configuration=None):
