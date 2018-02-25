@@ -376,6 +376,13 @@ class DesktopEngine2(Engine):
             else:
                 display_name = "%s: %s" % (config.pipeline_configuration_name, command.display_name)
 
+            # temporary workarounds to remove special 'system' commands which
+            # will not execute well inside the multi process environment
+            # TODO: This will need revisiting once we have final designs.
+            SYSTEM_COMMANDS = ["Toggle Debug Logging", "Open Log Folder"]
+            if command.display_name in SYSTEM_COMMANDS:
+                continue
+
             self._actions_model.appendAction(
                 display_name,
                 command.tooltip,
