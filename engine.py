@@ -459,10 +459,12 @@ class DesktopEngine2(Engine):
         if configuration is None:
             self._actions_model.appendAction("Loading Configurations...", "", "")
         elif configuration.is_primary:
-            self._actions_model.appendAction("Loading...", "", "")
+            self._actions_model.appendAction("Loading Actions...", "", "")
         else:
             self._actions_model.appendAction(
-                "%s: Loading..." % configuration.pipeline_configuration_name, "", ""
+                "%s: Loading Actions..." % configuration.pipeline_configuration_name,
+                "",
+                ""
             )
 
     def _remove_loading_menu_indicator(self, configuration=None):
@@ -479,9 +481,9 @@ class DesktopEngine2(Engine):
         if configuration is None:
             label = "Loading Configurations..."
         elif configuration.is_primary:
-            label = "Loading..."
+            label = "Loading Actions..."
         else:
-            label = "%s: Loading..." % configuration.pipeline_configuration_name
+            label = "%s: Loading Actions..." % configuration.pipeline_configuration_name
 
         root_item = self._actions_model.invisibleRootItem()
         for idx in range(self._actions_model.rowCount()):
