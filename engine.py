@@ -34,14 +34,6 @@ class DesktopEngine2(Engine):
     # how often we check if Shotgun configs have changed
     CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
-    # TODO - these constants should be passed down from the taap plugin
-    # Engine instance name
-    ENGINE_NAME = "tk-desktop2"
-    # Configuration to load
-    BASE_CONFIG = "sgtk:descriptor:app_store?name=tk-config-basic2"  # TODO - Rename to tk-config-basic
-    # Toolkit plugin id
-    PLUGIN_ID = "basic.desktop2"
-
     def init_engine(self):
         """
         Main initialization entry point.
@@ -50,14 +42,22 @@ class DesktopEngine2(Engine):
         self._cached_configs = {}
         # last time stamp we checked for new configs (unix time)
         self._last_update_check = 0
-        # flag to indicate that the engine is running
-        # TODO - will be replaced with better solution once we have QT support in VMR python.
-        self._running_with_ui = False
 
-    def post_app_init(self):
+        # actions integration state
+        self._actions_model = None
+        self._config_loader = None
+        self._task_manager = None
+
+
+    def initialize_actions_integration(self, engine_instance_name, plugin_id, base_config):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
+        logger.debug("Begin initializing action integrations")
+        logger.debug("Engine instance name: %s" % engine_instance_name)
+        logger.debug("Plugin id: %s" % plugin_id)
+        logger.debug("Base config: %s" % base_config)
+
         from sgtk.platform.qt import QtCore, QtGui
 
         fw = self.frameworks["tk-framework-shotgunutils"]
@@ -65,52 +65,42 @@ class DesktopEngine2(Engine):
         task_manager = fw.import_module("task_manager")
         shotgun_globals = fw.import_module("shotgun_globals")
 
-        self._actions_model = None
-        self._config_loader = None
-        self._task_manager = None
-
-        # todo - once we have QT support in VMR python this will go away
         qt_parent = QtCore.QCoreApplication.instance()
-        if qt_parent:
-            self._running_with_ui = True
 
-            # create a background task manager
-            self._task_manager = task_manager.BackgroundTaskManager(
-                qt_parent,
-                start_processing=True,
-                max_threads=2
+        # create a background task manager
+        self._task_manager = task_manager.BackgroundTaskManager(
+            qt_parent,
+            start_processing=True,
+            max_threads=2
+        )
+
+        # set it up with the Shotgun globals
+        shotgun_globals.register_bg_task_manager(self._task_manager)
+
+        try:
+            logger.debug("Attempting to bind against underlying C++ actions model...")
+            self._actions_model = self._get_action_model()
+        except RuntimeError:
+            logger.error(
+                "Could not retrieve internal ActionModel interface. "
+                "No actions will be displayed."
             )
+        else:
+            # install signals from actions model
+            self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
+            self._actions_model.actionTriggered.connect(self._execute_action)
 
-            # set it up with the Shotgun globals
-            shotgun_globals.register_bg_task_manager(self._task_manager)
-
-            # todo - need to revisit this and set up a proper dark theme for VMR internally.
-            self._initialize_dark_look_and_feel()
-
-            try:
-                logger.debug("Attempting to bind against underlying C++ actions model...")
-                self._actions_model = self._get_action_model()
-            except RuntimeError:
-                logger.error(
-                    "Could not retrieve internal ActionModel interface. "
-                    "No actions will be displayed."
-                )
-            else:
-                # install signals from actions model
-                self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
-                self._actions_model.actionTriggered.connect(self._execute_action)
-
-                # hook up external configuration loader
-                self._config_loader = external_config.ExternalConfigurationLoader(
-                    self._get_python_interpreter_path(),
-                    self.ENGINE_NAME,
-                    self.PLUGIN_ID,
-                    self.BASE_CONFIG,
-                    self._task_manager,
-                    qt_parent
-                )
-                self._config_loader.configurations_loaded.connect(self._on_configurations_loaded)
-                self._config_loader.configurations_changed.connect(self._on_configurations_changed)
+            # hook up external configuration loader
+            self._config_loader = external_config.ExternalConfigurationLoader(
+                self._get_python_interpreter_path(),
+                engine_instance_name,
+                plugin_id,
+                base_config,
+                self._task_manager,
+                qt_parent
+            )
+            self._config_loader.configurations_loaded.connect(self._on_configurations_loaded)
+            self._config_loader.configurations_changed.connect(self._on_configurations_changed)
 
     def _get_action_model(self):
         """
@@ -143,7 +133,7 @@ class DesktopEngine2(Engine):
         """
         # TODO - a console setup is pending design in VMR
         #        for now, just print to stdout
-        print "[tk-desktop2] %s" % handler.format(record)
+        print "[sgtk] %s" % handler.format(record)
 
     def destroy_engine(self):
         """
@@ -194,7 +184,6 @@ class DesktopEngine2(Engine):
             return entity_type, entity_id, project_id
         except Exception, e:
             raise PathParseError("Could not parse path '%s'" % path)
-
 
     def _get_python_interpreter_path(self):
         """
