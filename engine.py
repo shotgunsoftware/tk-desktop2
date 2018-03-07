@@ -48,10 +48,30 @@ class DesktopEngine2(Engine):
         self._config_loader = None
         self._task_manager = None
 
+    def post_app_init(self):
+        """
+        Initialization that runs after all apps and the QT abstractions have been loaded.
+        """
+        from sgtk.platform.qt import QtCore, QtGui
+        # set up pyside2 dark look and feel
+        self._initialize_dark_look_and_feel()
 
     def initialize_actions_integration(self, engine_instance_name, plugin_id, base_config):
         """
-        Initialization that runs after all apps and the QT abstractions have been loaded.
+        Start up the engine's built in actions integration.
+
+        This will attempt to bind against a ACTION_MODEL_OBJECT_NAME qt object
+        which is assumed to be defined by C++ and establish a data exchange
+        between this model and the engine.
+
+        A Shotgun-utils external config instance is constructed to handle
+        cross-context requests for actions and execution from the action model.
+
+        :param str engine_instance_name: The instance name of the engine for
+            which we should be retrieving commands.
+        :param str plugin_id: The plugin id associated with the runtime environment.
+        :param str base_config: Descriptor URI for the config to use by default when
+            no custom pipeline configs have been defined in Shotgun.
         """
         logger.debug("Begin initializing action integrations")
         logger.debug("Engine instance name: %s" % engine_instance_name)

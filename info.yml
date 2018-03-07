@@ -23,7 +23,7 @@ description: "Shotgun Support in Shotgun Desktop v2"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.18.124"
+requires_core_version: "v0.18.130"
 
 frameworks:
   - {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
