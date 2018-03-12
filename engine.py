@@ -53,8 +53,64 @@ class DesktopEngine2(Engine):
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
         from sgtk.platform.qt import QtCore, QtGui
+        from sgtk.platform.qt5 import QtNetwork
         # set up pyside2 dark look and feel
         self._initialize_dark_look_and_feel()
+
+        logger.error("init ws")
+        # An example on how to access and use the secure QWebSocketServer created on the
+        # C++ side in VMR.
+        # The Wss server is parented under the QCoreApplication with a well known object
+        # name
+        manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
+        self.wss_server = manager.findChild(QtCore.QObject, "sgtk-web-socket-server")
+        logger.error("server %s" % self.wss_server)
+        logger.error("type(server) %s" % type(self.wss_server))
+        logger.error("dir(server) %s" % dir(self.wss_server))
+        logger.error("qtnetwork: %s" % QtNetwork)
+        logger.error("qtnetwork.__file__: %s" % QtNetwork.__file__)
+
+
+        # Add our callback to process messages.
+        self.wss_server.textMessageReceived.connect(self.process_message)
+        self.wss_server.newConnectionAdded.connect(self.new_connection)
+        self.wss_server.connectionClosed.connect(self.connection_closed)
+        self.wss_server.sslErrors.connect(self.on_ssl_errors)
+
+        # SG certs:
+        logger.error("set certs")
+        self.wss_server.setSslPem(
+            "/Users/manne/Desktop/keys/server.key",
+            "/Users/manne/Desktop/keys/server.crt"
+        )
+        logger.error("set certs done")
+
+        # Tell the server to listen on the given port
+        logger.error("start listen")
+        self.wss_server.listen(QtNetwork.QHostAddress.LocalHost, 9000)
+        logger.error("listening..")
+
+    def new_connection(self, socket_id, name, address, port, request):
+        """
+        param socket_id: Unique id for the connection
+        param request: QNetworkRequest
+        """
+        self.logger.error("Connection from %s %s %s %s: %s" % (socket_id, name, address, port, request))
+        self.logger.error("url: %s" % request.url())
+        for x in request.rawHeaderList():
+            self.logger.error("Header: %s: %s" % (x, request.rawHeader(x)))
+
+    # A callback to process message which "echoes" it.
+    def process_message(self, socket_id, message):
+        self.logger.error("ws received %s %s" % (socket_id, message))
+        if message == "get_protocol_version":
+            self.wss_server.sendTextMessage(socket_id, "2")
+
+    def connection_closed(self, socket_id):
+        self.logger.error("%s connection was closed" % socket_id)
+
+    def on_ssl_errors(self, errors):
+        self.logger.error(errors)
 
     def initialize_actions_integration(self, engine_instance_name, plugin_id, base_config):
         """
@@ -444,6 +500,11 @@ class DesktopEngine2(Engine):
         :param str path: entity path representation.
         :param unicode action_str: serialized :class:`ExternalCommand` payload.
         """
+        import sgtk
+        self.logger.info("Reloading code...")
+        sgtk.platform.restart()
+        return
+
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
         if action_str != "":
