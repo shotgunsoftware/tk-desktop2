@@ -9,11 +9,10 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
-import json
 import pprint
 import datetime
 from . import util
-from . import commands
+from . import requests
 
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -26,15 +25,14 @@ class WebsocketsConnection(object):
     PROTOCOL_VERSION = 2
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, wss_server, socket_id, shotgun_site, request):
+    def __init__(self, wss_server, socket_id, shotgun_site, request_runner):
         """
         """
         self._wss_server = wss_server
+        self._request_runner = request_runner
         self._socket_id = socket_id
         self._shotgun_site = shotgun_site
         self._state = self.AWAITING_HANDSHAKE
-        # TODO - do we need this?
-        #self._sec_websocket_key_header = request.rawHeader("sec-websocket-key")
 
     def __repr__(self):
         return "<WebsocketsConnection %s - state %s>" % (self._socket_id, self._state)
@@ -54,6 +52,23 @@ class WebsocketsConnection(object):
             self._handle_encrypted_request(message)
         else:
             raise RuntimeError("Unknown state!")
+
+    def reply(self, payload, request_id):
+        """
+        Sends an encrypted dictionary of data to the connected client
+        """
+        # return data to server
+        payload = {
+            "ws_server_id": self._shotgun_site.unique_server_id,
+            "timestamp": datetime.datetime.now(),
+            "protocol_version": self.PROTOCOL_VERSION,
+            "id": request_id,
+            "reply": payload,
+        }
+
+        logger.debug("Transmitting response: %s" % pprint.pformat(payload))
+        reply = util.create_reply(payload, self._shotgun_site.encrypt)
+        self._wss_server.sendTextMessage(self._socket_id, reply)
 
     def _handle_protocol_handshake_request(self, message):
         """
@@ -110,7 +125,7 @@ class WebsocketsConnection(object):
                 }
             )
             self._wss_server.sendTextMessage(self._socket_id, reply)
-            # ready to receive actual data
+            # we are now ready to receive actual data
             self._state = self.AWAITING_ENCRYPTED_REQUEST
         else:
             raise RuntimeError("%s: Invalid request!" % self)
@@ -167,61 +182,13 @@ class WebsocketsConnection(object):
 
         # TODO: implement site switching logic
 
-        # process the actual command
-        reply_payload = self._process_command(message_obj["command"])
-
-        # return data to server
-        payload = {
-            "ws_server_id": self._shotgun_site.unique_server_id,
-            "timestamp": datetime.datetime.now(),
-            "protocol_version": self.PROTOCOL_VERSION,
-            "id": message_obj["id"],
-            "reply": reply_payload,
-        }
-
-        logger.debug("Transmitting response: %s" % pprint.pformat(payload))
-
-        self._wss_server.sendTextMessage(
-            self._socket_id,
-            util.create_reply(payload, self._shotgun_site.encrypt)
+        # create a request
+        request = requests.WebsocketsRequest.create(
+            message_obj["id"],
+            message_obj["command"]
         )
 
-    def _process_command(self, command):
-        """
-        Process the command payload and dispatch to the appropriate service
-        """
-
-        # commands are on the following form:
-        # {
-        #     'data': {
-        #         'entity_id': 584,
-        #         'entity_type': 'Project',
-        #         'project_id': 584,
-        #         'user': {...},
-        #     },
-        #     'name': 'get_actions'
-        # }
-
-        command_name = command["name"]
-        command_data = command["data"]
-
-        if command_name == "get_actions":
-            return commands.list_actions(command_data)
-
-        elif command_name == "execute_action":
-            return commands.execute_action(command_data)
-
-        elif command_name == "pick_file_or_directory":
-            return commands.pick_file_or_directory(command_data)
-
-        elif command_name == "pick_files_or_directories":
-            return commands.pick_files_or_directories(command_data)
-
-        elif command_name == "open":
-            return commands.open_local_file(command_data)
-
-        else:
-            raise RuntimeError("Unsupported command '%s'" % command_name)
-
+        # action the request
+        self._request_runner.execute(request)
 
 

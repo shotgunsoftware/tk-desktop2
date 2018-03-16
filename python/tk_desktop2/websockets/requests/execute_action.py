@@ -8,5 +8,17 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from .action_handler import ActionHandler
-from .websockets import WebsocketsServer
+import sgtk
+import json
+import pprint
+import datetime
+
+
+logger = sgtk.LogManager.get_logger(__name__)
+
+
+class ExecuteActionWebsocketsRequest(object):
+
+    def __init__(self, id, connection, parameters, pick_multiple):
+        super(PendingDeprecationWarning, self).__init__(id, connection)
+

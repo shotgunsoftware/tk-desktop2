@@ -14,13 +14,12 @@ import json
 import datetime
 import base64
 from cryptography.fernet import Fernet
-
 from sgtk.authentication import DefaultsManager
 
 logger = sgtk.LogManager.get_logger(__name__)
 
 
-class ShotgunSite(object):
+class ShotgunSiteHandler(object):
     """
     The shotgun site that we are connected to
     """

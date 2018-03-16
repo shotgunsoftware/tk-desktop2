@@ -72,9 +72,9 @@ class DesktopEngine2(Engine):
         # set it up with the Shotgun globals
         shotgun_globals.register_bg_task_manager(self._task_manager)
 
-
         tk_desktop2 = self.import_module("tk_desktop2")
 
+        # start up the action handler which handles menu interaction
         self._actions_handler = tk_desktop2.ActionHandler(
             engine_instance_name,
             plugin_id,
@@ -82,11 +82,17 @@ class DesktopEngine2(Engine):
             self._task_manager
         )
 
-        self._wss_handler = tk_desktop2.WebsocketsHandler(
-            engine_instance_name,
+        # initialize the runner which executes websocket commands
+        self._wss_runner = tk_desktop2.WebsocketsRunner(
+            "tk-shotgun",
             plugin_id,
             base_config,
             self._task_manager
+        )
+
+        # start up websockets server
+        self._wss_handler = tk_desktop2.WebsocketsServer(
+            self._wss_runner
         )
 
     def _emit_log_message(self, handler, record):

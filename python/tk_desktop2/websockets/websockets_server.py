@@ -17,8 +17,8 @@ import datetime
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk.platform.qt5 import QtNetwork, QtWebSockets
 
-from .certificate_handler import ShotgunCertificateHandler
-from .shotgun_site import ShotgunSite
+from .shotgun_cert_handler import ShotgunCertificateHandler
+from .shotgun_site_handler import ShotgunSiteHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -26,34 +26,19 @@ logger = sgtk.LogManager.get_logger(__name__)
 from .connection import WebsocketsConnection
 
 
-class WebsocketsHandler(object):
+class WebsocketsServer(object):
     """
-    Wraps the websockets server
+    Wraps the websockets server and manages active connections
     """
 
-    def __init__(self, engine_instance_name, plugin_id, base_config, task_manager):
+    def __init__(self, request_runner):
         """
-        Start up the engine's built in actions integration.
-
-        This will attempt to bind against a ACTION_MODEL_OBJECT_NAME qt object
-        which is assumed to be defined by C++ and establish a data exchange
-        between this model and the engine.
-
-        A Shotgun-utils external config instance is constructed to handle
-        cross-context requests for actions and execution from the action model.
-
-        :param str engine_instance_name: The instance name of the engine for
-            which we should be retrieving commands.
-        :param str plugin_id: The plugin id associated with the runtime environment.
-        :param str base_config: Descriptor URI for the config to use by default when
-            no custom pipeline configs have been defined in Shotgun.
+        A wrapper around the built-in C++ websockets server.
         """
-        logger.debug("Begin initializing wss integrations")
-        logger.debug("Engine instance name: %s" % engine_instance_name)
-        logger.debug("Plugin id: %s" % plugin_id)
-        logger.debug("Base config: %s" % base_config)
+        logger.debug("Begin initializing websockets server wrapper")
         self._connections = {}
         self._sites = {}
+        self._request_runner = request_runner
 
         # retrieve websockets server from C++
         manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
@@ -117,13 +102,16 @@ class WebsocketsHandler(object):
         # origin is a bytearray, convert to string
         origin = str(origin)
         if origin not in self._sites:
-            self._sites[origin] = ShotgunSite(origin)
+            self._sites[origin] = ShotgunSiteHandler(origin)
+
+        # TODO - do we need this?
+        #self._sec_websocket_key_header = request.rawHeader("sec-websocket-key")
 
         self._connections[socket_id] = WebsocketsConnection(
             self._wss_server,
             socket_id,
             self._sites[origin],
-            request
+            self._request_runner
         )
 
     def _process_message(self, socket_id, message):
@@ -138,6 +126,8 @@ class WebsocketsHandler(object):
         # remove from our cache
         if socket_id in self._connections:
             self._connections[socket_id].process_message(message)
+        else:
+            raise RuntimeError("Got request from unknown connection %s" % socket_id)
 
     def _connection_closed(self, socket_id):
         logger.info("Connection %s was closed." % socket_id)
@@ -147,13 +137,4 @@ class WebsocketsHandler(object):
 
     def _on_ssl_errors(self, errors):
         logger.error("SSL Error: %s" % errors)
-
-
-
-
-
-
-
-
-
 

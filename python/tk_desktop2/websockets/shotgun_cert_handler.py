@@ -9,9 +9,8 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
-import sys
 import sgtk
-import base64
+
 
 from .errors import ShotgunLocalHostCertNotSupportedError
 
