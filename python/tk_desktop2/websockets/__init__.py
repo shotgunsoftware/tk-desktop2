@@ -8,5 +8,4 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from .action_handler import ActionHandler
-from .websockets import WebsocketsHandler
+from .wss_handler import WebsocketsHandler

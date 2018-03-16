@@ -11,6 +11,7 @@
 import os
 import sys
 import sgtk
+import base64
 
 from .errors import ShotgunLocalHostCertNotSupportedError
 

@@ -9,12 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
-class ShotgunLocalHostCertNotSupportedError(RuntimeError):
-    """
-    Exception to indicate that the shotgunlocalhost certificate
-    exchange feature isn't available.
-    """
-
 
 class PathParseError(RuntimeError):
     """
