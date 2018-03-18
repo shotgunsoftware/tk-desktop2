@@ -115,6 +115,10 @@ class WebsocketsConnection(object):
 
         logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
 
+        # TODO: as early as possible, validate that the user creating the web request is
+        # the same as the authenticated user for that shotgun site.
+
+
         if message_obj.get("command", {}).get("name") == "get_ws_server_id":
             reply = util.create_reply(
                 {
@@ -134,7 +138,7 @@ class WebsocketsConnection(object):
         """
 
         """
-        # expected format from server:
+        # expected format from server (after encryption):
         #
         # {
         #     "id": 1,
@@ -188,7 +192,7 @@ class WebsocketsConnection(object):
             message_obj["command"]
         )
 
-        # action the request
+        # request that the request runner actions the request
         self._request_runner.execute(request)
 
 

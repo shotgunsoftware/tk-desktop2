@@ -23,7 +23,7 @@ from .errors import ShotgunLocalHostCertNotSupportedError
 
 logger = sgtk.LogManager.get_logger(__name__)
 
-from .connection import WebsocketsConnection
+from .websockets_connection import WebsocketsConnection
 
 
 class WebsocketsServer(object):
@@ -102,6 +102,7 @@ class WebsocketsServer(object):
         # origin is a bytearray, convert to string
         origin = str(origin)
         if origin not in self._sites:
+            # note: this may pop up a login dialog
             self._sites[origin] = ShotgunSiteHandler(origin)
 
         # TODO - do we need this?
