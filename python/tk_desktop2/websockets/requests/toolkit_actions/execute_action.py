@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+    # Copyright (c) 2013 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -12,15 +12,46 @@ import sgtk
 import json
 import pprint
 import datetime
-from .base import WebsocketsRequest
+import threading
+from ..base import WebsocketsRequest
 
 logger = sgtk.LogManager.get_logger(__name__)
 
+external_config = sgtk.platform.import_framework("tk-framework-shotgunutils", "external_config")
 
 class ExecuteActionWebsocketsRequest(WebsocketsRequest):
+    """
+        { 'entity_ids': [582],
+          'entity_type': 'Project',
+          'name': '',
+          'pc': 'Primary',
+          'pc_root_path': '',
+          'project_id': 582,
+          'title': 'Maya 2017',
+          'user': {'entity': {'id': 42,
+                              'name': 'Manne \xc3\x96hrstr\xc3\xb6m',
+                              'status': 'act',
+                              'type': 'HumanUser',
+                              'valid': 'valid'},
+                   'group_ids': [3],
+                   'rule_set_display_name': 'Admin',
+                   'rule_set_id': 5}},
+          },
+
+
+    """
+
 
     def __init__(self, connection, id, parameters):
         super(ExecuteActionWebsocketsRequest, self).__init__(connection, id)
+        self._command = external_config.ExternalCommand.deserialize(parameters["name"])
+
+    @property
+    def requires_toolkit(self):
+        """
+        True if the request requires toolkit
+        """
+        return True
 
     @property
     def project_id(self):
@@ -43,7 +74,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         """
         return None
 
-    def execute(self, configurations):
+    def execute_with_context(self, configurations):
         """
         Executes the request. Passes a fully loaded external
         configuration state to aid execution, laid out in the following
@@ -64,4 +95,11 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
 
         :param list configurations: See above for details.
         """
-        raise NotImplementedError("WebsocketsRequest.execute not implemented by deriving class.")
+        # execute external command in a thread to not block
+        # main thread execution
+        worker = threading.Thread(target=action.execute)
+        # if the python environment shuts down, no need
+        # to wait for this thread
+        worker.daemon = True
+        # launch external process
+        worker.start()

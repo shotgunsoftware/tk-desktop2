@@ -22,10 +22,11 @@ class WebsocketsRequest(object):
         Request factory
         """
 
-        from .pick_file import PickFileOrDirectoryWebsocketsRequest
-        from .execute_action import ExecuteActionWebsocketsRequest
-        from .get_actions import GetActionsWebsocketsRequest
-        from .open_file import OpenFileWebsocketsRequest
+        from .local_file_linking import PickFileOrDirectoryWebsocketsRequest
+        from .local_file_linking import OpenFileWebsocketsRequest
+        from .toolkit_actions import ExecuteActionWebsocketsRequest
+        from .toolkit_actions import GetActionsWebsocketsRequest
+
 
         # commands are on the following form:
         # {
@@ -89,6 +90,13 @@ class WebsocketsRequest(object):
         return "<%s id %s@%s>" % (self.__class__.__name__, self._id, self._connection)
 
     @property
+    def requires_toolkit(self):
+        """
+        True if the request requires toolkit
+        """
+        return False
+
+    @property
     def project_id(self):
         """
         Project id associated with this request or None for a site wide request
@@ -118,7 +126,13 @@ class WebsocketsRequest(object):
         """
         return None
 
-    def execute(self, configurations):
+    def execute(self):
+        """
+        Executes the request
+        """
+        raise NotImplementedError("WebsocketsRequest.execute not implemented by deriving class.")
+
+    def execute_with_context(self, configurations):
         """
         Executes the request. Passes a fully loaded external
         configuration state to aid execution, laid out in the following
@@ -139,7 +153,7 @@ class WebsocketsRequest(object):
 
         :param list configurations: See above for details.
         """
-        raise NotImplementedError("WebsocketsRequest.execute not implemented by deriving class.")
+        raise NotImplementedError("WebsocketsRequest.execute_with_context not implemented by deriving class.")
 
     def _reply(self, data):
         """

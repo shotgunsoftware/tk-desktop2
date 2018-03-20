@@ -85,6 +85,15 @@ class RequestRunner(QtCore.QObject):
         """
         Registers a websockets request for asynchronous proceessing.
         """
+        if not request.requires_toolkit:
+            # no toolkit context needed. Action straight away.
+            request.execute()
+            return
+
+        # for toolkit requests, wrap them in a deferred request and
+        # asynchronounsly collect all the configuration parts
+        # needed to process them.
+
         # add it to list for processing
         deferred_request = DeferredRequest(request)
         self._active_requests.append(deferred_request)
@@ -102,8 +111,11 @@ class RequestRunner(QtCore.QObject):
                 # refresh - this may trigger a call to _on_configurations_changed
                 self._config_loader.refresh_shotgun_global_state()
 
-            # request command for the confgurations
-            for config in self._cached_configs[request.project_id]:
+            # request command for the conifgurations
+            deferred_request.register_configurations(
+                self._cached_configs[deferred_request.project_id]
+            )
+            for config in self._cached_configs[deferred_request.project_id]:
                 config.request_commands(
                     deferred_request.project_id,
                     deferred_request.entity_type,
@@ -177,13 +189,13 @@ class RequestRunner(QtCore.QObject):
         :param config: Associated ExternalConfiguration instance.
         :param list commands: List of ExternalCommand instances.
         """
+        logger.debug("%s Commands loaded for projecd id %s, %s" % (len(commands), project_id, config))
         for deferred_request in self._active_requests:
             if deferred_request.project_id == project_id:
                 deferred_request.register_commands(config, commands)
 
         # kick off any requests that are waiting
         self._execute_ready_requests()
-
 
     def _on_commands_load_failed(self, project_id, config, reason):
         """
@@ -196,6 +208,7 @@ class RequestRunner(QtCore.QObject):
         :param config: Associated ExternalConfiguration instance.
         :param str reason: Details around the failure.
         """
+        logger.debug("Loading commmands failed for project id %s, %s" % (config, project_id))
         for deferred_request in self._active_requests:
             if deferred_request.project_id == project_id:
                 deferred_request.register_commands_failure(config, reason)

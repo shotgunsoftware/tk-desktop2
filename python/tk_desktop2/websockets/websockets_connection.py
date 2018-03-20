@@ -23,6 +23,7 @@ class WebsocketsConnection(object):
     A websockets connection
     """
     PROTOCOL_VERSION = 2
+
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
     def __init__(self, wss_server, socket_id, shotgun_site, request_runner):
@@ -110,6 +111,9 @@ class WebsocketsConnection(object):
         #         }
         #     }
         # }
+        #
+        # TODO: error handling?
+        #
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
 
@@ -161,6 +165,9 @@ class WebsocketsConnection(object):
         #         }
         #     }
         # }
+        #
+        # # TODO: error handling?
+        #
 
         # now encrypted states
         try:
@@ -186,14 +193,26 @@ class WebsocketsConnection(object):
 
         # TODO: implement site switching logic
 
-        # create a request
-        request = requests.WebsocketsRequest.create(
-            self,
-            message_obj["id"],
-            message_obj["command"]
-        )
+        # at this point we are handing over execution to the requests
+        # implementation. Trap any exceptions and in the case
+        # anything bubbles up, respond with a standard error
+        # to the server on the following form:
+        #
+        # { retcode: -1, out: "", err: "error message" }
+        #
+        #
+        try:
+            # create a request
+            request = requests.WebsocketsRequest.create(
+                self,
+                message_obj["id"],
+                message_obj["command"]
+            )
 
-        # request that the request runner actions the request
-        self._request_runner.execute(request)
+            # request that the request runner actions the request
+            self._request_runner.execute(request)
 
-
+        except Exception as e:
+            logger.debug("Exception raised while scheduling request: %s" % e, exc_info=True)
+            data = {"retcode": -1, "out": "", "err": str(e)}
+            self.reply(data, message_obj["id"])

@@ -101,7 +101,7 @@ class DeferredRequest(object):
         #     },
         # ]
 
-        self._request.execute(self._configurations)
+        self._request.execute_with_context(self._configurations)
 
     def register_configurations(self, configs):
         logger.debug("%s: Register configurations %s" % (self, configs))

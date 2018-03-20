@@ -52,15 +52,15 @@ class SgtkFileDialog(QtGui.QFileDialog):
             self.setSidebarUrls(sidebar_urls)
 
         # Make the combobox editable so we can specify a path through it.
-        c = self.findChild(QtGui.QComboBox, "lookInCombo")
-        c.setEditable(True)
+        #c = self.findChild(QtGui.QComboBox, "lookInCombo")
+        #c.setEditable(True)
         # Search for the line edit widget, it has no name so scan for it.
-        line_edits = filter(lambda x: isinstance(x, QtGui.QLineEdit), c.children())
-        if len(line_edits) != 1:
-            raise Exception("Expected to find a line edit widget.")
-        self._path_editor = line_edits[0]
+        #line_edits = filter(lambda x: isinstance(x, QtGui.QLineEdit), c.children())
+        #if len(line_edits) != 1:
+        #    raise Exception("Expected to find a line edit widget.")
+        #self._path_editor = line_edits[0]
         # When the user presses return, we'll move to that directory.
-        self._path_editor.returnPressed.connect(self._path_confirmed)
+        #self._path_editor.returnPressed.connect(self._path_confirmed)
 
     def _path_confirmed(self):
         """
