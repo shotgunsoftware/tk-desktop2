@@ -188,6 +188,7 @@ class WebsocketsConnection(object):
 
         # create a request
         request = requests.WebsocketsRequest.create(
+            self,
             message_obj["id"],
             message_obj["command"]
         )

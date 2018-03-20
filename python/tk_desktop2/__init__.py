@@ -10,3 +10,4 @@
 
 from .action_handler import ActionHandler
 from .websockets import WebsocketsServer
+from .websockets import RequestRunner

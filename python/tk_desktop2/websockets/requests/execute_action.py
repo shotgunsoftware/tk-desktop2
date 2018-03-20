@@ -12,13 +12,56 @@ import sgtk
 import json
 import pprint
 import datetime
-
+from .base import WebsocketsRequest
 
 logger = sgtk.LogManager.get_logger(__name__)
 
 
-class ExecuteActionWebsocketsRequest(object):
+class ExecuteActionWebsocketsRequest(WebsocketsRequest):
 
-    def __init__(self, id, connection, parameters, pick_multiple):
-        super(PendingDeprecationWarning, self).__init__(id, connection)
+    def __init__(self, connection, id, parameters):
+        super(ExecuteActionWebsocketsRequest, self).__init__(connection, id)
 
+    @property
+    def project_id(self):
+        """
+        Project id associated with this request or None for a site wide request
+        """
+        return None
+
+    @property
+    def entity_type(self):
+        """
+        Entity type with this request or None for a site wide request
+        """
+        return None
+
+    @property
+    def entity_id(self):
+        """
+        Entity id with this request or None for a site wide request
+        """
+        return None
+
+    def execute(self, configurations):
+        """
+        Executes the request. Passes a fully loaded external
+        configuration state to aid execution, laid out in the following
+        structure:
+
+        [
+            {
+                "configuration": <ExternalConfiguration>,
+                "commands": [<ExternalCommand>, ...],
+                "error": None
+            },
+            {
+                "configuration": <ExternalConfiguration>,
+                "commands": None,
+                "error": "Something went wrong"
+            },
+        ]
+
+        :param list configurations: See above for details.
+        """
+        raise NotImplementedError("WebsocketsRequest.execute not implemented by deriving class.")

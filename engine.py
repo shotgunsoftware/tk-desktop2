@@ -83,7 +83,7 @@ class DesktopEngine2(Engine):
         )
 
         # initialize the runner which executes websocket commands
-        self._wss_runner = tk_desktop2.WebsocketsRunner(
+        self._wss_runner = tk_desktop2.RequestRunner(
             engine_instance_name, #todo: tk-shotgun?
             plugin_id,
             base_config,

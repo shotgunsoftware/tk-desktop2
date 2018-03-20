@@ -443,6 +443,7 @@ class ActionHandler(object):
 
         :returns: Path to python
         """
+        # TODO: centralize and fix
         if sys.platform == "win32":
             return os.path.abspath(os.path.join(sys.prefix, "python.exe"))
         else:
