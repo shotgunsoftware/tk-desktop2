@@ -208,10 +208,6 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
             })
             return
 
-
-
-
-
     # {
     #     retcode:0,
     #     actions: {
@@ -260,11 +256,11 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
                 actions.append({
                     "name": command.display_name,
                     "title": command.display_name,
-                    "deny_permissions": [],
-                    "app_name": "",
+                    "deny_permissions": command.excluded_permission_groups_hint,
+                    "app_name": "UNSPECIFIED",
                     "group": command.group,
                     "group_default": command.is_group_default,
-                    "engine_name": ""
+                    "engine_name": "UNSPECIFIED"
                 })
 
             response["actions"][config_name] = {
