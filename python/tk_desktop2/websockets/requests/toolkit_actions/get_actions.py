@@ -39,6 +39,24 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
             }
         },
 
+        When loading a page of assets:
+        {'command': {'data': {'entity_id': -1,
+                              'entity_type': 'Asset',
+                              'project_id': 595,
+                              'user': {'entity': {'id': 42,
+                                                  'name': 'Manne \xc3\x96hrstr\xc3\xb6m',
+                                                  'status': 'act',
+                                                  'type': 'HumanUser',
+                                                  'valid': 'valid'},
+                                       'group_ids': [3],
+                                       'rule_set_display_name': 'Admin',
+                                       'rule_set_id': 5}},
+                     'name': 'get_actions'},
+         'id': 2,
+         'protocol_version': 2,
+         'timestamp': 1521627818184}
+
+
     Response on success:
 
     {
@@ -101,14 +119,15 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
     def __init__(self, connection, id, parameters):
         super(GetActionsWebsocketsRequest, self).__init__(connection, id)
 
-        if "entity_id" not in parameters:
-            raise ValueError("%s: Missing entity_id in parameters." % self)
-
-        if "entity_type" not in parameters:
-            raise ValueError("%s: Missing entity_type in parameters." % self)
-
-        if "project_id" not in parameters:
-            raise ValueError("%s: Missing project_id in parameters." % self)
+        # validate parameters
+        required_params = [
+            "entity_id",
+            "entity_type",
+            "project_id"
+        ]
+        for required_param in required_params:
+            if required_param not in parameters:
+                raise ValueError("%s: Missing parameter '%s' in payload." % (self, param_name))
 
         self._entity_id = parameters["entity_id"]
         self._entity_type = parameters["entity_type"]
@@ -239,12 +258,12 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
             actions = []
             for command in config["commands"]:
                 actions.append({
-                    "name": command.serialize(),
+                    "name": command.display_name,
                     "title": command.display_name,
                     "deny_permissions": [],
                     "app_name": "",
-                    "group": "",
-                    "group_default": False,
+                    "group": command.group,
+                    "group_default": command.is_group_default,
                     "engine_name": ""
                 })
 

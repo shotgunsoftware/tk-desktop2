@@ -132,7 +132,7 @@ class WebsocketsRequest(object):
         """
         raise NotImplementedError("WebsocketsRequest.execute not implemented by deriving class.")
 
-    def execute_with_context(self, configurations):
+    def execute_with_context(self, associated_commands):
         """
         Executes the request. Passes a fully loaded external
         configuration state to aid execution, laid out in the following
@@ -151,7 +151,7 @@ class WebsocketsRequest(object):
             },
         ]
 
-        :param list configurations: See above for details.
+        :param list associated_commands: See above for details.
         """
         raise NotImplementedError("WebsocketsRequest.execute_with_context not implemented by deriving class.")
 

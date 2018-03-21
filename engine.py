@@ -25,6 +25,10 @@ class DesktopEngine2(Engine):
         """
         Main initialization entry point.
         """
+        self._actions_handler = None
+        self._task_manager = None
+        self._wss_runner = None
+        self._wss_handler = None
 
     def post_app_init(self):
         """

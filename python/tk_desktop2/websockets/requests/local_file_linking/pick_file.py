@@ -17,7 +17,9 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 
 class PickFileOrDirectoryWebsocketsRequest(WebsocketsRequest):
+    """
 
+    """
     def __init__(self, connection, id, parameters, pick_multiple):
         self._pick_multiple = pick_multiple
         super(PickFileOrDirectoryWebsocketsRequest, self).__init__(connection, id)

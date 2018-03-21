@@ -155,7 +155,7 @@ class RequestRunner(QtCore.QObject):
             project_id.
         """
         logger.debug(
-            "New configs loaded for project %s: %s" % (project_id, configs)
+            "New configs loaded for project id %s: %s" % (project_id, configs)
         )
 
         # cache our configs
