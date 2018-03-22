@@ -75,21 +75,21 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
     @property
     def project_id(self):
         """
-        Project id associated with this request or None for a site wide request
+        Project id associated with this request
         """
         return self._project_id
 
     @property
     def entity_type(self):
         """
-        Entity type with this request or None for a site wide request
+        Entity type associated with this request
         """
         return self._entity_type
 
     @property
     def entity_id(self):
         """
-        Entity id with this request or None for a site wide request
+        Entity id associated with this request
         """
         return self._entity_id
 

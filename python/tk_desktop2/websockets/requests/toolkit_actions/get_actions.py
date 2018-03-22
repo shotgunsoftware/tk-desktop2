@@ -133,6 +133,13 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         self._entity_type = parameters["entity_type"]
         self._project_id = parameters["project_id"]
 
+        # if command specifies a -1 for the entity id
+        # this is a request for a generic set of actions
+        # for an entity of that type. Change it to be
+        # entity id None for our request handler to indicate this.
+        if self._entity_id == -1:
+            self._entity_id = None
+
 
     @property
     def requires_toolkit(self):
@@ -144,21 +151,21 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
     @property
     def project_id(self):
         """
-        Project id associated with this request or None for a site wide request
+        Project id associated with this request
         """
         return self._project_id
 
     @property
     def entity_type(self):
         """
-        Entity type associated with this request or None for a site wide request
+        Entity type associated with this request
         """
         return self._entity_type
 
     @property
     def entity_id(self):
         """
-        Entity id associated with this request or None for a site wide request
+        Entity id associated with this request or None for a general request
         """
         return self._entity_id
 
