@@ -127,7 +127,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         ]
         for required_param in required_params:
             if required_param not in parameters:
-                raise ValueError("%s: Missing parameter '%s' in payload." % (self, param_name))
+                raise ValueError("%s: Missing parameter '%s' in payload." % (self, required_param))
 
         self._entity_id = parameters["entity_id"]
         self._entity_type = parameters["entity_type"]
@@ -254,7 +254,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
             actions = []
             for command in config["commands"]:
                 actions.append({
-                    "name": command.display_name,
+                    "name": command.system_name,
                     "title": command.display_name,
                     "deny_permissions": command.excluded_permission_groups_hint,
                     "app_name": "UNSPECIFIED",

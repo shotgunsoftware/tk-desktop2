@@ -55,14 +55,14 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         ]
         for required_param in required_params:
             if required_param not in parameters:
-                raise ValueError("%s: Missing parameter '%s' in payload." % (self, param_name))
+                raise ValueError("%s: Missing parameter '%s' in payload." % (self, required_param))
 
         self._resolved_command = None
         self._command_name = parameters["name"]
         self._command_title = parameters["title"]
         self._config_name = parameters["pc"]
         self._entity_type = parameters["entity_type"]
-        self._entity_id = parameters["entity_ids"][0] # TODO: support multi select
+        self._entity_id = parameters["entity_ids"][0]  # TODO: support multi select
         self._project_id = parameters["project_id"]
 
     @property
@@ -134,11 +134,11 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
 
             if config_name == self._config_name:
                 for command in config["commands"]:
-                    if command.display_name == self._command_title:
+                    if command.system_name == self._command_title:
                         self._resolved_command = command
                         break
 
-        if not self._resolved_command :
+        if not self._resolved_command:
             raise RuntimeError("could not find!")
 
         # execute external command in a thread to not block
