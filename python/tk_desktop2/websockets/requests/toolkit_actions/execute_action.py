@@ -95,8 +95,8 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
 
     def _execute(self):
         try:
-            self._resolved_command.execute()
-            self._reply({"retcode": 0})
+            output = self._resolved_command.execute()
+            self._reply({"retcode": 0, "out": output})
         except Exception as e:
             # todo : handle error
             self._reply({"retcode": -1, "err": str(e)})
@@ -134,12 +134,12 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
 
             if config_name == self._config_name:
                 for command in config["commands"]:
-                    if command.system_name == self._command_title:
+                    if command.system_name == self._command_name:
                         self._resolved_command = command
                         break
 
         if not self._resolved_command:
-            raise RuntimeError("could not find!")
+            raise RuntimeError("could not find ")
 
         # execute external command in a thread to not block
         # main thread execution
