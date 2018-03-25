@@ -8,11 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
-import sys
 import sgtk
-import json
-import datetime
 
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk.platform.qt5 import QtNetwork, QtWebSockets
@@ -20,10 +16,10 @@ from sgtk.platform.qt5 import QtNetwork, QtWebSockets
 from .shotgun_cert_handler import ShotgunCertificateHandler
 from .shotgun_site_handler import ShotgunSiteHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
+from .websockets_connection import WebsocketsConnection
 
 logger = sgtk.LogManager.get_logger(__name__)
 
-from .websockets_connection import WebsocketsConnection
 
 
 class WebsocketsServer(object):

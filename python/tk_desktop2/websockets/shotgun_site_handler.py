@@ -10,11 +10,8 @@
 
 import os
 import sgtk
-import json
-import datetime
 import base64
-from cryptography.fernet import Fernet
-from sgtk.authentication import DefaultsManager
+from cryptography.fernet import Fernet #  included as part of main application build
 
 logger = sgtk.LogManager.get_logger(__name__)
 

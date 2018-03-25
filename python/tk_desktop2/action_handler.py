@@ -58,6 +58,8 @@ class ActionHandler(object):
         logger.debug("Plugin id: %s" % plugin_id)
         logger.debug("Base config: %s" % base_config)
 
+        bundle = sgtk.platform.current_bundle()
+
         # list of cached configuration objects, keyed by project id
         self._cached_configs = {}
         # last time stamp we checked for new configs (unix time)
@@ -85,7 +87,7 @@ class ActionHandler(object):
 
             # hook up external configuration loader
             self._config_loader = external_config.ExternalConfigurationLoader(
-                self._get_python_interpreter_path(),
+                bundle.python_interpreter_path,
                 engine_instance_name,
                 plugin_id,
                 base_config,
@@ -97,6 +99,7 @@ class ActionHandler(object):
 
     def destroy(self):
         """
+        Shuts down the handler
         """
         logger.debug("Begin shutting down action handler.")
 
@@ -437,14 +440,3 @@ class ActionHandler(object):
                 root_item.takeRow(idx)
                 break
 
-    def _get_python_interpreter_path(self):
-        """
-        Returns the path to the desktop2 python interpreter
-
-        :returns: Path to python
-        """
-        # TODO: centralize and fix
-        if sys.platform == "win32":
-            return os.path.abspath(os.path.join(sys.prefix, "python.exe"))
-        else:
-            return os.path.abspath(os.path.join(sys.prefix, "bin", "python"))

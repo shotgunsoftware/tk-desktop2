@@ -8,8 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
-import sys
 import sgtk
 import json
 import datetime
@@ -84,6 +82,7 @@ def parse_json(payload):
     message_obj = json.loads(payload, encoding="utf-8")
     message_obj = _convert(message_obj)
     return message_obj
+
 
 def _convert(data):
     """

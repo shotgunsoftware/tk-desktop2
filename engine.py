@@ -139,5 +139,12 @@ class DesktopEngine2(Engine):
         except Exception as e:
             self.log_exception("Error running engine teardown logic")
 
-
-
+    @property
+    def python_interpreter_path(self):
+        """
+        The path to the desktop2 python interpreter
+        """
+        if sys.platform == "win32":
+            return os.path.abspath(os.path.join(sys.prefix, "python.exe"))
+        else:
+            return os.path.abspath(os.path.join(sys.prefix, "bin", "python"))

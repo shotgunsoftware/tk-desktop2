@@ -49,6 +49,7 @@ class RequestRunner(QtCore.QObject):
         logger.debug("Engine instance name: %s" % engine_instance_name)
         logger.debug("Plugin id: %s" % plugin_id)
         logger.debug("Base config: %s" % base_config)
+        bundle = sgtk.platform.current_bundle()
 
         # caching of configurations in memory
         self._cached_configs = {}
@@ -59,7 +60,7 @@ class RequestRunner(QtCore.QObject):
 
         # hook up external configuration loader
         self._config_loader = external_config.ExternalConfigurationLoader(
-            self._get_python_interpreter_path(),
+            bundle.python_interpreter_path,
             engine_instance_name,
             plugin_id,
             base_config,
@@ -68,18 +69,6 @@ class RequestRunner(QtCore.QObject):
         )
         self._config_loader.configurations_loaded.connect(self._on_configurations_loaded)
         self._config_loader.configurations_changed.connect(self._on_configurations_changed)
-
-    def _get_python_interpreter_path(self):
-        """
-        Returns the path to the desktop2 python interpreter
-
-        :returns: Path to python
-        """
-        # TODO: centralize and fix
-        if sys.platform == "win32":
-            return os.path.abspath(os.path.join(sys.prefix, "python.exe"))
-        else:
-            return os.path.abspath(os.path.join(sys.prefix, "bin", "python"))
 
     def execute(self, request):
         """
