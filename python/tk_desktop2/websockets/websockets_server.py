@@ -35,6 +35,7 @@ class WebsocketsServer(object):
         self._connections = {}
         self._sites = {}
         self._request_runner = request_runner
+        self._bundle = sgtk.platform.current_bundle()
 
         # retrieve websockets server from C++
         manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
@@ -45,10 +46,9 @@ class WebsocketsServer(object):
         try:
             self._sg_certs_handler = ShotgunCertificateHandler()
         except ShotgunLocalHostCertNotSupportedError:
-            # todo: handle UX around when this is not on?
-            logger.error(
-                "Shotgun site does not support shotgunlocalhost certificates. "
-                "Websockets integration will be disabled."
+            logger.warning(
+                "%s does not support shotgunlocalhost certificates. "
+                "Websockets integration will be disabled." % self._bundle.sgtk.shotgun_url
             )
             return
 
