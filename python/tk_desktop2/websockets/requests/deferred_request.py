@@ -5,13 +5,7 @@
 # this software in either electronic or hard copy form.
 #
 
-import os
-import sys
-import time
 import sgtk
-import json
-import datetime
-
 from sgtk.platform.qt import QtCore, QtGui
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -21,8 +15,6 @@ class DeferredRequest(object):
     """
     Executes websockets Request objects
     """
-
-    CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
     def __init__(self, request):
         """

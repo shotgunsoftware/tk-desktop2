@@ -4,26 +4,35 @@
 # provided at the time of installation or download, or which otherwise accompanies
 # this software in either electronic or hard copy form.
 #
-
 import sgtk
-
 
 logger = sgtk.LogManager.get_logger(__name__)
 
 
 class WebsocketsRequest(object):
+    """
+    Base class that represents a web sockets request.
+
+    Requests are created via the `WebsocketsRequest.create` factory classmethod
+    and each different command supported by the engine is represented by a class.
+    """
 
     @classmethod
     def create(cls, connection, request_id, command):
         """
-        Request factory
-        """
+        Request factory. Creates and returns a suitable :class:`WebsocketsRequest`
+        instance given the input parameters.
 
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int request_id: Id for this request.
+        :param dict command: Command payload.
+        :returns: Object deriving from :class:`WebsocketsRequest`.
+        :raises: RuntimeError on protocol errors.
+        """
         from .local_file_linking import PickFileOrDirectoryWebsocketsRequest
         from .local_file_linking import OpenFileWebsocketsRequest
         from .toolkit_actions import ExecuteActionWebsocketsRequest
         from .toolkit_actions import GetActionsWebsocketsRequest
-
 
         # commands are on the following form:
         # {
@@ -35,7 +44,6 @@ class WebsocketsRequest(object):
         #     },
         #     'name': 'get_actions'
         # }
-
         command_name = command["name"]
         command_data = command["data"]
 
@@ -45,14 +53,12 @@ class WebsocketsRequest(object):
                 request_id,
                 command_data
             )
-
         elif command_name == "execute_action":
             return ExecuteActionWebsocketsRequest(
                 connection,
                 request_id,
                 command_data
             )
-
         elif command_name == "pick_file_or_directory":
             return PickFileOrDirectoryWebsocketsRequest(
                 connection,
@@ -60,7 +66,6 @@ class WebsocketsRequest(object):
                 command_data,
                 pick_multiple=False
             )
-
         elif command_name == "pick_files_or_directories":
             return PickFileOrDirectoryWebsocketsRequest(
                 connection,
@@ -68,49 +73,58 @@ class WebsocketsRequest(object):
                 command_data,
                 pick_multiple=True
             )
-
         elif command_name == "open":
             return OpenFileWebsocketsRequest(
                 connection,
                 request_id,
                 command_data
             )
-
         else:
             raise RuntimeError("Unsupported command '%s'" % command_name)
 
     def __init__(self, connection, id):
+        """
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int id: Id for this request.
+        """
         self._connection = connection
         self._id = id
 
     def __repr__(self):
-        return "<%s id %s@%s>" % (self.__class__.__name__, self._id, self._connection)
+        """
+        String representation
+        """
+        return "<%s id %s@%s>" % (
+            self.__class__.__name__,
+            self._id,
+            self._connection
+        )
 
     @property
     def requires_toolkit(self):
         """
-        True if the request requires toolkit
+        True if the request requires toolkit for its execution, false if not.
         """
         return False
 
     @property
     def project_id(self):
         """
-        Project id associated with this request or None for a site wide request
+        Project id associated with this request or None for a generic request
         """
         return None
 
     @property
     def entity_type(self):
         """
-        Entity type associated with this request or None for a site wide request
+        Entity type associated with this request or None for a generic request
         """
         return None
 
     @property
     def entity_id(self):
         """
-        Entity id associated with this request or None for a site wide request
+        Entity id associated with this request or None for a generic request
         """
         return None
 
@@ -125,13 +139,16 @@ class WebsocketsRequest(object):
 
     def execute(self):
         """
-        Executes the request
+        Executes non-toolkit style request.
+        Implemented by deriving classes.
         """
-        raise NotImplementedError("WebsocketsRequest.execute not implemented by deriving class.")
+        raise NotImplementedError(
+            "WebsocketsRequest.execute not implemented by deriving class."
+        )
 
     def execute_with_context(self, associated_commands):
         """
-        Executes the request. Passes a fully loaded external
+        Executes toolkit style request. Passes a fully loaded external
         configuration state to aid execution, laid out in the following
         structure:
 
@@ -150,10 +167,14 @@ class WebsocketsRequest(object):
 
         :param list associated_commands: See above for details.
         """
-        raise NotImplementedError("WebsocketsRequest.execute_with_context not implemented by deriving class.")
+        raise NotImplementedError(
+            "WebsocketsRequest.execute_with_context not implemented by deriving class."
+        )
 
     def _reply(self, data):
         """
-        Sends back a reply to the client
+        Sends back a reply to the client.
+
+        :param dict data: Data dictionary to send to client.
         """
         self._connection.reply(data, self._id)

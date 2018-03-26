@@ -6,10 +6,7 @@
 #
 
 import sgtk
-import json
-import pprint
-import datetime
-from ..base import WebsocketsRequest
+from ..request import WebsocketsRequest
 
 logger = sgtk.LogManager.get_logger(__name__)
 

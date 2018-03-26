@@ -6,15 +6,16 @@
 #
 
 import sgtk
-import json
-import pprint
-import datetime
 import threading
-from ..base import WebsocketsRequest
+from ..request import WebsocketsRequest
 
 logger = sgtk.LogManager.get_logger(__name__)
 
-external_config = sgtk.platform.import_framework("tk-framework-shotgunutils", "external_config")
+external_config = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils",
+    "external_config"
+)
+
 
 class ExecuteActionWebsocketsRequest(WebsocketsRequest):
     """

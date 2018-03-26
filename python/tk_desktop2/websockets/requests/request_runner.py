@@ -5,25 +5,22 @@
 # this software in either electronic or hard copy form.
 #
 
-import os
-import sys
 import time
 import sgtk
-import json
-import datetime
-
+from sgtk.platform.qt import QtCore, QtGui
 from .deferred_request import DeferredRequest
 
-from sgtk.platform.qt import QtCore, QtGui
-
 logger = sgtk.LogManager.get_logger(__name__)
-
-external_config = sgtk.platform.import_framework("tk-framework-shotgunutils", "external_config")
+external_config = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils",
+    "external_config"
+)
 
 
 class RequestRunner(QtCore.QObject):
     """
-    Executes websockets Request objects
+    Execution engine for websockets requests (objects deriving
+    from :class:`WebsocketsRequest`.
     """
 
     CONFIG_CHECK_TIMEOUT_SECONDS = 30

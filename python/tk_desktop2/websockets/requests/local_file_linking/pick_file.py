@@ -8,7 +8,7 @@
 import os
 import sgtk
 from .sgtk_file_dialog import SgtkFileDialog
-from ..base import WebsocketsRequest
+from ..request import WebsocketsRequest
 
 logger = sgtk.LogManager.get_logger(__name__)
 

@@ -5,5 +5,5 @@
 # this software in either electronic or hard copy form.
 #
 
-from .base import WebsocketsRequest
+from .request import WebsocketsRequest
 from .request_runner import RequestRunner

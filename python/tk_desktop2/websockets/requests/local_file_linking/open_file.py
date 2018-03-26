@@ -8,12 +8,9 @@
 import sgtk
 import sys
 import os
-import json
-import pprint
-import datetime
 import threading
 from sgtk.util.process import subprocess_check_output, SubprocessCalledProcessError
-from ..base import WebsocketsRequest
+from ..request import WebsocketsRequest
 
 
 logger = sgtk.LogManager.get_logger(__name__)
