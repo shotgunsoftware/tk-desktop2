@@ -1,34 +1,43 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright 2018 Autodesk, Inc.  All rights reserved.
 #
-# CONFIDENTIAL AND PROPRIETARY
+# Use of this software is subject to the terms of the Autodesk license agreement
+# provided at the time of installation or download, or which otherwise accompanies
+# this software in either electronic or hard copy form.
 #
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
-# Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
 import sys
 import sgtk
-from sgtk.platform import Engine
 import sgtk
 import time
 import threading
 import os
 import sys
 
-from .errors import PathParseError
+from sgtk.platform import Engine
 from sgtk.platform.qt import QtCore, QtGui
-
+from .errors import PathParseError
 
 logger = sgtk.LogManager.get_logger(__name__)
-external_config = sgtk.platform.import_framework("tk-framework-shotgunutils", "external_config")
+external_config = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils",
+    "external_config"
+)
 
 
 class ActionHandler(object):
     """
-    Handles actions
+    Interface for UI interaction inside the desktop2 UI environment.
+
+    Interacts with a single StandarditemModel inside the runtime
+    environment which is populated with Toolkit menu actions
+    depending on its current context.
+
+    The model will signal out when new actions are needed (eg.
+    when a user navigates in the UI) and this class will
+    asynchronously fetch these actions. Actions are cross
+    project and cross context and the external_config shotgunutils
+    module is utilized to retrieve the actions.
     """
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
@@ -130,7 +139,9 @@ class ActionHandler(object):
             if q_object.objectName() == self.ACTION_MODEL_OBJECT_NAME:
                 return q_object
                 break
-        raise RuntimeError("Could not retrieve internal object '%s'" % self.ACTION_MODEL_OBJECT_NAME)
+        raise RuntimeError(
+            "Could not retrieve internal object '%s'" % self.ACTION_MODEL_OBJECT_NAME
+        )
 
     def _path_to_entity(self, path):
         """
@@ -369,7 +380,6 @@ class ActionHandler(object):
 
         # remove any loading message associated with this batch
         self._remove_loading_menu_indicator(config)
-
 
     def _execute_action(self, path, action_str):
         """

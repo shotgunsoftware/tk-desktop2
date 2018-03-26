@@ -1,12 +1,9 @@
-# Copyright (c) 2018 Shotgun Software Inc.
+# Copyright 2018 Autodesk, Inc.  All rights reserved.
 #
-# CONFIDENTIAL AND PROPRIETARY
+# Use of this software is subject to the terms of the Autodesk license agreement
+# provided at the time of installation or download, or which otherwise accompanies
+# this software in either electronic or hard copy form.
 #
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
-# Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
 
 from sgtk.platform import Engine
 import sgtk
@@ -27,16 +24,19 @@ class DesktopEngine2(Engine):
         """
         Main initialization entry point.
         """
+        # handles in-ui menus
         self._actions_handler = None
+        # handles background work
         self._task_manager = None
+        # executes websockets tasks
         self._wss_runner = None
+        # handles websockets server
         self._wss_handler = None
 
     def post_app_init(self):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
-        # set up pyside2 dark look and feel
         self._initialize_dark_look_and_feel()
 
     def initialize_actions_integration(self, engine_instance_name, plugin_id, base_config):
