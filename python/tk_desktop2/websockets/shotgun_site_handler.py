@@ -15,11 +15,21 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class ShotgunSiteHandler(object):
     """
-    The shotgun site that we are connected to
+    Represents a shotgun site that a websocket connection has been established to.
+    Each :class:`WebsocketsConnection` instance has an associated :class:`ShotgunSiteHandler`.
+
+    The ShotgunSiteHandler handles the logic for encrypting the traffic to the given site.
+
+    Upon construction, an API connection will be established and an exchange will be carried
+    out whereby this class crafts a unique server id (available via the unique_server_id
+    property). It will then send this to the shotgun site and in exchange get an encryption
+    key. Once the shotgun site has provided this encryption key, this class can be used to
+    encrypt and decrypt websockets traffic sent to the site.
     """
 
     def __init__(self, site_url):
         """
+        :param str site_url: Shotgun site to create a ite handler for.
         """
         self._bundle = sgtk.platform.current_bundle()
 
@@ -35,29 +45,42 @@ class ShotgunSiteHandler(object):
         user = sg_auth.get_user()
         # todo: handle authenticationcancelled
 
-        self._ws_server_secret = self._retrieve_server_secret(
+        # get the secret from the shotgun site.
+        # don't hold on to it but pass it to
+        # the encrpyption library.
+        ws_server_secret = self._retrieve_server_secret(
             user.create_sg_connection()
         )
 
         # create encryption session
-        self._fernet = Fernet(self._ws_server_secret)
+        self._fernet = Fernet(ws_server_secret)
 
     def __repr__(self):
-        return "<Wss-site %s>" % self._site_url
+        """
+        String representation
+        """
+        return "<wss-site %s>" % self._site_url
 
     @property
     def unique_server_id(self):
+        """
+        Unique id associated with this shotgun site.
+        """
         return self._unique_server_id
 
     def encrypt(self, payload):
         """
         Encrypts the given payload
+
+        :param str payload: String to encrypt.
         """
         return self._fernet.encrypt(payload)
 
     def decrypt(self, payload):
         """
         Decrypts the given payload
+
+        :param str payload: String to decrypt.
         """
         b = bytes(payload)
         return self._fernet.decrypt(b)
@@ -65,11 +88,14 @@ class ShotgunSiteHandler(object):
     def _retrieve_server_secret(self, shotgun):
         """
         Retrieves the server secret from Shotgun.
+
+        :param shotgun: Shotugn API instance.
         """
         logger.debug("Retrieving communication secret from Shotgun")
         # Ask for the secret for this server id.
         response = shotgun._call_rpc(
-            "retrieve_ws_server_secret", {"ws_server_id": self._unique_server_id}
+            "retrieve_ws_server_secret",
+            {"ws_server_id": self._unique_server_id}
         )
         ws_server_secret = response["ws_server_secret"]
         # FIXME: Server doesn't seem to provide a properly padded string. The Javascript side

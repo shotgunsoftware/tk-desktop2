@@ -51,8 +51,6 @@ class ShotgunCertificateHandler(object):
     def _retrieve_certificates_from_shotgun(self):
         """
         Retrieves certificates from Shotgun.
-
-        :returns: (path to crt file, path to key file)
         """
         logger.debug("Retrieving certificates from Shotgun")
         certs = self._bundle.shotgun._call_rpc("sg_desktop_certificates", {})

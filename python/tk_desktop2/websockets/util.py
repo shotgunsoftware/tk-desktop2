@@ -15,11 +15,11 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 def create_reply(data, encrypt_fn=None):
     """
-    Create a plaintext JSON-formatted message to client.
+    Create a JSON-formatted message to client.
 
     :param data: Object Data that will be converted to JSON.
-    :param encrypt_fn: Optional Encryption method
-    :returns: server ready payload
+    :param encrypt_fn: Optional Encryption method.
+    :returns: Server ready payload
     """
     # ensure_ascii allows unicode strings.
     payload = json.dumps(
@@ -34,15 +34,31 @@ def create_reply(data, encrypt_fn=None):
     return payload
 
 
+def parse_json(payload):
+    """
+    Parses a json string in utf-8 encoded format,
+    as expected from the Shotgun site.
+
+    :param str payload: json payload
+    :returns: Dictionary of values
+    """
+    # data is sent as utf-8 across the wire
+    message_obj = json.loads(payload, encoding="utf-8")
+    message_obj = _convert(message_obj)
+    return message_obj
+
+
 def create_error_reply(message, data=None, encrypt_fn=None):
     """
-    Report an error to the client.
-    Note: The error has no message id and therefore will lack traceability in the client.
+    Create a standard error json reply.
+
+    Note: The error has no message id and therefore will lack
+    traceability in the client.
 
     :param message: String Message describing the error.
-    :param data: Object Optional Additional information regarding the error.
+    :param dict data: Optional information regarding the error.
     :param encrypt_fn: Optional Encryption method
-    :returns: server ready payload
+    :returns: Server ready payload
     """
     error = {}
     error["error"] = True
@@ -56,6 +72,8 @@ def _json_date_handler(obj):
     """
     JSON stringify python date handler from:
     http://stackoverflow.com/questions/455580/json-datetime-between-python-and-javascript
+
+    :param obj: Object to serialize
     :returns: return a serializable version of obj or raise TypeError
     :raises: TypeError if a serializable version of the object cannot be made
     """
@@ -65,20 +83,6 @@ def _json_date_handler(obj):
         return obj.isoformat()
     else:
         return json.JSONEncoder().default(obj)
-
-
-def parse_json(payload):
-    """
-    Parses a utf-8 encoded json string
-
-    @param payload:
-    @return:
-    :raises: ValueError
-    """
-    # data is sent as utf-8 across the wire
-    message_obj = json.loads(payload, encoding="utf-8")
-    message_obj = _convert(message_obj)
-    return message_obj
 
 
 def _convert(data):

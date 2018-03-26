@@ -18,15 +18,15 @@ from .websockets_connection import WebsocketsConnection
 logger = sgtk.LogManager.get_logger(__name__)
 
 
-
 class WebsocketsServer(object):
     """
-    Wraps the websockets server and manages active connections
+    Wrapper for the build-in websockets server.
     """
 
     def __init__(self, request_runner):
         """
-        A wrapper around the built-in C++ websockets server.
+        :parm request_runner: An associated :class:`RequestRunner`
+            instance to handle execution.
         """
         logger.debug("Begin initializing websockets server wrapper")
         self._connections = {}
@@ -35,6 +35,7 @@ class WebsocketsServer(object):
         self._bundle = sgtk.platform.current_bundle()
 
         # retrieve websockets server from C++
+        # TODO: this may be done via standard method in the future.
         manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
         self._wss_server = manager.findChild(QtWebSockets.QWebSocketServer, "sgtk-web-socket-server")
         logger.debug("Retrieved websockets server %s" % self._wss_server)
@@ -49,12 +50,6 @@ class WebsocketsServer(object):
             )
             return
 
-        # Add our callback to process messages.
-        self._wss_server.textMessageReceived.connect(self._process_message)
-        self._wss_server.newConnectionAdded.connect(self._new_connection)
-        self._wss_server.connectionClosed.connect(self._connection_closed)
-        self._wss_server.sslErrors.connect(self._on_ssl_errors)
-
         # SG certs:
         logger.debug("Set up shotgunlocalhost certificates:")
         logger.debug("Key file: %s" % self._sg_certs_handler.key_path)
@@ -64,15 +59,24 @@ class WebsocketsServer(object):
             self._sg_certs_handler.cert_path
         )
 
+        # Add our callback to process messages.
+        self._wss_server.textMessageReceived.connect(self._process_message)
+        self._wss_server.newConnectionAdded.connect(self._new_connection)
+        self._wss_server.connectionClosed.connect(self._connection_closed)
+        self._wss_server.sslErrors.connect(self._on_ssl_errors)
+
         # TODO: handle port number - read out of sg prefs
         port_number = 9000
 
         # Tell the server to listen to the given port
-        logger.debug("Starting websockets server on port %d" % port_number)
+        logger.debug("Starting websockets server on port %s" % port_number)
         self._wss_server.listen(
             QtNetwork.QHostAddress.LocalHost,
             port_number
         )
+        # TODO: In the case another wss is already running, this may cause error singnals
+        # to be triggered on the C++ side. We should refactor that so that those signals
+        # can bubble up here and be handled by python.
         logger.debug("Websockets server is ready and listening.")
 
     def destroy(self):
@@ -91,6 +95,7 @@ class WebsocketsServer(object):
             "New wss connection %s from %s %s %s" % (socket_id, name, address, port)
         )
 
+        # get the site request came from
         origin = request.rawHeader("origin")
         # origin is a bytearray, convert to string
         origin = str(origin)
@@ -98,7 +103,7 @@ class WebsocketsServer(object):
             # note: this may pop up a login dialog
             self._sites[origin] = ShotgunSiteHandler(origin)
 
-        # TODO - do we need this?
+        # TODO - do we need this?? need CR feedback.
         #self._sec_websocket_key_header = request.rawHeader("sec-websocket-key")
 
         self._connections[socket_id] = WebsocketsConnection(
@@ -110,13 +115,14 @@ class WebsocketsServer(object):
 
     def _process_message(self, socket_id, message):
         """
-        Message callback
+        Callback firing whenever a message comes in.
 
-        @param socket_id:
-        @param message:
-        @return:
+        :param str socket_id: Id of the client (browser tab) sending the request.
+        :param str message: Raw message from client.
+        :raises: RuntimeError on failure.
         """
-        logger.info("Message received from %s." % socket_id)
+        logger.debug("Message received from %s." % socket_id)
+
         # remove from our cache
         if socket_id in self._connections:
             self._connections[socket_id].process_message(message)
@@ -124,11 +130,22 @@ class WebsocketsServer(object):
             raise RuntimeError("Got request from unknown connection %s" % socket_id)
 
     def _connection_closed(self, socket_id):
+        """
+        Callback firing whenever a websockets connection is closed.
+
+        :param str socket_id: Id of the client (browser tab) sending the request.
+        """
         logger.info("Connection %s was closed." % socket_id)
+
         # remove from our cache
         if socket_id in self._connections:
             del self._connections[socket_id]
 
     def _on_ssl_errors(self, errors):
+        """
+        Callback firing whenever ssl errors are detected.
+
+        :param errors: Error details
+        """
         logger.error("SSL Error: %s" % errors)
 
