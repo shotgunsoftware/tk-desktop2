@@ -12,32 +12,45 @@ import threading
 from sgtk.util.process import subprocess_check_output, SubprocessCalledProcessError
 from ..request import WebsocketsRequest
 
-
 logger = sgtk.LogManager.get_logger(__name__)
 
 
 class OpenFileWebsocketsRequest(WebsocketsRequest):
     """
-    Env var: SHOTGUN_PLUGIN_LAUNCHER
-        Get Launcher file name from environement.
-        This provides an alternative way to launch applications and open files, instead of os-standard open.
+    Websockets command to open the given file in an associated environment.
+    Part of the local file linking feature set.
 
-    The request is on the following form:
+    Request syntax::
 
-    {'filepath': '/path/to/file.mov',
-     'user': {'entity': {'id': 42,
-                      'name': 'John Smith',
-                      'status': 'act',
-                      'type': 'HumanUser',
-                      'valid': 'valid'},
-           'group_ids': [3],
-           'rule_set_display_name': 'Admin',
-           'rule_set_id': 5}},
+        {'filepath': '/path/to/file.mov',
+         'user': {'entity': {'id': 42,
+                          'name': 'John Smith',
+                          'status': 'act',
+                          'type': 'HumanUser',
+                          'valid': 'valid'},
+               'group_ids': [3],
+               'rule_set_display_name': 'Admin',
+               'rule_set_id': 5}},
 
-    Response:
-        The generated response is a single boolean, indicating if the open succeeded, false if not.
+    Expected response::
+
+        a single boolean, indicating if the open succeeded, false if not.
+
+    The following methods will be used to open the file:
+
+    - Linux:   Launch 'xdg-open <path>'
+    - Mac:     Launch 'open <path>'
+    - Windows: Launch via the os.startfile API.
+
+    If an environment variable SHOTGUN_PLUGIN_LAUNCHER is specified,
+    this will override the default launch command described above.
     """
     def __init__(self, connection, id, parameters):
+        """
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int id: Id for this request.
+        :param dict parameters: Command parameters (see syntax above)
+        """
         super(OpenFileWebsocketsRequest, self).__init__(connection, id)
 
         if sys.platform.startswith("linux"):
@@ -56,46 +69,38 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
 
         self._path = parameters["filepath"]
 
-
     def _execute(self):
         """
-        Execute payload
+        Execute payload in a separate thread.
         """
-        # TODO: handle error reporting
-        if self._launcher is None:
-            os.startfile(self._path)
-        else:
-            try:
-                output = subprocess_check_output([self._launcher, self._path])
-            except SubprocessCalledProcessError as e:
-                # caching failed!
-                # TODO: report error message?
-                raise RuntimeError(
-                    "Could not open file.\nReturn code: %s\nOutput: %s" % (
-                        e.returncode,
-                        e.output
-                    )
-                )
-        # always return success here (errors handles as exceptions
-        success = True
-        self._reply(success)
+        try:
+            if not os.path.exists(self._path):
+                raise RuntimeError("Error opening path [%s]. Path not found." % self._path)
 
+            if self._launcher is None:
+                os.startfile(self._path)
+            else:
+                subprocess_check_output([self._launcher, self._path])
+
+        except SubprocessCalledProcessError as e:
+            self._reply_with_status(
+                status=e.returncode,
+                error=e.output
+            )
+        except Exception as e:
+            self._reply_with_status(
+                status=1,
+                error=str(e)
+            )
+        else:
+            # operation succeeded.
+            success = True
+            self._reply(success)
 
     def execute(self):
         """
-        Opens a file with default os association or launcher found in environments. Not blocking.
-
-        :param filepath: String file path (ex: "c:/file.mov")
-        :returns: Bool If the operation was successful
+        Non-blocking execution.
         """
-        if not os.path.exists(self._path):
-            raise RuntimeError("Error opening path [%s]. Path not found." % self._path)
-
         worker = threading.Thread(target=self._execute)
         worker.daemon = True
         worker.start()
-
-
-
-
-

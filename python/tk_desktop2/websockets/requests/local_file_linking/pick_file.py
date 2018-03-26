@@ -15,17 +15,36 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class PickFileOrDirectoryWebsocketsRequest(WebsocketsRequest):
     """
+    Pops up a modal file selector dialog and lets the user choose
+    one or more files or directories.
+    Part of the local file linking feature set.
+
+    Request syntax::
+
+        No parameters are defined for this command
+
+    Expected response::
+
+        A list of file paths as strings.
 
     """
-    def __init__(self, connection, id, parameters, pick_multiple):
+    def __init__(self, connection, id, pick_multiple):
+        """
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int id: Id for this request.
+        :param bool pick_multiple: Flag to indicate whether multi select should be enabled.
+        """
         self._pick_multiple = pick_multiple
         super(PickFileOrDirectoryWebsocketsRequest, self).__init__(connection, id)
 
     def execute(self):
+        """
+        Executes modally and synchronously
+        """
         dialog = SgtkFileDialog(self._pick_multiple, None)
         dialog.setResolveSymlinks(False)
 
-        # Get result.
+        # Show modal dialog and get result back.
         result = dialog.exec_()
 
         files = []
@@ -41,4 +60,3 @@ class PickFileOrDirectoryWebsocketsRequest(WebsocketsRequest):
         files = [f.replace("/", os.path.sep) for f in files]
 
         self._reply(files)
-

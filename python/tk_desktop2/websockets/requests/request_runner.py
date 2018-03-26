@@ -20,20 +20,23 @@ external_config = sgtk.platform.import_framework(
 class RequestRunner(QtCore.QObject):
     """
     Execution engine for websockets requests (objects deriving
-    from :class:`WebsocketsRequest`.
+    from :class:`WebsocketsRequest`. Objects are registered via the
+    `execute` method and will be queued up for execution.
+
+    Some commands can be executed immediately, others need to have
+    async work carried out before they can be executing.
     """
 
     CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
     def __init__(self, engine_instance_name, plugin_id, base_config, task_manager):
         """
-        Start up the engine's built in request runner
-
         :param str engine_instance_name: The instance name of the engine for
             which we should be retrieving commands.
         :param str plugin_id: The plugin id associated with the runtime environment.
         :param str base_config: Descriptor URI for the config to use by default when
             no custom pipeline configs have been defined in Shotgun.
+        :param task_manager: Task Manager to use for async processing.
         """
         qt_parent = QtCore.QCoreApplication.instance()
 
@@ -66,7 +69,10 @@ class RequestRunner(QtCore.QObject):
 
     def execute(self, request):
         """
-        Registers a websockets request for asynchronous proceessing.
+        Registers a websockets request for proceessing.
+        Some commands may run asynchronous.
+
+        :param request: :class:`WebsocketsRequest` instance to execute.
         """
         if not request.requires_toolkit:
             # no toolkit context needed. Action straight away.
@@ -74,7 +80,7 @@ class RequestRunner(QtCore.QObject):
             return
 
         # for toolkit requests, wrap them in a deferred request and
-        # asynchronounsly collect all the configuration parts
+        # asynchronously collect all the configuration parts
         # needed to process them.
 
         # add it to list for processing
@@ -201,7 +207,9 @@ class RequestRunner(QtCore.QObject):
 
     def _execute_ready_requests(self):
         """
-
+        Execute all requests which have a well defined state and thus
+        are ready for execution. Remove them from the internal
+        list of active requests.
         """
         logger.debug("Preparing ready requests for execution...")
         remaining_requests = []

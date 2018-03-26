@@ -13,11 +13,22 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class DeferredRequest(object):
     """
-    Executes websockets Request objects
+    Wrapper around a :class:`WebsocketsRequest` which serves as a broker between
+    the request runner and the :class:`WebsocketsRequest`.
+
+    Certain websocket commands requires a full state of commands and configurations
+    prior to execution. The external_config interface which is part of shotgunutils
+    is fully asynchronous and will provide any external data as soon as it has
+    access to it.
+
+    This class provides a buffer which builds up a full configuration state so that
+    Toolkit WebsocketsRequest are only executed once a full external state, covering
+    all different pipeline configuration, has been loaded.
     """
 
     def __init__(self, request):
         """
+        :param request: :class:`WebsocketsRequest` to wrap around.
         """
         self._request = request
         self._configurations = None
@@ -25,21 +36,21 @@ class DeferredRequest(object):
     @property
     def project_id(self):
         """
-        Project id associated with this request or None for a site wide request
+        Project id associated with this request
         """
         return self._request.project_id
 
     @property
     def entity_type(self):
         """
-        Entity type associated with this request or None for a site wide request
+        Entity type associated with this request
         """
         return self._request.entity_type
 
     @property
     def entity_id(self):
         """
-        Entity id associated with this request or None for a site wide request
+        Entity id associated with this request or None for a general request
         """
         return self._request.entity_id
 
@@ -55,7 +66,7 @@ class DeferredRequest(object):
     @property
     def can_be_executed(self):
         """
-        True if the request can be executed, false if not
+        True if the request is ready to be executed, false if not
         """
         if self._configurations:
             # have we got commands loaded for all configurations?
@@ -89,10 +100,14 @@ class DeferredRequest(object):
         #         "error": "Something went wrong"
         #     },
         # ]
-
         self._request.execute_with_context(self._configurations)
 
     def register_configurations(self, configs):
+        """
+        Registers a list of configurations with the instance.
+
+        :param configs: List of :class:`ExternalConfiguration` objects.
+        """
         logger.debug("%s: Register configurations %s" % (self, configs))
 
         # put together a data structure to hold the data and later
@@ -109,7 +124,6 @@ class DeferredRequest(object):
         #         "error": "Something went wrong"
         #     },
         # ]
-
         self._configurations = []
         for config in configs:
             self._configurations.append(
@@ -121,14 +135,25 @@ class DeferredRequest(object):
             )
 
     def register_commands(self, config, commands):
+        """
+        Registers the commands for a given external configuration.
+
+        :param config: Associated :class:`ExternalConfiguration` object.
+        :param list commands: List of associated :class:`ExternalCommand` objects.
+        """
         logger.debug("Register commands for config %s" % config)
         for config_dict in self._configurations:
             if config_dict["configuration"] == config:
                 config_dict["commands"] = commands
                 config_dict["error"] = None
 
-
     def register_commands_failure(self, config, reason):
+        """
+        Registers that a configuration could not be loaded.
+
+        :param config: Associated :class:`ExternalConfiguration` object.
+        :param str reason: Error message.
+        """
         logger.debug("Register commands failed for config %s: %s" % (config, reason))
         for config_dict in self._configurations:
             if config_dict["configuration"] == config:

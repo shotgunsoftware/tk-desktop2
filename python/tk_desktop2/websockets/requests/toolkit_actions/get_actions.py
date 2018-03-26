@@ -13,104 +13,85 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class GetActionsWebsocketsRequest(WebsocketsRequest):
     """
-    Request:
+    Webosockets command to request a list of toolkit actions
+    suitable for an entity or group of entities.
 
+    Request syntax::
+
+        Requesting actions for a particular object:
         {
             'entity_id': 111,
             'entity_type': 'Shot',
             'project_id': 584,
-            'user': {
-                'entity': {
-                    'id': 42,
-                    'name': 'John Smith',
-                    'status': 'act',
-                    'type': 'HumanUser',
-                    'valid': 'valid'
-                    },
-               'group_ids': [3],
-               'rule_set_display_name': 'Admin',
-               'rule_set_id': 5
+            'user': {...}
             }
-        },
+        }
 
-        When loading a page of assets:
-        {'command': {'data': {'entity_id': -1,
-                              'entity_type': 'Asset',
-                              'project_id': 595,
-                              'user': {'entity': {'id': 42,
-                                                  'name': 'Manne \xc3\x96hrstr\xc3\xb6m',
-                                                  'status': 'act',
-                                                  'type': 'HumanUser',
-                                                  'valid': 'valid'},
-                                       'group_ids': [3],
-                                       'rule_set_display_name': 'Admin',
-                                       'rule_set_id': 5}},
-                     'name': 'get_actions'},
-         'id': 2,
-         'protocol_version': 2,
-         'timestamp': 1521627818184}
+        Requesting generic actions for assets:
+        {
+            'entity_id': 111,
+            'entity_type': 'Asset',
+            'project_id': -1,
+            'user': {...}
+            }
+        }
 
+    Expected response::
 
-    Response on success:
+        {
+            retcode: 0,
+            actions: {
+                "Primary: {
+                    "config": "Primary",
+                    "actions": [ <ACTION>, <ACTION>, ...]
+                },
 
-    {
-        retcode:0,
-        actions: {
-            "Primary: {
-                "config": "Primary",
-                "actions": [ <ACTION>, <ACTION>, ...]
+                "Dev": {
+                    "config": "Primary",
+                    "actions": [ <ACTION>, <ACTION>, ...]
+                }
             },
+            pcs:["Primary", "Dev"], # list of pipeline configuration names
+        }
 
-            "Dev": {
-                "config": "Primary",
-                "actions": [ <ACTION>, <ACTION>, ...]
-            }
-        },
-        pcs:["Primary", "Dev"], # list of pipeline configuration names
-    }
+        Where <ACTION> is a dictionary on the following form:
 
-    Where <ACTION> is a dictionary on the following form:
+        {
+            name: command_name,
+            title: title to appear in UI
+            deny_permissions: [] # list of permission roles for this not to show up. legacy.
+            app_name: tk-multi-launchapp
+            group: Group Name
+            group_default: False
+            engine_name: tk-desktop2
+        }
 
-    {
-        name: command_name,
-        title: title to appear in UI
-        deny_permissions: [] # list of permission roles for this not to show up. legacy.
-        app_name: tk-multi-launchapp
-        group: Group Name
-        group_default: False
-        engine_name: tk-desktop2
-    }
-
-    Response to indicate that we are loading:
+    Response that we are loading (legacy syntax, not supported by this class)::
 
         {
             retcode=1
         }
 
-    Response to indicate that an unsupported entity type has been requested:
+    Response to indicate that an unsupported entity type has
+    been requested (legacy syntax, not supported by this class)::
 
         {
             retcode=2
-        }
-
-    # both of the above are legacy and we shouldn't send them back
-
-    Other errors:
-
-        {
-            retcode=?
-            out='Error message'
-            err='' # left blank
         }
     """
 
     # RPC return codes.
     SUCCESSFUL_LOOKUP = 0
-    CACHING_NOT_COMPLETED = 1
-    UNSUPPORTED_ENTITY_TYPE = 2
+    CACHING_NOT_COMPLETED = 1    # legacy
+    UNSUPPORTED_ENTITY_TYPE = 2  # legacy
     CACHING_ERROR = 3
 
     def __init__(self, connection, id, parameters):
+        """
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int id: Id for this request.
+        :param dict parameters: Command parameters (see syntax above)
+        """
         super(GetActionsWebsocketsRequest, self).__init__(connection, id)
 
         # validate parameters
@@ -133,7 +114,6 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         # entity id None for our request handler to indicate this.
         if self._entity_id == -1:
             self._entity_id = None
-
 
     @property
     def requires_toolkit(self):
@@ -170,6 +150,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         Linked entity types are useful to distinguish for example a configuration
         difference between tasks linked to shots vs tasks linked to assets.
         """
+        # todo: support this!
         return None
 
     def execute_with_context(self, associated_commands):
@@ -193,60 +174,33 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
 
         :param list associated_commands: See above for details.
         """
-
         # first detect if any configuration loaded with errors.
         # in that case, send an error for the entire group
-        # TODO: can this be handled in a better way? How is it done today?
         errors = []
         for config in associated_commands:
             if config["error"]:
                 errors.append(config["error"])
 
         if len(errors) > 0:
-            self._reply({
-                "retcode": self.CACHING_ERROR,
-                "err": "\n".join(errors)
-            })
+            self._reply_with_status(
+                status=self.CACHING_ERROR,
+                error="\n".join(errors)
+            )
             return
 
-    # {
-    #     retcode:0,
-    #     actions: {
-    #         "Primary: {
-    #             "config": "Primary",
-    #             "actions": [ <ACTION>, <ACTION>, ...]
-    #         },
-    #
-    #         "Dev": {
-    #             "config": "Primary",
-    #             "actions": [ <ACTION>, <ACTION>, ...]
-    #         }
-    #     },
-    #     pcs:["Primary", "Dev"], # list of pipeline configuration names
-    # }
-
+        # compile response
         response = {
             "retcode": 0,
             "pcs": [],
             "actions": {}
         }
 
-        # {
-        #     name: command_name,
-        #     title: title to appear in UI
-        #     deny_permissions: []  # list of permission roles for this not to show up. legacy.
-        #     app_name: tk - multi - launchapp
-        #     group: Group Name
-        #     group_default: False
-        # engine_name: tk - desktop2
-        # }
-
-
         for config in associated_commands:
             config_name = config["configuration"].pipeline_configuration_name
 
             if config_name is None:
                 # this is a zero config setup with no record in Shotgun
+                # such a config is expected to be named Primary in Shotgun
                 config_name = "Primary"
 
             response["pcs"].append(config_name)
@@ -258,18 +212,16 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
                     "name": command.system_name,
                     "title": command.display_name,
                     "deny_permissions": command.excluded_permission_groups_hint,
-                    "app_name": "UNSPECIFIED",
+                    "app_name": "UNSPECIFIED",  # legacy
                     "group": command.group,
                     "group_default": command.is_group_default,
-                    "engine_name": "UNSPECIFIED"
+                    "engine_name": "UNSPECIFIED"  # legacy
                 })
 
             response["actions"][config_name] = {
                 "config": config_name,
                 "actions": actions,
             }
-
-
 
         self._reply(response)
 

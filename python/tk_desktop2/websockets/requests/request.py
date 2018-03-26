@@ -63,14 +63,12 @@ class WebsocketsRequest(object):
             return PickFileOrDirectoryWebsocketsRequest(
                 connection,
                 request_id,
-                command_data,
                 pick_multiple=False
             )
         elif command_name == "pick_files_or_directories":
             return PickFileOrDirectoryWebsocketsRequest(
                 connection,
                 request_id,
-                command_data,
                 pick_multiple=True
             )
         elif command_name == "open":
@@ -178,3 +176,19 @@ class WebsocketsRequest(object):
         :param dict data: Data dictionary to send to client.
         """
         self._connection.reply(data, self._id)
+
+    def _reply_with_status(self, status=0, output=None, error=None):
+        """
+        Sends back a standard status report
+
+        :param int status: Status code (0 means success)
+        :param str output: Messages
+        :param str error: Error messages
+        """
+        self._reply(
+            {
+                "retcode": status,
+                "out": (output or ""),
+                "err": (error or ""),
+            }
+        )
