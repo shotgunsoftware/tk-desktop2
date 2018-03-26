@@ -21,6 +21,8 @@ class DesktopEngine2(Engine):
     Toolkit Engine for Shotgun Desktop v2
     """
 
+    SHOTGUN_ENGINE_NAME = "tk-shotgun"
+
     def init_engine(self):
         """
         Main initialization entry point.
@@ -88,7 +90,7 @@ class DesktopEngine2(Engine):
 
         # initialize the runner which executes websocket commands
         self._wss_runner = tk_desktop2.RequestRunner(
-            engine_instance_name, #todo: tk-shotgun?
+            self.SHOTGUN_ENGINE_NAME,
             plugin_id,
             base_config,
             self._task_manager
