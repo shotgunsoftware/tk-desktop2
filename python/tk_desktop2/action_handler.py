@@ -5,14 +5,9 @@
 # this software in either electronic or hard copy form.
 #
 
-import os
-import sys
-import sgtk
 import sgtk
 import time
 import threading
-import os
-import sys
 
 from sgtk.platform import Engine
 from sgtk.platform.qt import QtCore, QtGui
@@ -220,8 +215,17 @@ class ActionHandler(object):
         """
         logger.debug("Shotgun has changed. Discarding cached configurations.")
         # our cached configuration objects are no longer valid
-        # note: GC will disconnect any signals.
+        # disconnect any signals so we no longer get callbacks from
+        # these stale items
+        for (project_id, configurations) in self._cached_configs.iteritems():
+            for config in configurations:
+                config.commands_loaded.disconnect(self._on_commands_loaded)
+                config.commands_load_fail.disconnect(self._on_commands_load_failed)
+        # and clear our internal tracking of these items
         self._cached_configs = {}
+
+        # the model is not up to date so clear it
+        self._actions_model.clear()
 
         # load in new configurations for current project
         (entity_type, entity_id, project_id) = self._path_to_entity(
@@ -253,22 +257,15 @@ class ActionHandler(object):
         )
 
         # cache our configs
-        if len(configs) > 0:
-            self._cached_configs[project_id] = configs
+        self._cached_configs[project_id] = configs
 
-            # wire up signals from our cached command objects
-            for config in configs:
-                config.commands_loaded.connect(self._on_commands_loaded)
-                config.commands_load_fail.connect(self._on_commands_load_failed)
+        # wire up signals from our cached command objects
+        for config in configs:
+            config.commands_loaded.connect(self._on_commands_loaded)
+            config.commands_load_fail.connect(self._on_commands_load_failed)
 
-            if curr_project_id == project_id:
-                self._request_commands(project_id, entity_type, entity_id)
-
-        else:
-            if curr_project_id == project_id:
-                logger.debug(
-                    "No configuration associated with project id %s" % project_id
-                )
+        if curr_project_id == project_id:
+            self._request_commands(project_id, entity_type, entity_id)
 
     def _request_commands(self, project_id, entity_type, entity_id):
         """
@@ -284,6 +281,9 @@ class ActionHandler(object):
         logger.debug(
             "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
         )
+
+        # note: it's possible that self._cached_configs[project_id] holds
+        # empty list - in this case, nothing happens.
         for config in self._cached_configs[project_id]:
 
             # indicate that we are loading data for this config
@@ -307,6 +307,8 @@ class ActionHandler(object):
         :param config: Associated ExternalConfiguration instance.
         :param list commands: List of ExternalCommand instances.
         """
+        logger.debug("Commands loaded for %s" % config)
+
         # make sure that the user hasn't switched to a different item
         # while things were loading
         (_, _, curr_project_id) = self._path_to_entity(
@@ -357,6 +359,8 @@ class ActionHandler(object):
         :param config: Associated ExternalConfiguration instance.
         :param str reason: Details around the failure.
         """
+        logger.debug("Commands failed to load for %s" % config)
+
         # make sure that the user hasn't switched to a different item
         # while things were loading
         (_, _, curr_project_id) = self._path_to_entity(
