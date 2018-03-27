@@ -5,14 +5,9 @@
 # this software in either electronic or hard copy form.
 #
 
-import os
-import sys
-import sgtk
 import sgtk
 import time
 import threading
-import os
-import sys
 
 from sgtk.platform import Engine
 from sgtk.platform.qt import QtCore, QtGui
@@ -286,6 +281,9 @@ class ActionHandler(object):
         logger.debug(
             "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
         )
+
+        # note: it's possible that self._cached_configs[project_id] holds
+        # empty list - in this case, nothing happens.
         for config in self._cached_configs[project_id]:
 
             # indicate that we are loading data for this config
