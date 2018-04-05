@@ -22,8 +22,10 @@ class ShotgunEntityPath(object):
     - /projects/450/assets/17128/tasks/10096
     """
 
+    # note: shotgun entity type names cannot have unicode characters in them so we are not
+    #       supporting that in this parser either.
     task_path_regex = re.compile(
-        r"^/projects/(?P<project_id>[0-9]+)/(?P<entity_type>[a-z]+)/(?P<entity_id>[0-9]+)/tasks/(?P<task_id>[0-9]+)$"
+        r"^/projects/(?P<project_id>[0-9]+)/(?P<entity_type>[a-z]+)s/(?P<entity_id>[0-9]+)/tasks/(?P<task_id>[0-9]+)$"
     )
 
     def __init__(self, path):
@@ -80,24 +82,22 @@ class ShotgunEntityPath(object):
         # format example:
         # /projects/65/shots/862/tasks/568
         # /projects/450/assets/17128/tasks/10096
-        match = self.task_path_regex.match(path)
+        path_match = self.task_path_regex.match(path)
 
-        if match is None:
+        if not path_match:
             raise PathParseError("Format of Shotgun Entity Path '%s' is not supported." % path)
 
         # for now, we only support paths to tasks
         self._entity_type = "Task"
 
         # extract ids. Regex ensures that these are valid ints
-        self._project_id = int(match.group("project_id"))
-        self._linked_entity_id = int(match.group("entity_id"))
-        self._entity_id = int(match.group("task_id"))
+        self._project_id = int(path_match.group("project_id"))
+        self._linked_entity_id = int(path_match.group("entity_id"))
+        self._entity_id = int(path_match.group("task_id"))
 
         # extract entity type - eg. 'shots'
-        linked_entity_type = match.group("entity_type")
-        # make sure it's all lower case
-        linked_entity_type = linked_entity_type.lower()
-        # convert to Shotgun style, drop plural 's' suffix and capitalize
-        self._linked_entity_type = linked_entity_type[:-1].capitalize()
+        linked_entity_type = path_match.group("entity_type")
+        # convert to Shotgun style first letter capitalization
+        self._linked_entity_type = linked_entity_type.capitalize()
 
 
