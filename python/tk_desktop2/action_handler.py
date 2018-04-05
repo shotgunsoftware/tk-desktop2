@@ -12,7 +12,7 @@ import threading
 from sgtk.platform import Engine
 from sgtk.platform.qt import QtCore, QtGui
 from .errors import PathParseError
-from .shotgun_wiretap_path import ShotgunWiretapPath
+from .shotgun_entity_path import ShotgunEntityPath
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -154,18 +154,15 @@ class ActionHandler(object):
         """
         current_path = self._actions_model.currentEntityPath()
 
+        if current_path is None or current_path == "":
+            return
+
         logger.debug("Requesting commands for %s" % current_path)
 
         # clear loading indicator
         self._actions_model.clear()
 
-        try:
-            sg_entity = ShotgunWiretapPath(current_path)
-        except PathParseError, e:
-            logger.debug("Ignoring unsupported path: %s" % e)
-            # don't know how to handle this entity.
-            # return with a cleared menu.
-            return
+        sg_entity = ShotgunEntityPath(current_path)
 
         if sg_entity.project_id in self._cached_configs:
             logger.debug("Configurations cached in memory.")
@@ -183,9 +180,9 @@ class ActionHandler(object):
             # cached configurations.
             self._request_commands(
                 sg_entity.project_id,
-                sg_entity.linked_entity_type,
                 sg_entity.entity_type,
-                sg_entity.entity_id
+                sg_entity.entity_id,
+                sg_entity.linked_entity_type,
             )
 
         else:
@@ -219,7 +216,7 @@ class ActionHandler(object):
         self._actions_model.clear()
 
         # load in new configurations for current project
-        sg_entity = ShotgunWiretapPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
@@ -242,7 +239,7 @@ class ActionHandler(object):
         # and request commands to be loaded
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunWiretapPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         # cache our configs
         self._cached_configs[sg_entity.project_id] = configs
@@ -255,12 +252,12 @@ class ActionHandler(object):
         if sg_entity.project_id == project_id:
             self._request_commands(
                 project_id,
-                sg_entity.linked_entity_type,
                 sg_entity.entity_type,
-                sg_entity.entity_id
+                sg_entity.entity_id,
+                sg_entity.linked_entity_type,
             )
 
-    def _request_commands(self, project_id, link_entity_type, entity_type, entity_id):
+    def _request_commands(self, project_id, entity_type, entity_id, link_entity_type):
         """
         Requests commands for the given entity.
 
@@ -268,11 +265,11 @@ class ActionHandler(object):
         _on_commands_loaded() upon completion.
 
         :param int project_id: Shotgun project id
+        :param str entity_type: Shotgun entity type
+        :param int entity_id: Shotgun entity id
         :param str link_entity_type: The type that the entity potentially
             is linked with. Tasks and notes are for example linked to other
             objects that they are associated with.
-        :param str entity_type: Shotgun entity type
-        :param int entity_id: Shotgun entity id
         """
         logger.debug(
             "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
@@ -307,7 +304,7 @@ class ActionHandler(object):
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunWiretapPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.
@@ -358,7 +355,7 @@ class ActionHandler(object):
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunWiretapPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.
