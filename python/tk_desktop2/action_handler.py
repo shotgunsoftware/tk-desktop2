@@ -12,6 +12,7 @@ import threading
 from sgtk.platform import Engine
 from sgtk.platform.qt import QtCore, QtGui
 from .errors import PathParseError
+from .shotgun_entity_path import ShotgunEntityPath
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -138,24 +139,6 @@ class ActionHandler(object):
             "Could not retrieve internal object '%s'" % self.ACTION_MODEL_OBJECT_NAME
         )
 
-    def _path_to_entity(self, path):
-        """
-        Converts a desktop-2 style path to Shotgun entities
-
-        :param str path: entity path representation.
-        :returns: tuple with entity type, entity id and project id
-        """
-        # TODO - replace with internal VMR conversion method
-        try:
-            # format example:
-            # /projects/65/shots/862/tasks/568
-            entity_type = "Task"
-            project_id = int(path.split("/")[2])
-            entity_id = int(path.split("/")[-1])
-            return entity_type, entity_id, project_id
-        except Exception, e:
-            raise PathParseError("Could not parse path '%s'" % path)
-
     def _populate_context_menu(self):
         """
         Populate the actions model with items suitable for the
@@ -170,22 +153,18 @@ class ActionHandler(object):
         actions suitable for the current context.
         """
         current_path = self._actions_model.currentEntityPath()
+
+        if current_path is None or current_path == "":
+            return
+
         logger.debug("Requesting commands for %s" % current_path)
 
         # clear loading indicator
         self._actions_model.clear()
 
-        try:
-            (entity_type, entity_id, project_id) = self._path_to_entity(
-                current_path
-            )
-        except PathParseError:
-            logger.warning("Cannot parse '%s'" % current_path)
-            # don't know how to handle this entity.
-            # return with a cleared menu.
-            return
+        sg_entity = ShotgunEntityPath(current_path)
 
-        if project_id in self._cached_configs:
+        if sg_entity.project_id in self._cached_configs:
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
@@ -199,14 +178,23 @@ class ActionHandler(object):
 
             # request that menu items are emitted for the currently
             # cached configurations.
-            self._request_commands(project_id, entity_type, entity_id)
+            self._request_commands(
+                sg_entity.project_id,
+                sg_entity.entity_type,
+                sg_entity.entity_id,
+                sg_entity.linked_entity_type,
+            )
 
         else:
-            logger.debug("No configurations cached. Requesting configuration data for project %s" % project_id)
+            logger.debug(
+                "No configurations cached. Requesting configuration data for project %s" % sg_entity.project_id
+            )
             # we don't have any configuration objects cached yet.
             # request it - _on_configurations_loaded will be triggered when configurations are loaded
             self._add_loading_menu_indicator()
-            self._config_loader.request_configurations(project_id)
+            self._config_loader.request_configurations(
+                sg_entity.project_id
+            )
 
     def _on_configurations_changed(self):
         """
@@ -228,13 +216,12 @@ class ActionHandler(object):
         self._actions_model.clear()
 
         # load in new configurations for current project
-        (entity_type, entity_id, project_id) = self._path_to_entity(
-            self._actions_model.currentEntityPath()
-        )
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
-        logger.debug("Requesting new configurations for %s." % project_id)
-        self._config_loader.request_configurations(project_id)
+        logger.debug("Requesting new configurations for %s." % sg_entity.project_id)
+        self._config_loader.request_configurations(sg_entity.project_id)
 
     def _on_configurations_loaded(self, project_id, configs):
         """
@@ -252,22 +239,25 @@ class ActionHandler(object):
         # and request commands to be loaded
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        (entity_type, entity_id, curr_project_id) = self._path_to_entity(
-            self._actions_model.currentEntityPath()
-        )
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         # cache our configs
-        self._cached_configs[project_id] = configs
+        self._cached_configs[sg_entity.project_id] = configs
 
         # wire up signals from our cached command objects
         for config in configs:
             config.commands_loaded.connect(self._on_commands_loaded)
             config.commands_load_fail.connect(self._on_commands_load_failed)
 
-        if curr_project_id == project_id:
-            self._request_commands(project_id, entity_type, entity_id)
+        if sg_entity.project_id == project_id:
+            self._request_commands(
+                project_id,
+                sg_entity.entity_type,
+                sg_entity.entity_id,
+                sg_entity.linked_entity_type,
+            )
 
-    def _request_commands(self, project_id, entity_type, entity_id):
+    def _request_commands(self, project_id, entity_type, entity_id, link_entity_type):
         """
         Requests commands for the given entity.
 
@@ -277,6 +267,9 @@ class ActionHandler(object):
         :param int project_id: Shotgun project id
         :param str entity_type: Shotgun entity type
         :param int entity_id: Shotgun entity id
+        :param str link_entity_type: The type that the entity potentially
+            is linked with. Tasks and notes are for example linked to other
+            objects that they are associated with.
         """
         logger.debug(
             "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
@@ -293,7 +286,7 @@ class ActionHandler(object):
                 project_id,
                 entity_type,
                 entity_id,
-                link_entity_type=None  # TODO: <-- fix
+                link_entity_type
             )
 
     def _on_commands_loaded(self, project_id, config, commands):
@@ -311,10 +304,9 @@ class ActionHandler(object):
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        (_, _, curr_project_id) = self._path_to_entity(
-            self._actions_model.currentEntityPath()
-        )
-        if curr_project_id != project_id:
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+
+        if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.
             return
 
@@ -363,10 +355,9 @@ class ActionHandler(object):
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        (_, _, curr_project_id) = self._path_to_entity(
-            self._actions_model.currentEntityPath()
-        )
-        if curr_project_id != project_id:
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+
+        if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.
             return
 
