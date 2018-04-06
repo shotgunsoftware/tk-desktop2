@@ -37,8 +37,8 @@ class WebsocketsServer(object):
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
-        self._wss_server = manager.findChild(QtWebSockets.QWebSocketServer, "sgtk-web-socket-server")
-        logger.debug("Retrieved websockets server %s" % self._wss_server)
+        self._ws_server = manager.findChild(QtWebSockets.QWebSocketServer, "sgtk-web-socket-server")
+        logger.debug("Retrieved websockets server %s" % self._ws_server)
 
         # set up certificates handler
         try:
@@ -54,37 +54,42 @@ class WebsocketsServer(object):
         logger.debug("Set up shotgunlocalhost certificates:")
         logger.debug("Key file: %s" % self._sg_certs_handler.key_path)
         logger.debug("Cert file: %s" % self._sg_certs_handler.cert_path)
-        self._wss_server.setSslPem(
+        success = self._ws_server.setSslPem(
             self._sg_certs_handler.key_path,
             self._sg_certs_handler.cert_path
         )
+        if not success:
+            raise RuntimeError("Could not set up Websockets certificates.")
 
         # Add our callback to process messages.
-        self._wss_server.textMessageReceived.connect(self._process_message)
-        self._wss_server.newConnectionAdded.connect(self._new_connection)
-        self._wss_server.connectionClosed.connect(self._connection_closed)
-        self._wss_server.sslErrors.connect(self._on_ssl_errors)
+        self._ws_server.textMessageReceived.connect(self._process_message)
+        self._ws_server.newConnectionAdded.connect(self._new_connection)
+        self._ws_server.connectionClosed.connect(self._connection_closed)
+        self._ws_server.sslErrors.connect(self._on_ssl_errors)
 
         # TODO: handle port number - read out of sg prefs
         port_number = 9000
 
         # Tell the server to listen to the given port
         logger.debug("Starting websockets server on port %s" % port_number)
-        self._wss_server.listen(
+        success = self._ws_server.listen(
             QtNetwork.QHostAddress.LocalHost,
             port_number
         )
-        # TODO: In the case another wss is already running, this may cause error singnals
-        # to be triggered on the C++ side. We should refactor that so that those signals
-        # can bubble up here and be handled by python.
-        logger.debug("Websockets server is ready and listening.")
+
+        if not success:
+            logger.warning("Websockets server could not be started.")
+        else:
+            logger.debug("Websockets server is ready and listening.")
 
     def destroy(self):
         """
         Should be called upon destruction.
         """
         logger.debug("Begin shutting down wss handler.")
-        self._wss_server.close()
+        self._ws_server.close()
+        # set to none for GC
+        self._ws_server = None
 
     def _new_connection(self, socket_id, name, address, port, request):
         """
@@ -103,11 +108,8 @@ class WebsocketsServer(object):
             # note: this may pop up a login dialog
             self._sites[origin] = ShotgunSiteHandler(origin)
 
-        # TODO - do we need this?? need CR feedback.
-        #self._sec_websocket_key_header = request.rawHeader("sec-websocket-key")
-
         self._connections[socket_id] = WebsocketsConnection(
-            self._wss_server,
+            self._ws_server,
             socket_id,
             self._sites[origin],
             self._request_runner

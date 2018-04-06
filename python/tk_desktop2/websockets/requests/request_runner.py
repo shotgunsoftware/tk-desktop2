@@ -69,7 +69,7 @@ class RequestRunner(QtCore.QObject):
 
     def execute(self, request):
         """
-        Registers a websockets request for proceessing.
+        Registers a websockets request for processing.
         Some commands may run asynchronous.
 
         :param request: :class:`WebsocketsRequest` instance to execute.
@@ -140,7 +140,7 @@ class RequestRunner(QtCore.QObject):
         Called when external configurations for the given project have been loaded.
 
         :param int project_id: Project id that configurations are associated with
-        :param list configs: List of ExternalConfiguration instances belonging to the
+        :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
         """
         logger.debug(
@@ -153,7 +153,7 @@ class RequestRunner(QtCore.QObject):
         # wire up signals from our cached command objects
         for config in configs:
             config.commands_loaded.connect(self._on_commands_loaded)
-            config.commands_load_fail.connect(self._on_commands_load_failed)
+            config.commands_load_failed.connect(self._on_commands_load_failed)
 
         # for all active requests, request commands to be loaded
         for deferred_request in self._active_requests:
@@ -175,8 +175,8 @@ class RequestRunner(QtCore.QObject):
         has got several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
-        :param config: Associated ExternalConfiguration instance.
-        :param list commands: List of ExternalCommand instances.
+        :param config: Associated class:`ExternalConfiguration` instance.
+        :param list commands: List of :class:`ExternalCommand` instances.
         """
         logger.debug("%s Commands loaded for projecd id %s, %s" % (len(commands), project_id, config))
         for deferred_request in self._active_requests:
@@ -194,7 +194,7 @@ class RequestRunner(QtCore.QObject):
         has got several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
-        :param config: Associated ExternalConfiguration instance.
+        :param config: Associated class:`ExternalConfiguration` instance.
         :param str reason: Details around the failure.
         """
         logger.debug("Loading commmands failed for project id %s, %s" % (config, project_id))

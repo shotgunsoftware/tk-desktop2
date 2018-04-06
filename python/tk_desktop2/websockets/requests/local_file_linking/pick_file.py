@@ -54,9 +54,9 @@ class PickFileOrDirectoryWebsocketsRequest(WebsocketsRequest):
             for f in selected_files:
                 if os.path.isdir(f):
                     f += os.path.sep
+                # Note: Qt returns files with / while the javascript code
+                #       expects paths on Windows to use \
+                f = f.replace("/", os.path.sep)
                 files.append(f)
-
-        # Note: Qt returns files with / while the javascript code expects paths on Windows to use \
-        files = [f.replace("/", os.path.sep) for f in files]
 
         self._reply(files)

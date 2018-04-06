@@ -29,7 +29,7 @@ class ShotgunCertificateHandler(object):
 
         # ensure we support this
         if not self._site_supports_shotgunlocalhost():
-            raise ShotgunLocalHostCertNotSupportedError
+            raise ShotgunLocalHostCertNotSupportedError("Shotgun site does not support Certificate download.")
 
         # ensure we have fresh certs
         self._retrieve_certificates_from_shotgun()

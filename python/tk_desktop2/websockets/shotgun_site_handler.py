@@ -29,7 +29,7 @@ class ShotgunSiteHandler(object):
 
     def __init__(self, site_url):
         """
-        :param str site_url: Shotgun site to create a ite handler for.
+        :param str site_url: Shotgun site to create a site handler for.
         """
         self._bundle = sgtk.platform.current_bundle()
 
@@ -59,7 +59,7 @@ class ShotgunSiteHandler(object):
         """
         String representation
         """
-        return "<wss-site %s>" % self._site_url
+        return "<ws-site %s>" % self._site_url
 
     @property
     def unique_server_id(self):
@@ -73,6 +73,7 @@ class ShotgunSiteHandler(object):
         Encrypts the given payload
 
         :param str payload: String to encrypt.
+        :returns: Encrypted string
         """
         return self._fernet.encrypt(payload)
 
@@ -81,6 +82,7 @@ class ShotgunSiteHandler(object):
         Decrypts the given payload
 
         :param str payload: String to decrypt.
+        :returns: Decrypted string
         """
         b = bytes(payload)
         return self._fernet.decrypt(b)
@@ -90,6 +92,7 @@ class ShotgunSiteHandler(object):
         Retrieves the server secret from Shotgun.
 
         :param shotgun: Shotugn API instance.
+        :returns: Shotgun secret str.
         """
         logger.debug("Retrieving communication secret from Shotgun")
         # Ask for the secret for this server id.

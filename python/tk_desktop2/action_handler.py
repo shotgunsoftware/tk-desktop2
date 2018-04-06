@@ -25,14 +25,14 @@ class ActionHandler(object):
     """
     Interface for UI interaction inside the desktop2 UI environment.
 
-    Interacts with a single StandarditemModel inside the runtime
+    Interacts with a single StandardItemModel inside the runtime
     environment which is populated with Toolkit menu actions
     depending on its current context.
 
     The model will signal out when new actions are needed (eg.
     when a user navigates in the UI) and this class will
     asynchronously fetch these actions. Actions are cross
-    project and cross context and the external_config shotgunutils
+    project and cross context and the external_config Shotgunutils
     module is utilized to retrieve the actions.
     """
     # QObject name for the C++ actions model
@@ -41,28 +41,27 @@ class ActionHandler(object):
     # how often we check if Shotgun configs have changed
     CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
-    def __init__(self, engine_instance_name, plugin_id, base_config, task_manager):
+    # labels for loading
+    LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
+    LOADING_ACTIONS_LABEL = "Loading Actions..."
+
+
+    def __init__(self, plugin_id, base_config, task_manager):
         """
         Start up the engine's built in actions integration.
 
-        This will attempt to bind against a ACTION_MODEL_OBJECT_NAME qt object
+        This will attempt to bind against an ACTION_MODEL_OBJECT_NAME qt object
         which is assumed to be defined by C++ and establish a data exchange
         between this model and the engine.
 
         A Shotgun-utils external config instance is constructed to handle
         cross-context requests for actions and execution from the action model.
 
-        :param str engine_instance_name: The instance name of the engine for
-            which we should be retrieving commands.
         :param str plugin_id: The plugin id associated with the runtime environment.
         :param str base_config: Descriptor URI for the config to use by default when
             no custom pipeline configs have been defined in Shotgun.
+        :param task_manager: Task Manager to use for async processing.
         """
-        logger.debug("Begin initializing action integrations")
-        logger.debug("Engine instance name: %s" % engine_instance_name)
-        logger.debug("Plugin id: %s" % plugin_id)
-        logger.debug("Base config: %s" % base_config)
-
         bundle = sgtk.platform.current_bundle()
 
         # list of cached configuration objects, keyed by project id
@@ -93,7 +92,7 @@ class ActionHandler(object):
             # hook up external configuration loader
             self._config_loader = external_config.ExternalConfigurationLoader(
                 bundle.python_interpreter_path,
-                engine_instance_name,
+                bundle.name,
                 plugin_id,
                 base_config,
                 task_manager,
@@ -118,6 +117,7 @@ class ActionHandler(object):
         if self._config_loader:
             logger.debug("Shutting down command handler interface.")
             self._config_loader.shut_down()
+            self._config_loader = None
 
     def _get_action_model(self):
         """
@@ -134,7 +134,7 @@ class ActionHandler(object):
         for q_object in QtCore.QCoreApplication.instance().children():
             if q_object.objectName() == self.ACTION_MODEL_OBJECT_NAME:
                 return q_object
-                break
+
         raise RuntimeError(
             "Could not retrieve internal object '%s'" % self.ACTION_MODEL_OBJECT_NAME
         )
@@ -208,7 +208,7 @@ class ActionHandler(object):
         for (project_id, configurations) in self._cached_configs.iteritems():
             for config in configurations:
                 config.commands_loaded.disconnect(self._on_commands_loaded)
-                config.commands_load_fail.disconnect(self._on_commands_load_failed)
+                config.commands_load_failed.disconnect(self._on_commands_load_failed)
         # and clear our internal tracking of these items
         self._cached_configs = {}
 
@@ -228,7 +228,7 @@ class ActionHandler(object):
         Called when external configurations for the given project have been loaded.
 
         :param int project_id: Project id that configurations are associated with
-        :param list configs: List of ExternalConfiguration instances belonging to the
+        :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
         """
         logger.debug("New configs loaded for project %s" % project_id)
@@ -247,7 +247,7 @@ class ActionHandler(object):
         # wire up signals from our cached command objects
         for config in configs:
             config.commands_loaded.connect(self._on_commands_loaded)
-            config.commands_load_fail.connect(self._on_commands_load_failed)
+            config.commands_load_failed.connect(self._on_commands_load_failed)
 
         if sg_entity.project_id == project_id:
             self._request_commands(
@@ -275,7 +275,7 @@ class ActionHandler(object):
             "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
         )
 
-        # note: it's possible that self._cached_configs[project_id] holds
+        # note: it's possible that self._cached_configs[project_id] holds an
         # empty list - in this case, nothing happens.
         for config in self._cached_configs[project_id]:
 
@@ -294,11 +294,11 @@ class ActionHandler(object):
         Called when commands have been loaded for a given configuration.
 
         Note that this may be called several times for a project, if the project
-        has got several pipeline configurations (for example dev sandboxes).
+        contains several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
-        :param config: Associated ExternalConfiguration instance.
-        :param list commands: List of ExternalCommand instances.
+        :param config: Associated class:`ExternalConfiguration` instance.
+        :param list commands: List of :class:`ExternalCommand` instances.
         """
         logger.debug("Commands loaded for %s" % config)
 
@@ -314,7 +314,16 @@ class ActionHandler(object):
         # is also in motion so this implement is placeholder for the time being.
         # Need to add more robust support for grouping, loading and defaults.
 
+        # temporary workarounds to remove special 'system' commands which
+        # will not execute well inside the multi process environment
+        # TODO: This will need revisiting once we have final designs.
+        SYSTEM_COMMANDS = ["Toggle Debug Logging", "Open Log Folder"]
+
         for command in commands:
+
+            if command.display_name in SYSTEM_COMMANDS:
+                continue
+
             # populate the actions model with actions.
             # serialize the external command object so we can
             # unfold it at a later point without having to
@@ -324,12 +333,6 @@ class ActionHandler(object):
             else:
                 display_name = "%s: %s" % (config.pipeline_configuration_name, command.display_name)
 
-            # temporary workarounds to remove special 'system' commands which
-            # will not execute well inside the multi process environment
-            # TODO: This will need revisiting once we have final designs.
-            SYSTEM_COMMANDS = ["Toggle Debug Logging", "Open Log Folder"]
-            if command.display_name in SYSTEM_COMMANDS:
-                continue
 
             self._actions_model.appendAction(
                 display_name,
@@ -348,10 +351,13 @@ class ActionHandler(object):
         has got several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
-        :param config: Associated ExternalConfiguration instance.
+        :param config: Associated class:`ExternalConfiguration` instance.
         :param str reason: Details around the failure.
         """
         logger.debug("Commands failed to load for %s" % config)
+
+        # remove any loading message associated with this batch
+        self._remove_loading_menu_indicator(config)
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
@@ -373,9 +379,6 @@ class ActionHandler(object):
 
         logger.error("Could not load actions for %s: %s" % (config, reason))
 
-        # remove any loading message associated with this batch
-        self._remove_loading_menu_indicator(config)
-
     def _execute_action(self, path, action_str):
         """
         Triggered from the engine when a user clicks an action
@@ -394,6 +397,8 @@ class ActionHandler(object):
             action = external_config.ExternalCommand.deserialize(action_str)
             # run in a thread to not block
             worker = threading.Thread(target=action.execute)
+            # setting daemon to True means the main process can quit
+            # and the action process can live on
             worker.daemon = True
             worker.start()
 
@@ -409,12 +414,12 @@ class ActionHandler(object):
         # is also in motion so this implement is placeholder for the time being.
         # Need to add more robust support for grouping, loading and defaults.
         if configuration is None:
-            self._actions_model.appendAction("Loading Configurations...", "", "")
+            self._actions_model.appendAction(self.LOADING_CONFIGURATIONS_LABEL, "", "")
         elif configuration.is_primary:
-            self._actions_model.appendAction("Loading Actions...", "", "")
+            self._actions_model.appendAction(self.LOADING_ACTIONS_LABEL, "", "")
         else:
             self._actions_model.appendAction(
-                "%s: Loading Actions..." % configuration.pipeline_configuration_name,
+                "%s: %s..." % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL),
                 "",
                 ""
             )
@@ -431,11 +436,11 @@ class ActionHandler(object):
         # is also in motion so this implement is placeholder for the time being.
         # Need to add more robust support for grouping, loading and defaults.
         if configuration is None:
-            label = "Loading Configurations..."
+            label = self.LOADING_CONFIGURATIONS_LABEL
         elif configuration.is_primary:
-            label = "Loading Actions..."
+            label = self.LOADING_ACTIONS_LABEL
         else:
-            label = "%s: Loading Actions..." % configuration.pipeline_configuration_name
+            label = "%s: %s" % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL)
 
         root_item = self._actions_model.invisibleRootItem()
         for idx in range(self._actions_model.rowCount()):

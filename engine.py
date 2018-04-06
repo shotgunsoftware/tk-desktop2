@@ -29,9 +29,9 @@ class DesktopEngine2(Engine):
         # handles background work
         self._task_manager = None
         # executes websockets tasks
-        self._wss_runner = None
+        self._ws_runner = None
         # handles websockets server
-        self._wss_handler = None
+        self._ws_handler = None
 
     def post_app_init(self):
         """
@@ -58,7 +58,7 @@ class DesktopEngine2(Engine):
         """
         from sgtk.platform.qt import QtCore, QtGui
         logger.debug("Begin initializing action integrations")
-        logger.debug("Engine instance name: %s" % engine_instance_name)
+        logger.debug("Engine instance name: %s" % self.name)
         logger.debug("Plugin id: %s" % plugin_id)
         logger.debug("Base config: %s" % base_config)
 
@@ -82,14 +82,13 @@ class DesktopEngine2(Engine):
 
         # start up the action handler which handles menu interaction
         self._actions_handler = tk_desktop2.ActionHandler(
-            engine_instance_name,
             plugin_id,
             base_config,
             self._task_manager
         )
 
         # initialize the runner which executes websocket commands
-        self._wss_runner = tk_desktop2.RequestRunner(
+        self._ws_runner = tk_desktop2.RequestRunner(
             self.SHOTGUN_ENGINE_NAME,
             plugin_id,
             base_config,
@@ -97,8 +96,8 @@ class DesktopEngine2(Engine):
         )
 
         # start up websockets server
-        self._wss_handler = tk_desktop2.WebsocketsServer(
-            self._wss_runner
+        self._ws_handler = tk_desktop2.WebsocketsServer(
+            self._ws_runner
         )
 
     def _emit_log_message(self, handler, record):
@@ -126,9 +125,11 @@ class DesktopEngine2(Engine):
         try:
             if self._actions_handler:
                 self._actions_handler.destroy()
+                self._actions_handler = None
 
-            if self._wss_handler:
-                self._wss_handler.destroy()
+            if self._ws_handler:
+                self._ws_handler.destroy()
+            self._ws_handler = None
 
             # shut down main thread pool
             if self._task_manager:

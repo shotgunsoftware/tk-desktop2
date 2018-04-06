@@ -15,6 +15,14 @@ class WebsocketsRequest(object):
 
     Requests are created via the `WebsocketsRequest.create` factory classmethod
     and each different command supported by the engine is represented by a class.
+
+    The following requests are currently supported:
+
+    - get_actions - list Toolkit actions.
+    - execute_action - execute Toolkit action.
+    - pick_file_or_directory - select single item.
+    - pick_files_or_directories - select multiple items.
+    - open - open a file on disk.
     """
 
     @classmethod
@@ -29,6 +37,7 @@ class WebsocketsRequest(object):
         :returns: Object deriving from :class:`WebsocketsRequest`.
         :raises: RuntimeError on protocol errors.
         """
+        # local imports to avoid cyclic deps (these classes derive from WebsocketsRequest)
         from .local_file_linking import PickFileOrDirectoryWebsocketsRequest
         from .local_file_linking import OpenFileWebsocketsRequest
         from .toolkit_actions import ExecuteActionWebsocketsRequest
@@ -173,7 +182,7 @@ class WebsocketsRequest(object):
         """
         Sends back a reply to the client.
 
-        :param dict data: Data dictionary to send to client.
+        :param object data: Data to send to client.
         """
         self._connection.reply(data, self._id)
 

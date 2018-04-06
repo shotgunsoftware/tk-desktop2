@@ -44,10 +44,13 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         :param connection: Associated :class:`WebsocketsConnection`.
         :param int id: Id for this request.
         :param dict parameters: Command parameters (see syntax above)
+        :raises: ValueError
         """
         super(ExecuteActionWebsocketsRequest, self).__init__(connection, id)
 
-        # validate parameters
+        # note - parameter data is coming in from javascript so we
+        #        perform some in-depth validation of the values
+        #        prior to blindly accepting them.
         required_params = [
             "name",
             "title",
@@ -104,6 +107,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             output = self._resolved_command.execute()
             self._reply_with_status(output=output)
         except Exception as e:
+            logger.debug("Could not execute action", exc_info=True)
             self._reply_with_status(
                 status=1,
                 error=str(e)
@@ -131,16 +135,14 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         ]
 
         :param list associated_commands: See above for details.
+        :raises: RuntimeError
         """
         # locate the requested command in our configuration
         for config in associated_commands:
 
-            config_name = config["configuration"].pipeline_configuration_name
-
-            if config_name is None:
-                # this is a zero config setup with no record in Shotgun
-                # such a config is expected to be named Primary in Shotgun
-                config_name = "Primary"
+            # this is a zero config setup with no record in Shotgun
+            # such a config is expected to be named Primary in Shotgun
+            config_name = config["configuration"].pipeline_configuration_name or "Primary"
 
             if config_name == self._config_name:
                 for command in config["commands"]:

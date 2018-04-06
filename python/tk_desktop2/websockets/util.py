@@ -60,11 +60,12 @@ def create_error_reply(message, data=None, encrypt_fn=None):
     :param encrypt_fn: Optional Encryption method
     :returns: Server ready payload
     """
-    error = {}
-    error["error"] = True
+    error = {
+        "error": True,
+        "error_message": message,
+    }
     if data:
         error["error_data"] = data
-    error["error_message"] = message
     return create_reply(error, encrypt_fn)
 
 

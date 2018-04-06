@@ -34,7 +34,7 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
 
     Expected response::
 
-        a single boolean, indicating if the open succeeded, false if not.
+        A single boolean, indicating if the open succeeded, false if not.
 
     The following methods will be used to open the file:
 
@@ -50,6 +50,7 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
         :param connection: Associated :class:`WebsocketsConnection`.
         :param int id: Id for this request.
         :param dict parameters: Command parameters (see syntax above)
+        :raises: ValueError
         """
         super(OpenFileWebsocketsRequest, self).__init__(connection, id)
 
@@ -72,17 +73,19 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
     def _execute(self):
         """
         Execute payload in a separate thread.
-        """
-        try:
-            if not os.path.exists(self._path):
-                raise RuntimeError("Error opening path [%s]. Path not found." % self._path)
 
+        :raises: RuntimeError
+        """
+        if not os.path.exists(self._path):
+            raise RuntimeError("Error opening path [%s]. Path not found." % self._path)
+
+        try:
             if self._launcher is None:
                 os.startfile(self._path)
             else:
                 subprocess_check_output([self._launcher, self._path])
-
         except SubprocessCalledProcessError as e:
+            logger.debug("Error opening path [%s].", exc_info=True)
             self._reply_with_status(
                 status=e.returncode,
                 error=e.output
@@ -93,9 +96,8 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
                 error=str(e)
             )
         else:
-            # operation succeeded.
-            success = True
-            self._reply(success)
+            # operation succeeded. Reply with single boolean.
+            self._reply(True)
 
     def execute(self):
         """

@@ -13,7 +13,7 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class GetActionsWebsocketsRequest(WebsocketsRequest):
     """
-    Webosockets command to request a list of toolkit actions
+    Websockets command to request a list of toolkit actions
     suitable for an entity or group of entities.
 
     Request syntax::
@@ -29,9 +29,9 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
 
         Requesting generic actions for assets:
         {
-            'entity_id': 111,
+            'entity_id': -1, # part of the shotgun protocol
             'entity_type': 'Asset',
-            'project_id': -1,
+            'project_id': 584,
             'user': {...}
             }
         }
@@ -39,8 +39,8 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
     Expected response::
 
         {
-            retcode: 0,
-            actions: {
+            "retcode": 0,
+            "actions": {
                 "Primary: {
                     "config": "Primary",
                     "actions": [ <ACTION>, <ACTION>, ...]
@@ -51,32 +51,32 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
                     "actions": [ <ACTION>, <ACTION>, ...]
                 }
             },
-            pcs:["Primary", "Dev"], # list of pipeline configuration names
+            "pcs": ["Primary", "Dev"], # list of pipeline configuration names
         }
 
         Where <ACTION> is a dictionary on the following form:
 
         {
-            name: command_name,
-            title: title to appear in UI
-            deny_permissions: [] # list of permission roles for this not to show up. legacy.
-            app_name: tk-multi-launchapp
-            group: Group Name
-            group_default: False
-            engine_name: tk-desktop2
+            "name": "command_name",
+            "title": "title to appear in UI"
+            "deny_permissions": [] # list of permission roles for this not to show up.
+            "app_name": "tk-multi-launchapp"
+            "group": "Group Name"
+            "group_default": False
+            "engine_name": "tk-desktop2"
         }
 
     Response that we are loading (legacy syntax, not supported by this class)::
 
         {
-            retcode=1
+            "retcode": 1
         }
 
     Response to indicate that an unsupported entity type has
     been requested (legacy syntax, not supported by this class)::
 
         {
-            retcode=2
+            "retcode": 2
         }
     """
 
@@ -94,7 +94,9 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         """
         super(GetActionsWebsocketsRequest, self).__init__(connection, id)
 
-        # validate parameters
+        # note - parameter data is coming in from javascript so we
+        #        perform some in-depth validation of the values
+        #        prior to blindly accepting them.
         required_params = [
             "entity_id",
             "entity_type",
@@ -177,9 +179,9 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         # first detect if any configuration loaded with errors.
         # in that case, send an error for the entire group
         errors = []
-        for config in associated_commands:
-            if config["error"]:
-                errors.append(config["error"])
+        for command in associated_commands:
+            if command["error"]:
+                errors.append(command["error"])
 
         if len(errors) > 0:
             self._reply_with_status(
@@ -196,12 +198,10 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         }
 
         for config in associated_commands:
-            config_name = config["configuration"].pipeline_configuration_name
 
-            if config_name is None:
-                # this is a zero config setup with no record in Shotgun
-                # such a config is expected to be named Primary in Shotgun
-                config_name = "Primary"
+            # this is a zero config setup with no record in Shotgun
+            # such a config is expected to be named Primary in Shotgun
+            config_name = config["configuration"].pipeline_configuration_name or "Primary"
 
             response["pcs"].append(config_name)
 
@@ -224,7 +224,3 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
             }
 
         self._reply(response)
-
-
-
-

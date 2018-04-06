@@ -6,6 +6,7 @@
 #
 
 import sgtk
+import copy
 from sgtk.platform.qt import QtCore, QtGui
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -16,14 +17,14 @@ class DeferredRequest(object):
     Wrapper around a :class:`WebsocketsRequest` which serves as a broker between
     the request runner and the :class:`WebsocketsRequest`.
 
-    Certain websocket commands requires a full state of commands and configurations
+    Certain websocket commands require a full state of commands and configurations
     prior to execution. The external_config interface which is part of shotgunutils
     is fully asynchronous and will provide any external data as soon as it has
     access to it.
 
     This class provides a buffer which builds up a full configuration state so that
     Toolkit WebsocketsRequest are only executed once a full external state, covering
-    all different pipeline configuration, has been loaded.
+    all different pipeline configurations, has been loaded.
     """
 
     def __init__(self, request):
@@ -83,6 +84,8 @@ class DeferredRequest(object):
     def execute(self):
         """
         Execute the request
+
+        :raises: :class:`RuntimeError` on failure.
         """
         if not self.can_be_executed:
             raise RuntimeError("%s is not ready to be executed!" % self)
@@ -144,8 +147,9 @@ class DeferredRequest(object):
         logger.debug("Register commands for config %s" % config)
         for config_dict in self._configurations:
             if config_dict["configuration"] == config:
-                config_dict["commands"] = commands
+                config_dict["commands"] = copy.copy(commands)
                 config_dict["error"] = None
+                break
 
     def register_commands_failure(self, config, reason):
         """
@@ -159,3 +163,4 @@ class DeferredRequest(object):
             if config_dict["configuration"] == config:
                 config_dict["commands"] = None
                 config_dict["error"] = reason
+                break

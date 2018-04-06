@@ -37,14 +37,14 @@ class WebsocketsConnection(object):
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, wss_server, socket_id, shotgun_site, request_runner):
+    def __init__(self, ws_server, socket_id, shotgun_site, request_runner):
         """
-        :param wss_server: Associated :class:`WebsocketsServer`
+        :param ws_server: Associated :class:`WebsocketsServer`
         :param socket_id: Unique id associated with this connection
         :param shotgun_site: Associated :class:`ShotgunSiteHandler`
         :param request_runner: Associated :class:`RequestRunner`
         """
-        self._wss_server = wss_server
+        self._ws_server = ws_server
         self._request_runner = request_runner
         self._socket_id = socket_id
         self._shotgun_site = shotgun_site
@@ -61,6 +61,7 @@ class WebsocketsConnection(object):
         Callback which will be called whenever a message is received.
 
         :param str message: Raw message payload as sent by client.
+        :raises: RuntimeError
         """
         if isinstance(message, unicode):
             message = message.encode("utf8")
@@ -95,7 +96,7 @@ class WebsocketsConnection(object):
         logger.debug("Transmitting response: %s" % pprint.pformat(payload))
         # create json string and encrypt it.
         reply = util.create_reply(payload, self._shotgun_site.encrypt)
-        self._wss_server.sendTextMessage(self._socket_id, reply)
+        self._ws_server.sendTextMessage(self._socket_id, reply)
 
     def _handle_protocol_handshake_request(self, message):
         """
@@ -116,7 +117,7 @@ class WebsocketsConnection(object):
             reply = util.create_reply(
                 {"protocol_version": self.PROTOCOL_VERSION}
             )
-            self._wss_server.sendTextMessage(self._socket_id, reply)
+            self._ws_server.sendTextMessage(self._socket_id, reply)
             self._state = self.AWAITING_SERVER_ID_REQUEST
         else:
             raise RuntimeError("%s: Invalid request!" % self)
@@ -177,7 +178,7 @@ class WebsocketsConnection(object):
                     "id": message_obj["id"],
                 }
             )
-            self._wss_server.sendTextMessage(self._socket_id, reply)
+            self._ws_server.sendTextMessage(self._socket_id, reply)
             # we are now ready to receive actual data
             self._state = self.AWAITING_ENCRYPTED_REQUEST
         else:

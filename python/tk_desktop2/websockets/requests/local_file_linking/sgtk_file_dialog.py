@@ -17,6 +17,8 @@ class SgtkFileDialog(QtGui.QFileDialog):
     some can't do both file and folder extended selection.
     """
 
+    # used to add a shortcut in the macosx ui sidebar
+    # to allow for browsing of entire drive
     _VOLUMES_URL = "file:///Volumes"
 
     def __init__(self, multi=False, *args, **kwargs):
@@ -86,7 +88,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
         Override method for accept button. Allows to emit an event with the list of selected files.
         """
         files = self.selectedFiles()
-        if len(files) == 0:
+        if not files:
             return
 
         self.fileSelected.emit(files)
