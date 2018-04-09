@@ -37,7 +37,8 @@ class WebsocketsServer(object):
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
-        self._wss_server = manager.findChild(QtWebSockets.QWebSocketServer, "sgtk-web-socket-server")
+        server_name = manager.initializeWebSocketServer(True)
+        self._wss_server = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, server_name)
         logger.debug("Retrieved websockets server %s" % self._wss_server)
 
         # set up certificates handler
@@ -56,7 +57,8 @@ class WebsocketsServer(object):
         logger.debug("Cert file: %s" % self._sg_certs_handler.cert_path)
         self._wss_server.setSslPem(
             self._sg_certs_handler.key_path,
-            self._sg_certs_handler.cert_path
+            self._sg_certs_handler.cert_path,
+            QtNetwork.QSslSocket.VerifyNone
         )
 
         # Add our callback to process messages.
