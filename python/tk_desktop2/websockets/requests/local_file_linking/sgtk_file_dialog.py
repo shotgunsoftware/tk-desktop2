@@ -46,7 +46,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
         try:
             self._update_sidebar_urls()
         except Exception as e:
-            self.logger.warning(
+            logger.warning(
                 "Unable to add sidebar URLs to file dialog."
                 "Full error: %s" % (traceback.format_exc(),)
             )
@@ -56,7 +56,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
         try:
             self._make_combo_editable()
         except Exception as e:
-            self.logger.warning(
+            logger.warning(
                 "Unable to make file dialog combo box editable."
                 "Full error: %s" % (traceback.format_exc(),)
             )
@@ -144,6 +144,9 @@ class SgtkFileDialog(QtGui.QFileDialog):
                     [path_field]
                 )
 
+            # no point in sorting here. file dialog seems to have it's own
+            # sorting algorithm that overrides the order in which urls are added
+            # while also defying all common sense. /shrug
             for storage in self.LOCAL_STORAGES:
 
                 # retrieve the storage path for this OS
