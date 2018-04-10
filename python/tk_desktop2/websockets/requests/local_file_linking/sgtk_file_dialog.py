@@ -10,6 +10,7 @@ import sys
 import traceback
 
 import sgtk
+from sgtk.util import ShotgunPath
 from sgtk.platform.qt import QtCore, QtGui
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -131,23 +132,8 @@ class SgtkFileDialog(QtGui.QFileDialog):
         # only allowed to link files under these locations.
         engine = sgtk.platform.current_engine()
 
-        # get the field for the current os in preparation for adding the local
-        # storage urls. also include any other OS-specific sidebarl urls logic
-        path_field = None
-        if sys.platform.startswith("linux"):
-            path_field = "linux_path"
-
-        elif sys.platform == "darwin":
-            path_field = "mac_path"
-
-            # while we're here, add /Volumes to the sidebar on OSX
-            volumes_url = QtCore.QUrl.fromLocalFile("/Volumes")
-            if volumes_url not in sidebar_urls:
-                sidebar_urls.append(volumes_url)
-
-        elif sys.platform == "win32":
-            path_field = "windows_path"
-
+        # add local storages to the sidebar
+        path_field = ShotgunPath.get_shotgun_storage_key()
         if path_field:
 
             # check against None here since there may not be storages defined
@@ -158,7 +144,6 @@ class SgtkFileDialog(QtGui.QFileDialog):
                     [path_field]
                 )
 
-            # iterate over each SG storage
             for storage in self.LOCAL_STORAGES:
 
                 # retrieve the storage path for this OS
@@ -171,5 +156,10 @@ class SgtkFileDialog(QtGui.QFileDialog):
                     if url not in sidebar_urls:
                         sidebar_urls.append(url)
 
-        # sort the urls
+        # add Volumes to the sidebar on OSX
+        if sys.platform == "darwin":
+            volumes_url = QtCore.QUrl.fromLocalFile("/Volumes")
+            if volumes_url not in sidebar_urls:
+                sidebar_urls.append(volumes_url)
+
         self.setSidebarUrls(sidebar_urls)
