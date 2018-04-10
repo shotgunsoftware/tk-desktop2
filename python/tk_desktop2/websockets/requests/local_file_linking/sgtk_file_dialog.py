@@ -40,13 +40,23 @@ class SgtkFileDialog(QtGui.QFileDialog):
         else:
             self.setFileMode(QtGui.QFileDialog.ExistingFile)
 
+        # display some additional, useful shortcuts in the sidebar. Not
+        # essential, so wrapped in a try
         try:
-            # display some additional, useful shortcuts in the sidebar.
-            # non essential, so wrapped in a try
             self._update_sidebar_urls()
         except Exception as e:
             self.logger.warning(
                 "Unable to add sidebar URLs to file dialog."
+                "Full error: %s" % (traceback.format_exc(),)
+            )
+
+        # Make the combobox editable so we can specify a path through it. Not
+        # essential, so wrapped in a try
+        try:
+            self._make_combo_editable()
+        except Exception as e:
+            self.logger.warning(
+                "Unable to make file dialog combo box editable."
                 "Full error: %s" % (traceback.format_exc(),)
             )
 
@@ -78,6 +88,32 @@ class SgtkFileDialog(QtGui.QFileDialog):
         self.fileSelected.emit(files)
         QtGui.QDialog.accept(self, *args, **kwargs)
 
+    def _make_combo_editable(self):
+        """Makes the "Look in" combo box editable for usability."""
+
+        # try to find the combo box
+        combo = self.findChild(QtGui.QComboBox, "lookInCombo")
+        combo.setEditable(True)
+
+        # Search for the line edit widget, it has no name so scan for it.
+        line_edits = filter(
+            lambda c: isinstance(c, QtGui.QLineEdit), combo.children()
+        )
+
+        if len(line_edits) != 1:
+            logger.warning(
+                "Couldn't locate line edit for 'look in' combo box while "
+                "attempting to make it editable."
+            )
+            return
+
+        # If there's only one, assume that's the path editor. When the user
+        # presses return, we'll move to the directory indicated by its text.
+        path_editor = line_edits[0]
+        path_editor.returnPressed.connect(
+            lambda pe=path_editor: self.setDirectory(pe.text())
+        )
+
     def _update_sidebar_urls(self):
         """Updates the sidebar URLs in the file dialog for convenience.
 
@@ -91,22 +127,24 @@ class SgtkFileDialog(QtGui.QFileDialog):
         # get the current sidebar urls
         sidebar_urls = self.sidebarUrls()
 
-        # add /Volumes to the sidebar on OSX
-        if sys.platform == "darwin":
-            volumes_url = QtCore.QUrl.fromLocalFile("/Volumes")
-            if not volumes_url in sidebar_urls:
-                sidebar_urls.append(volumes_url)
-
         # also add paths to the local storages for the current OS since you're
         # only allowed to link files under these locations.
         engine = sgtk.platform.current_engine()
 
-        # get the field for the current os
+        # get the field for the current os in preparation for adding the local
+        # storage urls. also include any other OS-specific sidebarl urls logic
         path_field = None
         if sys.platform.startswith("linux"):
             path_field = "linux_path"
+
         elif sys.platform == "darwin":
             path_field = "mac_path"
+
+            # while we're here, add /Volumes to the sidebar on OSX
+            volumes_url = QtCore.QUrl.fromLocalFile("/Volumes")
+            if volumes_url not in sidebar_urls:
+                sidebar_urls.append(volumes_url)
+
         elif sys.platform == "win32":
             path_field = "windows_path"
 
