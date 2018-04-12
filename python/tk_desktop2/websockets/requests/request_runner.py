@@ -9,6 +9,7 @@ import time
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from .deferred_request import DeferredRequest
+from ... import constants
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -26,8 +27,6 @@ class RequestRunner(QtCore.QObject):
     Some commands can be executed immediately, others need to have
     async work carried out before they can be executing.
     """
-
-    CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
     def __init__(self, engine_instance_name, plugin_id, base_config, task_manager):
         """
@@ -92,7 +91,7 @@ class RequestRunner(QtCore.QObject):
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
-            cache_out_of_date = (time.time() - self._last_update_check) > self.CONFIG_CHECK_TIMEOUT_SECONDS
+            cache_out_of_date = (time.time() - self._last_update_check) > constants.CONFIG_CHECK_TIMEOUT_SECONDS
             if cache_out_of_date:
                 # time to check with Shotgun if there are updates
                 logger.debug("Requesting a check to see if any changes have happened in Shotgun.")
@@ -214,7 +213,7 @@ class RequestRunner(QtCore.QObject):
         logger.debug("Preparing ready requests for execution...")
         remaining_requests = []
         for deferred_request in self._active_requests:
-            if deferred_request.can_be_executed:
+            if deferred_request.can_be_executed():
                 # fire off!
                 deferred_request.execute()
             else:

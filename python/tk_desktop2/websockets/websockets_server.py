@@ -25,7 +25,7 @@ class WebsocketsServer(object):
 
     def __init__(self, request_runner):
         """
-        :parm request_runner: An associated :class:`RequestRunner`
+        :param request_runner: An associated :class:`RequestRunner`
             instance to handle execution.
         """
         logger.debug("Begin initializing websockets server wrapper")
@@ -93,14 +93,18 @@ class WebsocketsServer(object):
 
     def _new_connection(self, socket_id, name, address, port, request):
         """
-        param socket_id: Unique id for the connection
-        param request: QNetworkRequest
+        Callback that fires when a new websockets connection is requested.
+
+        :param str socket_id: Unique id for the connection
+        :param str name: Name of connection
+        :param int port: Port that connection is using.
+        :param request: QNetworkRequest object describing the request.
         """
         logger.debug(
             "New wss connection %s from %s %s %s" % (socket_id, name, address, port)
         )
 
-        # get the site request came from
+        # get the site where the request came from
         origin = request.rawHeader("origin")
         # origin is a bytearray, convert to string
         origin = str(origin)

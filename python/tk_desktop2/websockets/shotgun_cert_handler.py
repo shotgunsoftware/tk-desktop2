@@ -81,8 +81,8 @@ class ShotgunCertificateHandler(object):
         Writes a certificate to disk. Converts any textual \n into actual \n. This is required
         because certificates returned from Shotgun have their \n encoded as actual \n in the text.
 
-        :param path: Path to file that should be written.
-        :param cert: Certificate taken from Shotgun.
+        :param str path: Path to file that should be written.
+        :param str cert: Certificate taken from Shotgun.
         """
         logger.debug("Wrote shotgunlocalhost file %s" % path)
         # make sure folder exists

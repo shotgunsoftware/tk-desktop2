@@ -64,16 +64,26 @@ class DeferredRequest(object):
         """
         return self._request.linked_entity_type
 
-    @property
     def can_be_executed(self):
         """
         True if the request is ready to be executed, false if not
         """
         if self._configurations:
-            # have we got commands loaded for all configurations?
+            # a set of configurations have been loaded in but
+            # we are still waiting for them to load in their
+            # individual commands.
+            #
+            # each configuration entry in the self._configurations
+            # list is a dictionary with three keys:
+            # - configuration - associated ExternalConfiguration instance
+            # - commands - list of ExternalCommand instances or None if error
+            # - error - error string or None if commands loaded
+            #
+            # now check if all configurations have completed loading
+            #
             for config in self._configurations:
+                # a loaded config either has a list of commands or an error message
                 if config["commands"] is None and config["error"] is None:
-                    # this entry has not been loaded yet
                     return False
             # all items loaded
             return True
@@ -87,7 +97,7 @@ class DeferredRequest(object):
 
         :raises: :class:`RuntimeError` on failure.
         """
-        if not self.can_be_executed:
+        if not self.can_be_executed():
             raise RuntimeError("%s is not ready to be executed!" % self)
 
         # put together a data structure to pass to the request
@@ -132,7 +142,7 @@ class DeferredRequest(object):
             self._configurations.append(
                 {
                     "configuration": config,
-                    "commands": [],
+                    "commands": None,
                     "error": None
                 }
             )

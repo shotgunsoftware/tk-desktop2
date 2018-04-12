@@ -9,9 +9,8 @@ import sgtk
 import time
 import threading
 
-from sgtk.platform import Engine
 from sgtk.platform.qt import QtCore, QtGui
-from .errors import PathParseError
+from . import constants
 from .shotgun_entity_path import ShotgunEntityPath
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -37,9 +36,6 @@ class ActionHandler(object):
     """
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
-
-    # how often we check if Shotgun configs have changed
-    CONFIG_CHECK_TIMEOUT_SECONDS = 30
 
     # labels for loading
     LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
@@ -168,7 +164,7 @@ class ActionHandler(object):
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
-            cache_out_of_date = (time.time() - self._last_update_check) > self.CONFIG_CHECK_TIMEOUT_SECONDS
+            cache_out_of_date = (time.time() - self._last_update_check) > constants.CONFIG_CHECK_TIMEOUT_SECONDS
             if cache_out_of_date:
                 # time to check with Shotgun if there are updates
                 logger.debug("Requesting a check to see if any changes have happened in Shotgun.")

@@ -7,7 +7,6 @@
 
 import sgtk
 import json
-import datetime
 import collections
 
 logger = sgtk.LogManager.get_logger(__name__)
@@ -48,27 +47,6 @@ def parse_json(payload):
     return message_obj
 
 
-def create_error_reply(message, data=None, encrypt_fn=None):
-    """
-    Create a standard error json reply.
-
-    Note: The error has no message id and therefore will lack
-    traceability in the client.
-
-    :param message: String Message describing the error.
-    :param dict data: Optional information regarding the error.
-    :param encrypt_fn: Optional Encryption method
-    :returns: Server ready payload
-    """
-    error = {
-        "error": True,
-        "error_message": message,
-    }
-    if data:
-        error["error_data"] = data
-    return create_reply(error, encrypt_fn)
-
-
 def _json_date_handler(obj):
     """
     JSON stringify python date handler from:
@@ -79,8 +57,6 @@ def _json_date_handler(obj):
     :raises: TypeError if a serializable version of the object cannot be made
     """
     if hasattr(obj, "isoformat"):
-        return obj.isoformat()
-    elif isinstance(obj, datetime.datetime):
         return obj.isoformat()
     else:
         return json.JSONEncoder().default(obj)
