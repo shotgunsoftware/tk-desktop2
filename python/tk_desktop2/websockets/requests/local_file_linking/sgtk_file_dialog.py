@@ -5,9 +5,15 @@
 # this software in either electronic or hard copy form.
 #
 
+import os
 import sys
+import traceback
 
+import sgtk
+from sgtk.util import ShotgunPath
 from sgtk.platform.qt import QtCore, QtGui
+
+logger = sgtk.LogManager.get_logger(__name__)
 
 
 class SgtkFileDialog(QtGui.QFileDialog):
@@ -17,9 +23,9 @@ class SgtkFileDialog(QtGui.QFileDialog):
     some can't do both file and folder extended selection.
     """
 
-    # used to add a shortcut in the macosx ui sidebar
-    # to allow for browsing of entire drive
-    _VOLUMES_URL = "file:///Volumes"
+    # class level cache of queried local storages as defined in SG. These will
+    # be queried the first time they're needed, then reused after that.
+    LOCAL_STORAGES = None
 
     def __init__(self, multi=False, *args, **kwargs):
         """
@@ -27,46 +33,33 @@ class SgtkFileDialog(QtGui.QFileDialog):
 
         :param multi: Allow extended selection
         """
-        QtGui.QFileDialog.__init__(self, *args, **kwargs)
+        super(SgtkFileDialog, self).__init__(*args, **kwargs)
 
+        # set the browsing mode (single or multi files)
         if multi:
-            selection_mode = QtGui.QAbstractItemView.ExtendedSelection
+            self.setFileMode(QtGui.QFileDialog.ExistingFiles)
         else:
-            selection_mode = QtGui.QAbstractItemView.SingleSelection
+            self.setFileMode(QtGui.QFileDialog.ExistingFile)
 
-        listview = self.findChild(QtGui.QListView, "listView")
-        if listview:
-            listview.setSelectionMode(selection_mode)
+        # display some additional, useful shortcuts in the sidebar. Not
+        # essential, so wrapped in a try
+        try:
+            self._update_sidebar_urls()
+        except Exception as e:
+            logger.warning(
+                "Unable to add sidebar URLs to file dialog."
+                "Full error: %s" % (traceback.format_exc(),)
+            )
 
-        treeview = self.findChild(QtGui.QTreeView)
-        if treeview:
-            treeview.setSelectionMode(selection_mode)
-
-        # FIXME: On MacOS the QFileDialog hides all hidden files. Unfortunately /Volumes is hidden.
-        # As a quick hack to unblock our clients, we'll add /Volumes to the sidebar.
-        if sys.platform == "darwin":
-            sidebar_urls = self.sidebarUrls()
-            if self._VOLUMES_URL not in sidebar_urls:
-                sidebar_urls.append(self._VOLUMES_URL)
-            self.setSidebarUrls(sidebar_urls)
-
-        # Make the combobox editable so we can specify a path through it.
-        #c = self.findChild(QtGui.QComboBox, "lookInCombo")
-        #c.setEditable(True)
-        # Search for the line edit widget, it has no name so scan for it.
-        #line_edits = filter(lambda x: isinstance(x, QtGui.QLineEdit), c.children())
-        #if len(line_edits) != 1:
-        #    raise Exception("Expected to find a line edit widget.")
-        #self._path_editor = line_edits[0]
-        # When the user presses return, we'll move to that directory.
-        #self._path_editor.returnPressed.connect(self._path_confirmed)
-
-    def _path_confirmed(self):
-        """
-        When the user presses RETURN in the combo box, we update the current directory to the
-        path specified in the combo box.
-        """
-        self.setDirectory(self._path_editor.text())
+        # Make the combobox editable so we can specify a path through it. Not
+        # essential, so wrapped in a try
+        try:
+            self._make_combo_editable()
+        except Exception as e:
+            logger.warning(
+                "Unable to make file dialog combo box editable."
+                "Full error: %s" % (traceback.format_exc(),)
+            )
 
     def exec_(self):
         """
@@ -85,7 +78,9 @@ class SgtkFileDialog(QtGui.QFileDialog):
 
     def accept(self, *args, **kwargs):
         """
-        Override method for accept button. Allows to emit an event with the list of selected files.
+        Override method for accept button.
+
+        Allows to emit an event with the list of selected files.
         """
         files = self.selectedFiles()
         if not files:
@@ -93,3 +88,81 @@ class SgtkFileDialog(QtGui.QFileDialog):
 
         self.fileSelected.emit(files)
         QtGui.QDialog.accept(self, *args, **kwargs)
+
+    def _make_combo_editable(self):
+        """Makes the "Look in" combo box editable for usability."""
+
+        # try to find the combo box
+        combo = self.findChild(QtGui.QComboBox, "lookInCombo")
+        combo.setEditable(True)
+
+        # Search for the line edit widget, it has no name so scan for it.
+        line_edits = filter(
+            lambda c: isinstance(c, QtGui.QLineEdit), combo.children()
+        )
+
+        if len(line_edits) != 1:
+            logger.warning(
+                "Couldn't locate line edit for 'look in' combo box while "
+                "attempting to make it editable."
+            )
+            return
+
+        # If there's only one, assume that's the path editor. When the user
+        # presses return, we'll move to the directory indicated by its text.
+        path_editor = line_edits[0]
+        path_editor.returnPressed.connect(
+            lambda pe=path_editor: self.setDirectory(pe.text())
+        )
+
+    def _update_sidebar_urls(self):
+        """Updates the sidebar URLs in the file dialog for convenience.
+
+        On OSX, adds "/Volumes". Also adds the curernt os path for all SG local
+        storages defined in SG.
+        """
+
+        # This is required to modify the sidebar urls
+        self.setOption(QtGui.QFileDialog.DontUseNativeDialog)
+
+        # get the current sidebar urls
+        sidebar_urls = self.sidebarUrls()
+
+        # also add paths to the local storages for the current OS since you're
+        # only allowed to link files under these locations.
+        engine = sgtk.platform.current_engine()
+
+        # add local storages to the sidebar
+        path_field = ShotgunPath.get_shotgun_storage_key()
+        if path_field:
+
+            # check against None here since there may not be storages defined
+            if self.LOCAL_STORAGES is None:
+                self.LOCAL_STORAGES = engine.shotgun.find(
+                    "LocalStorage",
+                    [],
+                    [path_field]
+                )
+
+            # no point in sorting here. file dialog seems to have it's own
+            # sorting algorithm that overrides the order in which urls are added
+            # while also defying all common sense. /shrug
+            for storage in self.LOCAL_STORAGES:
+
+                # retrieve the storage path for this OS
+                storage_path = storage.get(path_field)
+
+                # if it exists, and isn't already in the sidebar URLs, append
+                # it to the list of urls
+                if storage_path and os.path.exists(storage_path):
+                    url = QtCore.QUrl.fromLocalFile(storage_path)
+                    if url not in sidebar_urls:
+                        sidebar_urls.append(url)
+
+        # add Volumes to the sidebar on OSX
+        if sys.platform == "darwin":
+            volumes_url = QtCore.QUrl.fromLocalFile("/Volumes")
+            if volumes_url not in sidebar_urls:
+                sidebar_urls.append(volumes_url)
+
+        self.setSidebarUrls(sidebar_urls)
