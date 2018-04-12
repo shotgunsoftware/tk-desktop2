@@ -38,8 +38,8 @@ class WebsocketsServer(object):
         # TODO: this may be done via standard method in the future.
         manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
         server_name = manager.initializeWebSocketServer(True)
-        self._wss_server = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, server_name)
-        logger.debug("Retrieved websockets server %s" % self._wss_server)
+        self._ws_server = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, server_name)
+        logger.debug("Retrieved websockets server %s" % self._ws_server)
 
         # set up certificates handler
         try:
@@ -88,7 +88,7 @@ class WebsocketsServer(object):
         """
         Should be called upon destruction.
         """
-        logger.debug("Begin shutting down wss handler.")
+        logger.debug("Begin shutting down internal C++ websockets server.")
         self._ws_server.close()
         # set to none for GC
         self._ws_server = None
@@ -103,7 +103,7 @@ class WebsocketsServer(object):
         :param request: QNetworkRequest object describing the request.
         """
         logger.debug(
-            "New wss connection %s from %s %s %s" % (socket_id, name, address, port)
+            "New ws connection %s from %s %s %s" % (socket_id, name, address, port)
         )
 
         # get the site where the request came from
