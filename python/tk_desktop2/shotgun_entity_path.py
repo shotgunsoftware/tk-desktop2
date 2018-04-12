@@ -44,7 +44,7 @@ class ShotgunEntityPath(object):
 
     def __repr__(self):
         """String representation"""
-        return "<ShotgunWiretapPath '%s'>" % self._path
+        return "<ShotgunEntityPath '%s'>" % self._path
 
     @property
     def project_id(self):

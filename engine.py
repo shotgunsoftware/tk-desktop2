@@ -72,7 +72,7 @@ class DesktopEngine2(Engine):
         self._task_manager = task_manager.BackgroundTaskManager(
             qt_parent,
             start_processing=True,
-            max_threads=2
+            max_threads=1
         )
 
         # set it up with the Shotgun globals
