@@ -99,7 +99,7 @@ class RequestRunner(QtCore.QObject):
                 # refresh - this may trigger a call to _on_configurations_changed
                 self._config_loader.refresh_shotgun_global_state()
 
-            # request command for the conifgurations
+            # request command for the configurations
             deferred_request.register_configurations(
                 self._cached_configs[deferred_request.project_id]
             )
@@ -177,7 +177,7 @@ class RequestRunner(QtCore.QObject):
         :param config: Associated class:`ExternalConfiguration` instance.
         :param list commands: List of :class:`ExternalCommand` instances.
         """
-        logger.debug("%s Commands loaded for projecd id %s, %s" % (len(commands), project_id, config))
+        logger.debug("%s Commands loaded for project id %s, %s" % (len(commands), project_id, config))
         for deferred_request in self._active_requests:
             if deferred_request.project_id == project_id:
                 deferred_request.register_commands(config, commands)
@@ -196,7 +196,7 @@ class RequestRunner(QtCore.QObject):
         :param config: Associated class:`ExternalConfiguration` instance.
         :param str reason: Details around the failure.
         """
-        logger.debug("Loading commmands failed for project id %s, %s" % (config, project_id))
+        logger.debug("Loading commands failed for project id %s, %s" % (config, project_id))
         for deferred_request in self._active_requests:
             if deferred_request.project_id == project_id:
                 deferred_request.register_commands_failure(config, reason)

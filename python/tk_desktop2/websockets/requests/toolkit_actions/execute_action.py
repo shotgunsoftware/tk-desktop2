@@ -107,11 +107,35 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             output = self._resolved_command.execute()
             self._reply_with_status(output=output)
         except Exception as e:
+
             logger.debug("Could not execute action", exc_info=True)
-            self._reply_with_status(
-                status=1,
-                error=str(e)
-            )
+
+            # handle the special case where we are calling an older version of the Shotgun
+            # engine which doesn't support PySide2 (v0.7.0 or earlier). In this case, trap the
+            # error message sent from the engine and replace it with a more specific one:
+            #
+            # The error message from the engine looks like this:
+            # Looks like you are trying to run a Sgtk App that uses a QT based UI,
+            # however the Shotgun engine could not find a PyQt or PySide installation in
+            # your python system path. We recommend that you install PySide if you want to
+            # run UI applications from within Shotgun.
+
+            if "Looks like you are trying to run a Sgtk App that uses a QT based UI" in str(e):
+                self._reply_with_status(
+                    status=1,
+                    error=(
+                        "The version of the Toolkit Shotgun Engine (tk-shotgun) you "
+                        "are running does not support PySide2. Please upgrade your "
+                        "configuration to use version v0.8.0 or above of the engine."
+                    )
+                )
+
+            else:
+                # bubble up the error message
+                self._reply_with_status(
+                    status=1,
+                    error=str(e)
+                )
 
     def execute_with_context(self, associated_commands):
         """
