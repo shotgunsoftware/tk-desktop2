@@ -40,6 +40,7 @@ class ActionHandler(object):
     # labels for loading
     LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
     LOADING_ACTIONS_LABEL = "Loading Actions..."
+    NO_ACTIONS_FOUND_LABEL = "No Actions found."
 
 
     def __init__(self, plugin_id, base_config, task_manager):
@@ -338,6 +339,12 @@ class ActionHandler(object):
 
         # remove any loading message associated with this batch
         self._remove_loading_menu_indicator(config)
+
+        # if no items exist on the menu, add a "no items found" entry
+        # todo: this will change once we have final designs.
+        if self._actions_model.rowCount() == 0:
+            self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+
 
     def _on_commands_load_failed(self, project_id, config, reason):
         """
