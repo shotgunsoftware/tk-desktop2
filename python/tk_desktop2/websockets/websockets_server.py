@@ -143,7 +143,7 @@ class WebsocketsServer(object):
 
         :param str socket_id: Id of the client (browser tab) sending the request.
         """
-        logger.info("Connection %s was closed." % socket_id)
+        logger.debug("Connection %s was closed." % socket_id)
 
         # remove from our cache
         if socket_id in self._connections:
