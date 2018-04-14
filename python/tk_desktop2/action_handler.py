@@ -279,11 +279,14 @@ class ActionHandler(object):
             # indicate that we are loading data for this config
             self._add_loading_menu_indicator(config)
 
+            # if the desktop-2 engine cannot be found, fall back
+            # on the tk-shotgun engine.
             config.request_commands(
                 project_id,
                 entity_type,
                 entity_id,
-                link_entity_type
+                link_entity_type,
+                "tk-shotgun"
             )
 
     def _on_commands_loaded(self, project_id, config, commands):
@@ -310,6 +313,25 @@ class ActionHandler(object):
         # TODO - this is pending design and the UI and UI implementation
         # is also in motion so this implement is placeholder for the time being.
         # Need to add more robust support for grouping, loading and defaults.
+
+        # legacy handling - TODO UX
+        # for a final solution, perhaps we want to decorate these menu items
+        # with a special marker to denote that they are legacy?
+        #
+        # if desktop-2 isn't installed in an environment, we
+        # attempt to fall back onto tk-shotgun.
+        # in that case, display a warning
+        fallback_to_shotgun_engine = False
+        for command in commands:
+            if command.engine_name == "tk-shotgun":
+                fallback_to_shotgun_engine = True
+                break
+        if fallback_to_shotgun_engine:
+            logger.warning(
+                "%s does not have a desktop-2 engine installed. Falling back on displaying"
+                "the commands associated with the tk-shotgun engine instead." % config
+            )
+
 
         # temporary workarounds to remove special 'system' commands which
         # will not execute well inside the multi process environment
