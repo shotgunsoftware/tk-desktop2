@@ -268,26 +268,31 @@ class ActionHandler(object):
             is linked with. Tasks and notes are for example linked to other
             objects that they are associated with.
         """
-        logger.debug(
-            "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
-        )
+        if len(self._cached_configs[project_id]) == 0:
+            # this project has no configs associated
+            # display 'nothing found' message
+            self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
-        # note: it's possible that self._cached_configs[project_id] holds an
-        # empty list - in this case, nothing happens.
-        for config in self._cached_configs[project_id]:
+        else:
 
-            # indicate that we are loading data for this config
-            self._add_loading_menu_indicator(config)
-
-            # if the desktop-2 engine cannot be found, fall back
-            # on the tk-shotgun engine.
-            config.request_commands(
-                project_id,
-                entity_type,
-                entity_id,
-                link_entity_type,
-                "tk-shotgun"
+            logger.debug(
+                "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
             )
+
+            for config in self._cached_configs[project_id]:
+
+                # indicate that we are loading data for this config
+                self._add_loading_menu_indicator(config)
+
+                # if the desktop-2 engine cannot be found, fall back
+                # on the tk-shotgun engine.
+                config.request_commands(
+                    project_id,
+                    entity_type,
+                    entity_id,
+                    link_entity_type,
+                    "tk-shotgun"
+                )
 
     def _on_commands_loaded(self, project_id, config, commands):
         """
@@ -328,7 +333,7 @@ class ActionHandler(object):
                 break
         if fallback_to_shotgun_engine:
             logger.warning(
-                "%s does not have a desktop-2 engine installed. Falling back on displaying"
+                "%s does not have a desktop-2 engine installed. Falling back on displaying "
                 "the commands associated with the tk-shotgun engine instead." % config
             )
 
@@ -404,6 +409,36 @@ class ActionHandler(object):
 
         logger.error("Could not load actions for %s: %s" % (config, reason))
 
+    def _execute_action_payload(self, command):
+        """
+        Helper method to execute command.
+        Executes the given command instance and handles logging and errors.
+        :param str command: ExternalCommand to execute
+        """
+        try:
+            logger.debug("Executing %s" % command)
+            output = command.execute()
+            logger.debug("Output from command: %s" % output)
+        except Exception as e:
+            # handle the special case where we are calling an older version of the Shotgun
+            # engine which doesn't support PySide2 (v0.7.0 or earlier). In this case, trap the
+            # error message sent from the engine and replace it with a more specific one:
+            #
+            # The error message from the engine looks like this:
+            # Looks like you are trying to run a Sgtk App that uses a QT based UI,
+            # however the Shotgun engine could not find a PyQt or PySide installation in
+            # your python system path. We recommend that you install PySide if you want to
+            # run UI applications from within Shotgun.
+            if "Looks like you are trying to run a Sgtk App that uses a QT based UI" in str(e):
+                logger.error(
+                    "The version of the Toolkit Shotgun Engine (tk-shotgun) you "
+                    "are running does not support PySide2. Please upgrade your "
+                    "configuration to use version v0.8.0 or above of the engine."
+                )
+
+            else:
+                logger.error("Could not execute action: %s" % e)
+
     def _execute_action(self, path, action_str):
         """
         Triggered from the engine when a user clicks an action
@@ -421,7 +456,8 @@ class ActionHandler(object):
             # and create a command object.
             action = external_config.ExternalCommand.deserialize(action_str)
             # run in a thread to not block
-            worker = threading.Thread(target=action.execute)
+            thread_cb = lambda a=action: self._execute_action_payload(a)
+            worker = threading.Thread(target=thread_cb)
             # setting daemon to True means the main process can quit
             # and the action process can live on
             worker.daemon = True

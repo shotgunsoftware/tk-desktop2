@@ -45,12 +45,12 @@ class ShotgunSiteHandler(object):
         user = sg_auth.get_user()
         # todo: handle authenticationcancelled
 
+        self._shotgun = user.create_sg_connection()
+
         # get the secret from the shotgun site.
         # don't hold on to it but pass it to
-        # the encrpyption library.
-        ws_server_secret = self._retrieve_server_secret(
-            user.create_sg_connection()
-        )
+        # the encryption library.
+        ws_server_secret = self._retrieve_server_secret(self._shotgun)
 
         # create encryption session
         self._fernet = Fernet(ws_server_secret)
@@ -67,6 +67,13 @@ class ShotgunSiteHandler(object):
         Unique id associated with this shotgun site.
         """
         return self._unique_server_id
+
+    @property
+    def shotgun(self):
+        """
+        Associated shotgun API connection
+        """
+        return self._shotgun
 
     def encrypt(self, payload):
         """

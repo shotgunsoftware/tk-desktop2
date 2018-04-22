@@ -56,6 +56,13 @@ class WebsocketsConnection(object):
         """
         return "<WebsocketsConnection %s - state %s>" % (self._socket_id, self._state)
 
+    @property
+    def shotgun(self):
+        """
+        Associated shotgun API connection
+        """
+        return self._shotgun_site.shotgun
+
     def process_message(self, message):
         """
         Callback which will be called whenever a message is received.

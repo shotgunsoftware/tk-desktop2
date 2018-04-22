@@ -21,17 +21,35 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
     """
     Executes the given toolkit action.
 
-    Request syntax::
+    There are several ways this is sent from Shotgun.
+    The command supports the following:
 
-        { 'entity_ids': [582],
-          'entity_type': 'Project',
-          'name': '',
+    From the normal spreadsheet views:
+
+        { 'entity_ids': [6947],
+          'entity_type': 'Version',
+          'name': 'Jump to Screening Room in RV',
           'pc': 'Primary',
           'pc_root_path': '',
-          'project_id': 582,
-          'title': 'Maya 2017',
+          'project_id': 87,
+          'title': 'Jump to Screening Room in RV',
           'user': {...},
-        },
+          'name': 'execute_action'
+        }
+
+    From my tasks - note how project id is None and
+    the entity_ids syntax is different:
+
+        { 'entity_ids': [{'id': 5757, 'type': 'Task'}],
+          'entity_type': 'Task',
+          'name': 'nuke_9.0v6',
+          'pc': 'Primary',
+          'pc_root_path': '',
+          'project_id': None,
+          'title': 'Nuke 9.0v6',
+          'user': {...},
+          'name': 'execute_action'
+        }
 
     Expected response::
 
@@ -68,8 +86,32 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         self._command_title = parameters["title"]
         self._config_name = parameters["pc"]
         self._entity_type = parameters["entity_type"]
-        self._entity_id = parameters["entity_ids"][0]  # TODO: support multi select
-        self._project_id = parameters["project_id"]
+
+        first_entity_object = parameters["entity_ids"][0]  # TODO: support multi select
+
+        # now determine if the entity_ids holds a list of ids or a
+        # list of dictionaries (see protocol summary above for details)
+        if isinstance(first_entity_object, dict):
+            # it's a std entity dict
+            self._entity_id = first_entity_object["id"]
+
+        else:
+            # it's just the id
+            self._entity_id = first_entity_object
+
+        # now determine if we need to resolve the project id
+        if parameters.get("project_id") is None:
+            # resolve project id in case we are on a non-project page
+            # todo: this could be handled in a far more elegant way on the javascript side
+            sg_data = connection.shotgun.find_one(
+                self._entity_type,
+                [["id", "is", self._entity_id]],
+                ["project"]
+            )
+            self._project_id = sg_data["project"]["id"]
+        else:
+            # for project pages, project_id is passed down.
+            self._project_id = parameters["project_id"]
 
     @property
     def requires_toolkit(self):
