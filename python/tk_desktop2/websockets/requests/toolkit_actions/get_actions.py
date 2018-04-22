@@ -109,6 +109,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         self._entity_id = parameters["entity_id"]
         self._entity_type = parameters["entity_type"]
         self._project_id = parameters["project_id"]
+        self._linked_entity_type = None
 
         # if command specifies a -1 for the entity id
         # this is a request for a generic set of actions
@@ -116,6 +117,21 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         # entity id None for our request handler to indicate this.
         if self._entity_id == -1:
             self._entity_id = None
+
+        # if we are looking at a task, figure out the type of
+        # the associated item.
+        # TODO - this could easily be passed down by the
+        # websockets protocol as a performance improvement.
+        if self._entity_type == "Task" and self._entity_id:
+            logger.debug("Resolving linked entity for Task %s...", self._entity_id)
+            sg_data = connection.shotgun.find_one(
+                "Task",
+                [["id", "is", self._entity_id]],
+                ["entity"]
+            )
+            logger.debug("Task is linked with %s", sg_data)
+            if sg_data["entity"]:
+                self._linked_entity_type = sg_data["entity"]["type"]
 
     @property
     def requires_toolkit(self):
@@ -152,8 +168,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         Linked entity types are useful to distinguish for example a configuration
         difference between tasks linked to shots vs tasks linked to assets.
         """
-        # todo: support this!
-        return None
+        return self._linked_entity_type
 
     def execute_with_context(self, associated_commands):
         """
