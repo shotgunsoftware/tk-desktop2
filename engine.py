@@ -39,9 +39,10 @@ class DesktopEngine2(Engine):
         """
         self._initialize_dark_look_and_feel()
 
-    def initialize_actions_integration(self, engine_instance_name, plugin_id, base_config):
+    def initialize_integrations(self, plugin_id, base_config):
         """
-        Start up the engine's built in actions integration.
+        Start up the engine's built in actions integration
+        and launch the websockets (shotgun integrations) server.
 
         This will attempt to bind against a ACTION_MODEL_OBJECT_NAME qt object
         which is assumed to be defined by C++ and establish a data exchange
@@ -50,8 +51,6 @@ class DesktopEngine2(Engine):
         A Shotgun-utils external config instance is constructed to handle
         cross-context requests for actions and execution from the action model.
 
-        :param str engine_instance_name: The instance name of the engine for
-            which we should be retrieving commands.
         :param str plugin_id: The plugin id associated with the runtime environment.
         :param str base_config: Descriptor URI for the config to use by default when
             no custom pipeline configs have been defined in Shotgun.
@@ -109,9 +108,7 @@ class DesktopEngine2(Engine):
         :param record: Std python logging record
         :type record: :class:`~python.logging.LogRecord`
         """
-        # TODO - a console setup is pending design in VMR
-        #        for now, just print to stdout
-        print "[sgtk] %s" % handler.format(record)
+        # TODO - Figure out what the console should look like
 
     def destroy_engine(self):
         """
