@@ -148,6 +148,8 @@ class DesktopEngine2(Engine):
         The path to the desktop2 python interpreter
         """
         if sys.platform == "win32":
-            return os.path.abspath(os.path.join(sys.prefix, "python.exe"))
+            # use pythonw in order to prevent a shell window from
+            # popping up. May need to refine this solution in the future.
+            return os.path.abspath(os.path.join(sys.prefix, "pythonw.exe"))
         else:
             return os.path.abspath(os.path.join(sys.prefix, "bin", "python"))
