@@ -480,7 +480,7 @@ class ActionHandler(object):
             self._actions_model.appendAction(self.LOADING_ACTIONS_LABEL, "", "")
         else:
             self._actions_model.appendAction(
-                "%s: %s..." % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL),
+                "%s: %s" % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL),
                 "",
                 ""
             )
