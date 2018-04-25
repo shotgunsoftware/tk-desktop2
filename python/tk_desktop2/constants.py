@@ -8,4 +8,4 @@
 # How often we should reach out to Shotgun and check if the
 # pipeline configurations, software entities and other
 # shotgun global state has changed.
-CONFIG_CHECK_TIMEOUT_SECONDS = 30
+CONFIG_CHECK_TIMEOUT_SECONDS = 10
