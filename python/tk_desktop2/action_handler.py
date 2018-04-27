@@ -217,7 +217,7 @@ class ActionHandler(object):
 
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
-        logger.debug("Requesting new configurations for %s." % sg_entity.project_id)
+        logger.debug("Requesting new configurations for project id %s." % sg_entity.project_id)
         self._config_loader.request_configurations(sg_entity.project_id)
 
     def _on_configurations_loaded(self, project_id, configs):
@@ -417,7 +417,7 @@ class ActionHandler(object):
         """
         try:
             logger.debug("Executing %s" % command)
-            output = command.execute()
+            output = command.execute(pre_cache=True)
             logger.debug("Output from command: %s" % output)
         except Exception as e:
             # handle the special case where we are calling an older version of the Shotgun

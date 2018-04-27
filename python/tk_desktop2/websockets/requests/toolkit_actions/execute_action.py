@@ -146,7 +146,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         Thread execution payload
         """
         try:
-            output = self._resolved_command.execute()
+            output = self._resolved_command.execute(pre_cache=True)
             self._reply_with_status(output=output)
         except Exception as e:
 
