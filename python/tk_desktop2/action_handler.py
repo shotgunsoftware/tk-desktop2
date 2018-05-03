@@ -294,7 +294,7 @@ class ActionHandler(object):
                     "tk-shotgun"
                 )
 
-    def _on_commands_loaded(self, project_id, config, commands):
+    def _on_commands_loaded(self, project_id, entity_type, entity_id, link_entity_type, config, commands):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -302,6 +302,9 @@ class ActionHandler(object):
         contains several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
+        :param str entity_type: Entity type associated with the request.
+        :param int entity_id: Entity id associated with the request.
+        :param str link_entity_type: Linked entity type associated with the request.
         :param config: Associated class:`ExternalConfiguration` instance.
         :param list commands: List of :class:`ExternalCommand` instances.
         """
@@ -373,7 +376,7 @@ class ActionHandler(object):
             self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
 
-    def _on_commands_load_failed(self, project_id, config, reason):
+    def _on_commands_load_failed(self, project_id, entity_type, entity_id, link_entity_type, config, reason):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -381,6 +384,9 @@ class ActionHandler(object):
         has got several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
+        :param str entity_type: Entity type associated with the request.
+        :param int entity_id: Entity id associated with the request.
+        :param str link_entity_type: Linked entity type associated with the request.
         :param config: Associated class:`ExternalConfiguration` instance.
         :param str reason: Details around the failure.
         """

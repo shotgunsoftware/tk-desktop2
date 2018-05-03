@@ -166,7 +166,7 @@ class RequestRunner(QtCore.QObject):
                         deferred_request.linked_entity_type
                     )
 
-    def _on_commands_loaded(self, project_id, config, commands):
+    def _on_commands_loaded(self, project_id, entity_type, entity_id, link_entity_type, config, commands):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -174,18 +174,21 @@ class RequestRunner(QtCore.QObject):
         has got several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
+        :param str entity_type: Entity type associated with the request.
+        :param int entity_id: Entity id associated with the request.
+        :param str link_entity_type: Linked entity type associated with the request.
         :param config: Associated class:`ExternalConfiguration` instance.
         :param list commands: List of :class:`ExternalCommand` instances.
         """
-        logger.debug("%s Commands loaded for project id %s, %s" % (len(commands), project_id, config))
+        logger.debug("%s commands loaded for project id %s, %s" % (len(commands), project_id, config))
         for deferred_request in self._active_requests:
-            if deferred_request.project_id == project_id:
+            if deferred_request.project_id == project_id and deferred_request.entity_type == entity_type:
                 deferred_request.register_commands(config, commands)
 
         # kick off any requests that are waiting
         self._execute_ready_requests()
 
-    def _on_commands_load_failed(self, project_id, config, reason):
+    def _on_commands_load_failed(self, project_id, entity_type, entity_id, link_entity_type, config, reason):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -193,12 +196,15 @@ class RequestRunner(QtCore.QObject):
         has got several pipeline configurations (for example dev sandboxes).
 
         :param int project_id: Project id associated with the request.
+        :param str entity_type: Entity type associated with the request.
+        :param int entity_id: Entity id associated with the request.
+        :param str link_entity_type: Linked entity type associated with the request.
         :param config: Associated class:`ExternalConfiguration` instance.
         :param str reason: Details around the failure.
         """
         logger.debug("Loading commands failed for project id %s, %s" % (config, project_id))
         for deferred_request in self._active_requests:
-            if deferred_request.project_id == project_id:
+            if deferred_request.project_id == project_id and deferred_request.entity_type == entity_type:
                 deferred_request.register_commands_failure(config, reason)
 
         # kick off any requests that are waiting
