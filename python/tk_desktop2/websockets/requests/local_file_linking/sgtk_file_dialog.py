@@ -126,12 +126,21 @@ class SgtkFileDialog(QtGui.QFileDialog):
         self.setOption(QtGui.QFileDialog.DontUseNativeDialog)
 
         # get the current sidebar urls
-        sidebar_urls = self.sidebarUrls()
+        #sidebar_urls = self.sidebarUrls()
+        sidebar_urls = []
 
         # also add paths to the local storages for the current OS since you're
         # only allowed to link files under these locations.
         engine = sgtk.platform.current_engine()
 
+        # Commenting out the local storages in the sidebar for now. While there
+        # is value here, there are some annoying things that make it not worth
+        # including yet. Namely, there's no control over how the urls are
+        # displayed. This means that two storages with the same folder names
+        # will show up identically in the sidebar. Also, modifying the sidebar
+        # here appears to be persistent so that other QFileDialogs opened,
+        # say in the publisher, will retain the storage links.
+        """
         # add local storages to the sidebar
         path_field = ShotgunPath.get_shotgun_storage_key()
         if path_field:
@@ -158,6 +167,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
                     url = QtCore.QUrl.fromLocalFile(storage_path)
                     if url not in sidebar_urls:
                         sidebar_urls.append(url)
+        """
 
         # add Volumes to the sidebar on OSX
         if sys.platform == "darwin":
