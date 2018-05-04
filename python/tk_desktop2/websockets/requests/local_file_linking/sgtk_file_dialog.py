@@ -126,8 +126,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
         self.setOption(QtGui.QFileDialog.DontUseNativeDialog)
 
         # get the current sidebar urls
-        #sidebar_urls = self.sidebarUrls()
-        sidebar_urls = []
+        sidebar_urls = self.sidebarUrls()
 
         # also add paths to the local storages for the current OS since you're
         # only allowed to link files under these locations.
