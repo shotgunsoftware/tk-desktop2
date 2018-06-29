@@ -57,8 +57,7 @@ class WebsocketsServer(object):
         logger.debug("Cert file: %s" % self._sg_certs_handler.cert_path)
         success = self._ws_server.setSslPem(
             self._sg_certs_handler.key_path,
-            self._sg_certs_handler.cert_path,
-            QtNetwork.QSslSocket.VerifyNone
+            self._sg_certs_handler.cert_path
         )
         if not success:
             raise RuntimeError("Could not set up Websockets certificates.")
