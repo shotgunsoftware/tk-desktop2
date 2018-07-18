@@ -377,7 +377,7 @@ class ActionHandler(object):
         if self._actions_model.rowCount() == 0:
             self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
-        self._actions_model.refreshReactComponents()
+        self._actions_model.actionsChanged()
 
     def _on_commands_load_failed(self, project_id, entity_type, entity_id, link_entity_type, config, reason):
         """
@@ -503,7 +503,7 @@ class ActionHandler(object):
                 ""
             )
 
-        self._actions_model.refreshReactComponents()
+        self._actions_model.actionsChanged()
 
     def _remove_loading_menu_indicator(self, configuration=None):
         """
