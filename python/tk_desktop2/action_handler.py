@@ -70,6 +70,7 @@ class ActionHandler(object):
         self._actions_model = None
         self._config_loader = None
         self._task_manager = None
+        self._toolkit_manager = bundle.toolkit_manager
 
         qt_parent = QtCore.QCoreApplication.instance()
 
@@ -309,6 +310,7 @@ class ActionHandler(object):
         :param list commands: List of :class:`ExternalCommand` instances.
         """
         logger.debug("Commands loaded for %s" % config)
+        self._actions_model.clear()
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
@@ -375,6 +377,7 @@ class ActionHandler(object):
         if self._actions_model.rowCount() == 0:
             self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
+        self._actions_model.refreshReactComponents()
 
     def _on_commands_load_failed(self, project_id, entity_type, entity_id, link_entity_type, config, reason):
         """
@@ -422,7 +425,7 @@ class ActionHandler(object):
         :param str command: ExternalCommand to execute
         """
         try:
-            logger.debug("Executing %s" % command)
+            logger.debug("Executing %s", command)
             output = command.execute(pre_cache=True)
             logger.debug("Output from command: %s" % output)
         except Exception as e:
@@ -461,6 +464,15 @@ class ActionHandler(object):
 
             # and create a command object.
             action = external_config.ExternalCommand.deserialize(action_str)
+
+            # Notify the user that the launch is occurring. If it's a DCC, there can
+            # be some delay, and this will help them know that the work is happening.
+            self._toolkit_manager.emitToast(
+                "Launching %s..." % action.display_name,
+                "info",
+                False # Not persistent, meaning it'll stay for 5 seconds and disappear.
+            )
+
             # run in a thread to not block
             thread_cb = lambda a=action: self._execute_action_payload(a)
             worker = threading.Thread(target=thread_cb)
@@ -490,6 +502,8 @@ class ActionHandler(object):
                 "",
                 ""
             )
+
+        self._actions_model.refreshReactComponents()
 
     def _remove_loading_menu_indicator(self, configuration=None):
         """
