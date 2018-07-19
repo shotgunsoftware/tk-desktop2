@@ -32,12 +32,28 @@ class DesktopEngine2(Engine):
         self._ws_runner = None
         # handles websockets server
         self._ws_handler = None
+        # exposes methods of communicating with the host application
+        self._toolkit_manager = None
 
     def post_app_init(self):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
+        from sgtk.platform.qt import QtCore
+
+        # Setup the styling to be inherited by child apps.
         self._initialize_dark_look_and_feel()
+
+        # Get a handle to the ToolkitManager QObject.
+        self._toolkit_manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
+
+    @property
+    def toolkit_manager(self):
+        """
+        A handle to the manager object provided by the host application that exposes
+        some necessary functionality.
+        """
+        return self._toolkit_manager
 
     def initialize_integrations(self, plugin_id, base_config):
         """

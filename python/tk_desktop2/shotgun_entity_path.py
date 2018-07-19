@@ -25,7 +25,7 @@ class ShotgunEntityPath(object):
     # note: shotgun entity type names cannot have unicode characters in them so we are not
     #       supporting that in this parser either.
     task_path_regex = re.compile(
-        r"^/projects/(?P<project_id>[0-9]+)/(?P<entity_type>[a-z]+)s/(?P<entity_id>[0-9]+)/tasks/(?P<task_id>[0-9]+)$"
+        r"^/Project/(?P<project_id>\d+)/(?P<entity_type>\w+)/(?P<entity_id>[0-9]+)/Task/(?P<task_id>\d+)$"
     )
 
     def __init__(self, path):
