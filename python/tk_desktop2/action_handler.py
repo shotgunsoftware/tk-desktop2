@@ -160,6 +160,7 @@ class ActionHandler(object):
         # clear loading indicator
         self._actions_model.clear()
 
+
         sg_entity = ShotgunEntityPath(current_path)
 
         if sg_entity.project_id in self._cached_configs:
@@ -199,6 +200,14 @@ class ActionHandler(object):
         Indicates that the state of Shotgun has changed
         and that we should discard any cached configurations and reload them.
         """
+        # This slot gets triggered on initial launch of the host application, and
+        # in that case we're likely to not have a current entity path defined.
+        # We can just return here if that's the case and it'll be no harm.
+        current_path = self._actions_model.currentEntityPath()
+
+        if current_path is None or current_path == "":
+            return
+
         logger.debug("Shotgun has changed. Discarding cached configurations.")
         # our cached configuration objects are no longer valid
         # disconnect any signals so we no longer get callbacks from
@@ -214,7 +223,7 @@ class ActionHandler(object):
         self._actions_model.clear()
 
         # load in new configurations for current project
-        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath(current_path)
 
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
@@ -310,7 +319,6 @@ class ActionHandler(object):
         :param list commands: List of :class:`ExternalCommand` instances.
         """
         logger.debug("Commands loaded for %s" % config)
-        self._actions_model.clear()
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
@@ -362,12 +370,17 @@ class ActionHandler(object):
             else:
                 display_name = "%s: %s" % (config.pipeline_configuration_name, command.display_name)
 
-
-            self._actions_model.appendAction(
-                display_name,
-                command.tooltip,
-                command.serialize()
-            )
+            # This is addressing a pretty extreme edge case, but if there are multiple
+            # PC entities for the project referencing the exact same config on disk,
+            # we end up with duplicate actions equal to the number of PC entities sharing
+            # the same configuration. It's silly behavior, but culling the duplicated here
+            # is the simplest solution, and works just fine.
+            if not self._actions_model.findItems(display_name):
+                self._actions_model.appendAction(
+                    display_name,
+                    command.tooltip,
+                    command.serialize()
+                )
 
         # remove any loading message associated with this batch
         self._remove_loading_menu_indicator(config)
