@@ -42,24 +42,34 @@ class ShotgunSiteHandler(object):
 
         dm = sgtk.authentication.DefaultsManager(fixed_host=site_url)
         sg_auth = sgtk.authentication.ShotgunAuthenticator(dm)
-        user = sg_auth.get_user()
-        # todo: handle authenticationcancelled
+        self._is_authenticated = (sg_auth.get_default_user() is not None)
 
-        self._shotgun = user.create_sg_connection()
+        if self.is_authenticated:
+            user = sg_auth.get_user()
+            self._shotgun = user.create_sg_connection()
 
-        # get the secret from the shotgun site.
-        # don't hold on to it but pass it to
-        # the encryption library.
-        ws_server_secret = self._retrieve_server_secret(self._shotgun)
+            # get the secret from the shotgun site.
+            # don't hold on to it but pass it to
+            # the encryption library.
+            ws_server_secret = self._retrieve_server_secret(self._shotgun)
 
-        # create encryption session
-        self._fernet = Fernet(ws_server_secret)
+            # create encryption session
+            self._fernet = Fernet(ws_server_secret)
+        else:
+            self._shotgun = None
 
     def __repr__(self):
         """
         String representation
         """
         return "<ws-site %s>" % self._site_url
+
+    @property
+    def is_authenticated(self):
+        """
+        Whether we're authenticated against this site.
+        """
+        return self._is_authenticated
 
     @property
     def unique_server_id(self):

@@ -33,6 +33,7 @@ class WebsocketsServer(object):
         self._sites = {}
         self._request_runner = request_runner
         self._bundle = sgtk.platform.current_bundle()
+        self._has_been_warned_cross_site = False
 
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
@@ -105,13 +106,39 @@ class WebsocketsServer(object):
             "New ws connection %s from %s %s %s" % (socket_id, name, address, port)
         )
 
-        # get the site where the request came from
-        origin = request.rawHeader("origin")
-        # origin is a bytearray, convert to string
-        origin = str(origin)
+        # get the site where the request came from as a bytearray, and convert to string
+        origin = str(request.rawHeader("origin"))
+
         if origin not in self._sites:
-            # note: this may pop up a login dialog
+            # This will NEVER pop up a login dialog. If we're not already authenticated
+            # with the site, then we do not continue and we close the connection below.
             self._sites[origin] = ShotgunSiteHandler(origin)
+
+        # We do not allow cross-site connections, meaning that if we're not already
+        # authenticated with the site requesting a connection, we immediately close
+        # it and show the user a one-time warning message.
+        if not self._sites[origin].is_authenticated:
+            self._ws_server.closeConnection(socket_id)
+            logger.warning("Not authenticated with %s -- the connection has been closed.", origin)
+
+            if self._has_been_warned_cross_site:
+                logger.debug(
+                    "The user has already been shown the cross-site warning dialog -- not showing."
+                )
+            else:
+                from sgtk.platform.qt import QtGui, QtCore
+                msg_box = QtGui.QMessageBox(
+                    QtGui.QMessageBox.Warning,
+                    "Not Authenticated",
+                    "Shotgun Create is not authenticated with %s. Please log into "
+                    "this site in Shotgun Create if you require Toolkit menu actions "
+                    "or local file links." % origin
+                )
+                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+                msg_box.exec_()
+                self._has_been_warned_cross_site = True
+
+            return
 
         self._connections[socket_id] = WebsocketsConnection(
             self._ws_server,
