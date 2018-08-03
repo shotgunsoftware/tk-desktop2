@@ -33,6 +33,11 @@ class WebsocketsServer(object):
         self._sites = {}
         self._request_runner = request_runner
         self._bundle = sgtk.platform.current_bundle()
+
+        # We don't allow requests from sites that SG Create isn't logged into. When we
+        # receive a request from another site, we raise a warning dialog telling the user
+        # what's going on, but we only do so once per session. This allows us to track
+        # whether we've shown the user the warning already and skip it if we have.
         self._has_been_warned_cross_site = False
 
         # retrieve websockets server from C++
@@ -90,7 +95,7 @@ class WebsocketsServer(object):
                     "or running Shotgun Create and Shotgun Desktop simultaneously." % port_number
                 )
             else:
-                logger.warning("Websockets server could not be started: %s" % error)
+                logger.warning("Websockets server could not be started. Error reported: %s" % error)
         else:
             logger.debug("Websockets server is ready and listening.")
 
@@ -116,7 +121,8 @@ class WebsocketsServer(object):
             "New ws connection %s from %s %s %s" % (socket_id, name, address, port)
         )
 
-        # get the site where the request came from as a bytearray, and convert to string
+        # The origin coming from the request's raw header will be a bytearray. We're
+        # going to want it as a string, so we'll go ahead and convert it right away.
         origin = str(request.rawHeader("origin"))
 
         if origin not in self._sites:
@@ -129,7 +135,14 @@ class WebsocketsServer(object):
         # it and show the user a one-time warning message.
         if not self._sites[origin].is_authenticated:
             self._ws_server.closeConnection(socket_id)
-            logger.warning("Not authenticated with %s -- the connection has been closed.", origin)
+
+            warning_msg = (
+                "A request was received from %s. Shotgun Create is currently not logged into "
+                "that site, so the request has been rejected. You will need to log into %s from "
+                "Shotgun Create in order to see Toolkit menu actions or make use of local file "
+                "linking on that Shotgun site." % (origin, origin)
+            )
+            logger.warning(warning_msg)
 
             if self._has_been_warned_cross_site:
                 logger.debug(
@@ -140,9 +153,7 @@ class WebsocketsServer(object):
                 msg_box = QtGui.QMessageBox(
                     QtGui.QMessageBox.Warning,
                     "Not Authenticated",
-                    "Shotgun Create is not authenticated with %s. Please log into "
-                    "this site in Shotgun Create if you require Toolkit menu actions "
-                    "or local file links." % origin
+                    warning_msg,
                 )
                 msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
                 msg_box.exec_()
