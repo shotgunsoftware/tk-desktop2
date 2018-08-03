@@ -80,7 +80,17 @@ class WebsocketsServer(object):
         )
 
         if not success:
-            logger.warning("Websockets server could not be started.")
+            error = self._ws_server.errorString()
+
+            if error == "The bound address is already in use":
+                logger.warning(
+                    "The server could not be started because it appears that something is "
+                    "already making use of port %d. The most likely cause of this would be "
+                    "having more than one instance of Shotgun Create open at the same time, "
+                    "or running Shotgun Create and Shotgun Desktop simultaneously." % port_number
+                )
+            else:
+                logger.warning("Websockets server could not be started: %s" % error)
         else:
             logger.debug("Websockets server is ready and listening.")
 
