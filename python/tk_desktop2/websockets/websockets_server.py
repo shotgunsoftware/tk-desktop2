@@ -34,6 +34,12 @@ class WebsocketsServer(object):
         self._request_runner = request_runner
         self._bundle = sgtk.platform.current_bundle()
 
+        # We don't allow requests from sites that SG Create isn't logged into. When we
+        # receive a request from another site, we raise a warning dialog telling the user
+        # what's going on, but we only do so once per session. This allows us to track
+        # whether we've shown the user the warning already and skip it if we have.
+        self._has_been_warned_cross_site = False
+
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = self._bundle.toolkit_manager
@@ -79,7 +85,17 @@ class WebsocketsServer(object):
         )
 
         if not success:
-            logger.warning("Websockets server could not be started.")
+            error = self._ws_server.errorString()
+
+            if error == "The bound address is already in use":
+                logger.warning(
+                    "The server could not be started because it appears that something is "
+                    "already making use of port %d. The most likely cause of this would be "
+                    "having more than one instance of Shotgun Create open at the same time, "
+                    "or running Shotgun Create and Shotgun Desktop simultaneously." % port_number
+                )
+            else:
+                logger.warning("Websockets server could not be started. Error reported: %s" % error)
         else:
             logger.debug("Websockets server is ready and listening.")
 
@@ -105,13 +121,45 @@ class WebsocketsServer(object):
             "New ws connection %s from %s %s %s" % (socket_id, name, address, port)
         )
 
-        # get the site where the request came from
-        origin = request.rawHeader("origin")
-        # origin is a bytearray, convert to string
-        origin = str(origin)
+        # The origin coming from the request's raw header will be a bytearray. We're
+        # going to want it as a string, so we'll go ahead and convert it right away.
+        origin = str(request.rawHeader("origin"))
+
         if origin not in self._sites:
-            # note: this may pop up a login dialog
+            # This will NEVER pop up a login dialog. If we're not already authenticated
+            # with the site, then we do not continue and we close the connection below.
             self._sites[origin] = ShotgunSiteHandler(origin)
+
+        # We do not allow cross-site connections, meaning that if we're not already
+        # authenticated with the site requesting a connection, we immediately close
+        # it and show the user a one-time warning message.
+        if not self._sites[origin].is_authenticated:
+            self._ws_server.closeConnection(socket_id)
+
+            warning_msg = (
+                "A request was received from %s. Shotgun Create is currently not logged into "
+                "that site, so the request has been rejected. You will need to log into %s from "
+                "Shotgun Create in order to see Toolkit menu actions or make use of local file "
+                "linking on that Shotgun site." % (origin, origin)
+            )
+            logger.warning(warning_msg)
+
+            if self._has_been_warned_cross_site:
+                logger.debug(
+                    "The user has already been shown the cross-site warning dialog -- not showing."
+                )
+            else:
+                from sgtk.platform.qt import QtGui, QtCore
+                msg_box = QtGui.QMessageBox(
+                    QtGui.QMessageBox.Warning,
+                    "Not Authenticated",
+                    warning_msg,
+                )
+                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+                msg_box.exec_()
+                self._has_been_warned_cross_site = True
+
+            return
 
         self._connections[socket_id] = WebsocketsConnection(
             self._ws_server,
