@@ -252,7 +252,7 @@ class WebsocketsConnection(object):
 
         # Try to get the user information. If that fails, we need to report the error.
         try:
-            request_user = message_obj["command"]["data"]["user"]["entity"]["name"]
+            request_user_id = message_obj["command"]["data"]["user"]["entity"]["id"]
         except KeyError as e:
             raise RuntimeError(
                 "Unexpected error while trying to retrieve the user id: "
@@ -262,9 +262,9 @@ class WebsocketsConnection(object):
         # We need to make sure that the user logged into the Shotgun web app
         # matches the user that's logged into Shotgun Create. If they don't
         # match, we will warn the user and reject the request.
-        logger.debug("Shotgun web requesting user: %s", request_user)
+        logger.debug("Shotgun web requesting user: %s", request_user_id)
 
-        if not self._server_wrapper.validate_user(request_user, self._shotgun_site):
+        if not self._server_wrapper.validate_user(request_user_id, self._shotgun_site):
             error_msg = "Unable to get Toolkit menu actions for the current user."
             logger.debug("The websocket server determined that the requesting user was not valid.")
             # We won't continue on with processing the request.

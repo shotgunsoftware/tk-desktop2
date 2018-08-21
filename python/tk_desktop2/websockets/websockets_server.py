@@ -45,6 +45,12 @@ class WebsocketsServer(object):
         # Create as.
         self._has_been_warned_cross_user = False
 
+        # We're in the situation where we only have access to the HumanUser id from
+        # Shotgun, and we only have access to the username from core. We're going to
+        # query the username from Shotgun from the given id, so we can cache that in
+        # memory.
+        self._user_id_to_login_map = dict()
+
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = self._bundle.toolkit_manager
@@ -113,16 +119,16 @@ class WebsocketsServer(object):
         # set to none for GC
         self._ws_server = None
 
-    def validate_user(self, user_name, shotgun_site):
+    def validate_user(self, user_id, shotgun_site):
         """
-        Checks to see if the given user name matches what's currently authenticated
+        Checks to see if the given user id matches what's currently authenticated
         for this site. The first time that this method is called and the user is
         determined to not be valid, the user will be shown a warning dialog with
         information about why they're not receiving a successful request to their
         response. Further attempts to make requests that are not coming from a valid
         user will be logged, but no dialog will be raised.
 
-        :param str user_name: The user name to check.
+        :param int user_id: The HumanUser entity id to validate.
         :param shotgun_site: Associated :class:`ShotgunSiteHandler`
 
         :rtype: bool
@@ -133,7 +139,27 @@ class WebsocketsServer(object):
             )
             return False
 
+        # We have to go from the HumanUser entity id to a login. This is because
+        # we don't get the login from Shotgun as part of the payload for a request,
+        # and we don't have easy access to the currently-authenticated user's id
+        # via tk-core. We'll cache it, though, so we only have to do this once per
+        # session.
+        if user_id not in self._user_id_to_login_map:
+            user_entity = self._bundle.shotgun.find_one(
+                "HumanUser",
+                [["id", "is", user_id]],
+                fields=["login"],
+            )
+
+            if not user_entity:
+                logger.debug("The user id given (%s) does not exist in Shotgun.")
+                return False
+
+            self._user_id_to_login_map[user_id] = user_entity["login"]
+
+        user_name = self._user_id_to_login_map[user_id]
         current_user = shotgun_site.user.login
+
         if current_user != user_name:
             warning_msg = (
                 "A request was received from Shotgun from user %s. Shotgun "
