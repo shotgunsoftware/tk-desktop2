@@ -37,18 +37,21 @@ class WebsocketsConnection(object):
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, ws_server, socket_id, shotgun_site, request_runner):
+    def __init__(self, ws_server, socket_id, shotgun_site, request_runner, server_wrapper):
         """
         :param ws_server: Associated :class:`WebsocketsServer`
         :param socket_id: Unique id associated with this connection
         :param shotgun_site: Associated :class:`ShotgunSiteHandler`
         :param request_runner: Associated :class:`RequestRunner`
+        :param server_wrapper: Associated :class:`WebsocketsServer` wrapper. This is
+            the parent wrapper of the given ws_server and request_runner objects.
         """
         self._ws_server = ws_server
         self._request_runner = request_runner
         self._socket_id = socket_id
         self._shotgun_site = shotgun_site
         self._state = self.AWAITING_HANDSHAKE
+        self._server_wrapper = server_wrapper
 
     def __repr__(self):
         """
@@ -246,6 +249,28 @@ class WebsocketsConnection(object):
         # We expect every response to have the protocol version set earlier
         if message_obj.get("protocol_version") != self.PROTOCOL_VERSION:
             raise RuntimeError("%s: Unexpected protocol version!" % self)
+
+        # Try to get the user information. If that fails, we need to report the error.
+        try:
+            request_user = message_obj["command"]["data"]["user"]["entity"]["name"]
+        except KeyError as e:
+            raise RuntimeError(
+                "Unexpected error while trying to retrieve the user id: "
+                "No user information was found in this request."
+            )
+
+        # We need to make sure that the user logged into the Shotgun web app
+        # matches the user that's logged into Shotgun Create. If they don't
+        # match, we will warn the user and reject the request.
+        logger.debug("Shotgun web requesting user: %s", request_user)
+
+        if not self._server_wrapper.validate_user(request_user, self._shotgun_site):
+            error_msg = "Unable to get Toolkit menu actions for the current user."
+            logger.debug("The websocket server determined that the requesting user was not valid.")
+            # We won't continue on with processing the request.
+            data = {"retcode": -1, "out":"", "err": error_msg}
+            self.reply(data, message_obj["id"])
+            return
 
         # at this point we are handing over execution to the requests
         # implementation. Trap any exceptions and in the case

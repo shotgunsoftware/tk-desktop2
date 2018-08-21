@@ -40,6 +40,11 @@ class WebsocketsServer(object):
         # whether we've shown the user the warning already and skip it if we have.
         self._has_been_warned_cross_site = False
 
+        # We only want to show the user a warning dialog once if they're logged
+        # into Shotgun as a different user than they're logged into Shotgun
+        # Create as.
+        self._has_been_warned_cross_user = False
+
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = self._bundle.toolkit_manager
@@ -108,6 +113,57 @@ class WebsocketsServer(object):
         # set to none for GC
         self._ws_server = None
 
+    def validate_user(self, user_name, shotgun_site):
+        """
+        Checks to see if the given user name matches what's currently authenticated
+        for this site. The first time that this method is called and the user is
+        determined to not be valid, the user will be shown a warning dialog with
+        information about why they're not receiving a successful request to their
+        response. Further attempts to make requests that are not coming from a valid
+        user will be logged, but no dialog will be raised.
+
+        :param str user_name: The user name to check.
+        :param shotgun_site: Associated :class:`ShotgunSiteHandler`
+
+        :rtype: bool
+        """
+        if not shotgun_site.is_authenticated:
+            logger.debug(
+                "Unable to check the authenticated user because this site is not authenticated."
+            )
+            return False
+
+        current_user = shotgun_site.user.login
+        if current_user != user_name:
+            warning_msg = (
+                "A request was received from Shotgun from user %s. Shotgun "
+                "Create is currently authenticated with user %s, so the "
+                "request was rejected. You will need to log into Shotgun "
+                "Create as user %s in order to receive Toolkit menu actions "
+                "for that user in Shotgun." % (user_name, current_user, user_name)
+            )
+            logger.warning(warning_msg)
+
+            if self._has_been_warned_cross_user:
+                logger.debug(
+                    "The user has already been warned about being logged into "
+                    "Shotgun with a different user than Shotgun Create is "
+                    "authenticated with. A warning dialog will not be raised."
+                )
+            else:
+                # Make sure the user is only warned about this once for this
+                # connection.
+                self._has_been_warned_cross_user = True
+
+                from sgtk.platform.qt import QtGui, QtCore
+                msg_box = QtGui.QMessageBox(
+                    QtGui.QMessageBox.Warning,
+                    "Requesting User Not Authenticated",
+                    warning_msg,
+                )
+                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+                msg_box.exec_()
+
     def _new_connection(self, socket_id, name, address, port, request):
         """
         Callback that fires when a new websockets connection is requested.
@@ -165,7 +221,8 @@ class WebsocketsServer(object):
             self._ws_server,
             socket_id,
             self._sites[origin],
-            self._request_runner
+            self._request_runner,
+            self,
         )
 
     def _process_message(self, socket_id, message):
