@@ -190,6 +190,9 @@ class WebsocketsServer(object):
                 msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
                 msg_box.exec_()
 
+            return False
+        return True
+
     def _new_connection(self, socket_id, name, address, port, request):
         """
         Callback that fires when a new websockets connection is requested.
