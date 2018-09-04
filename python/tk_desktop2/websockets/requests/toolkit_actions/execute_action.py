@@ -87,17 +87,24 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         self._config_name = parameters["pc"]
         self._entity_type = parameters["entity_type"]
 
-        first_entity_object = parameters["entity_ids"][0]  # TODO: support multi select
+        first_entity_object = parameters["entity_ids"][0]
 
         # now determine if the entity_ids holds a list of ids or a
         # list of dictionaries (see protocol summary above for details)
         if isinstance(first_entity_object, dict):
             # it's a std entity dict
             self._entity_id = first_entity_object["id"]
-
+            # Legacy support for commands that support running on multiple entities
+            # at once. We'll keep track of a list of all entity ids that were passed
+            # to us.
+            self._entity_ids = [e["id"] for e in parameter["entity_ids"]]
         else:
             # it's just the id
             self._entity_id = first_entity_object
+            # Legacy support for commands that support running on multiple entities
+            # at once. We'll keep track of a list of all entity ids that were passed
+            # to us.
+            self._entity_ids = parameters["entity_ids"]
 
         # now determine if we need to resolve the project id
         if parameters.get("project_id") is None:
@@ -146,7 +153,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         Thread execution payload
         """
         try:
-            output = self._resolved_command.execute(pre_cache=True)
+            output = self._resolved_command.execute(pre_cache=True, entity_ids=self._entity_ids)
             self._reply_with_status(output=output)
         except Exception as e:
 
