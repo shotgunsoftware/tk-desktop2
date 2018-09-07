@@ -142,6 +142,23 @@ class ActionHandler(object):
             "Could not retrieve internal object '%s'" % self.ACTION_MODEL_OBJECT_NAME
         )
 
+    def _is_preloading_configs(self):
+        """
+        Checks whether configurations are being preloaded. This helps determine
+        whether additional work should be done to request commands from those
+        configs or not.
+
+        :rtype: bool
+        """
+        # If we don't have an entity path, it's because we were pre-loading configurations
+        # on a project change or initial launch. We don't need to do anything else.
+        current_path = self._actions_model.currentEntityPath()
+
+        if current_path is None or current_path == "":
+            return True
+        else:
+            return False
+
     def _populate_context_menu(self):
         """
         Populate the actions model with items suitable for the
@@ -273,11 +290,9 @@ class ActionHandler(object):
             config.commands_loaded.connect(self._on_commands_loaded)
             config.commands_load_failed.connect(self._on_commands_load_failed)
 
-        # If we don't have an entity path, it's because we were pre-loading configurations
-        # on a project change or initial launch. We don't need to do anything else.
-        current_path = self._actions_model.currentEntityPath()
-
-        if current_path is None or current_path == "":
+        # If we're just doing a preload, then we can stop here since no one is asking
+        # for a list of commands to be requested.
+        if self._is_preloading_configs():
             logger.debug("No entity path is currently set. Not requesting commands!")
             return
 
