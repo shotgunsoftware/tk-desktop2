@@ -153,7 +153,13 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         Thread execution payload
         """
         try:
-            output = self._resolved_command.execute(pre_cache=True, entity_ids=self._entity_ids)
+            if self._resolved_command.support_shotgun_multiple_selection:
+                output = self._resolved_command.execute_on_multiple_entities(
+                    pre_cache=True,
+                    entity_ids=self._entity_ids,
+                )
+            else:
+                output = self._resolved_command.execute(pre_cache=True)
             self._reply_with_status(output=output)
         except Exception as e:
 
