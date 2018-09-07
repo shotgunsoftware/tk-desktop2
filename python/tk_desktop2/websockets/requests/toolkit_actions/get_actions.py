@@ -230,7 +230,8 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
                     "app_name": "UNSPECIFIED",  # legacy
                     "group": command.group,
                     "group_default": command.is_group_default,
-                    "engine_name": "UNSPECIFIED"  # legacy
+                    "engine_name": "UNSPECIFIED",  # legacy
+                    "supports_multiple_selection": command.support_shotgun_multiple_selection,
                 })
 
             response["actions"][config_name] = {
