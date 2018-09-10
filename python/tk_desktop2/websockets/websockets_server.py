@@ -174,6 +174,9 @@ class WebsocketsServer(object):
         user_name = self._user_id_to_login_map[user_id]
         current_user = shotgun_site.user.login
 
+        logger.debug("Shotgun site user: %s", user_name)
+        logger.debug("Shotgun Create user: %s", current_user)
+
         if current_user != user_name:
             warning_msg = (
                 "A request was received from Shotgun from user %s. Shotgun "
