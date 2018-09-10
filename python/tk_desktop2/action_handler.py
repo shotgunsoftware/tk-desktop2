@@ -269,14 +269,21 @@ class ActionHandler(object):
         logger.debug("Requesting new configurations for project id %s.", sg_entity.project_id)
         self._config_loader.request_configurations(sg_entity.project_id)
 
-    def _on_configurations_loaded(self, project_id, configs):
+    def _on_configurations_loaded(self, project_id, configs, error=()):
         """
         Called when external configurations for the given project have been loaded.
 
         :param int project_id: Project id that configurations are associated with
         :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
+        :param tuple error: If an error occurred, this will contain the error message
+            and the traceback, in that order.
         """
+        if error:
+            logger.debug("Received an error when loading configurations: %s", error)
+            self._remove_loading_menu_indicator()
+            return
+
         logger.debug("New configs loaded for project id=%s", project_id)
 
         # Cache the configs!

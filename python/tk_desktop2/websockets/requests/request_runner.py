@@ -134,14 +134,30 @@ class RequestRunner(QtCore.QObject):
             logger.debug("Requesting new configurations for %s." % deferred_request.project_id)
             self._config_loader.request_configurations(deferred_request.project_id)
 
-    def _on_configurations_loaded(self, project_id, configs):
+    def _on_configurations_loaded(self, project_id, configs, error=()):
         """
         Called when external configurations for the given project have been loaded.
 
         :param int project_id: Project id that configurations are associated with
         :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
+        :param typle error: If an error occurred when loading configurations, the
+            tuple will contain the error message and traceback, in that order.
         """
+        # If we received an error, we need to make sure that we respond somehow. We're
+        # likely not going to have any configs loaded in this case, so we're going to
+        # tell the request about the failure and give it an error message to pass back
+        # up to the web app in reply to the request for menu actions.
+        if error:
+            reason = "Received an error when loading configurations: %s" % error
+            logger.debug(reason)
+
+            for deferred_request in self._active_requests:
+                if deferred_request.project_id == project_id:
+                    deferred_request.register_configurations_failure(reason)
+
+            return
+
         logger.debug(
             "New configs loaded for project id %s: %s" % (project_id, configs)
         )

@@ -147,6 +147,18 @@ class DeferredRequest(object):
                 }
             )
 
+    def register_configurations_failure(self, reason):
+        """
+        Registers that configurations for the project could not be loaded.
+
+        :param str reason: Error message.
+        """
+        logger.debug("Configuration loading failed (project_id=%s): %s" % (self.project_id, reason))
+        self._request._reply_with_status(
+            status=1,
+            error=reason,
+        )
+
     def register_commands(self, config, commands):
         """
         Registers the commands for a given external configuration.
