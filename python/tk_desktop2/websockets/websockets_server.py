@@ -119,6 +119,20 @@ class WebsocketsServer(object):
         # set to none for GC
         self._ws_server = None
 
+    @property
+    def websockets_server(self):
+        """
+        The encapsulated :class:`QWebsocketsServer` object.
+        """
+        return self._ws_server
+
+    @property
+    def request_runner(self):
+        """
+        The associated :class:`RequestRunner` object.
+        """
+        return self._request_runner
+
     def validate_user(self, user_id, shotgun_site):
         """
         Checks to see if the given user id matches what's currently authenticated
@@ -247,10 +261,8 @@ class WebsocketsServer(object):
             return
 
         self._connections[socket_id] = WebsocketsConnection(
-            self._ws_server,
             socket_id,
             self._sites[origin],
-            self._request_runner,
             self,
         )
 

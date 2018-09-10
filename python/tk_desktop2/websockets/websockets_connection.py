@@ -37,21 +37,19 @@ class WebsocketsConnection(object):
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, ws_server, socket_id, shotgun_site, request_runner, server_wrapper):
+    def __init__(self, socket_id, shotgun_site, server_wrapper):
         """
-        :param ws_server: Associated :class:`WebsocketsServer`
         :param socket_id: Unique id associated with this connection
         :param shotgun_site: Associated :class:`ShotgunSiteHandler`
-        :param request_runner: Associated :class:`RequestRunner`
         :param server_wrapper: Associated :class:`WebsocketsServer` wrapper. This is
             the parent wrapper of the given ws_server and request_runner objects.
         """
-        self._ws_server = ws_server
-        self._request_runner = request_runner
+        self._server_wrapper = server_wrapper
+        self._ws_server = server_wrapper.websockets_server
+        self._request_runner = server_wrapper.request_runner
         self._socket_id = socket_id
         self._shotgun_site = shotgun_site
         self._state = self.AWAITING_HANDSHAKE
-        self._server_wrapper = server_wrapper
 
     def __repr__(self):
         """
