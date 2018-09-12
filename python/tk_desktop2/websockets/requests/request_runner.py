@@ -160,8 +160,10 @@ class RequestRunner(QtCore.QObject):
 
             for deferred_request in self._active_requests:
                 if deferred_request.project_id == project_id:
-                    deferred_request.register_configurations_failure(reason)
+                    deferred_request.register_configurations(invalid_configs)
+                    deferred_request.register_configurations_failure(reason, invalid_configs)
 
+            self._execute_ready_requests()
             return
 
         logger.debug(
