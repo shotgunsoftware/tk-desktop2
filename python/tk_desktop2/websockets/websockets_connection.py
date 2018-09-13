@@ -171,8 +171,28 @@ class WebsocketsConnection(object):
 
         logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
 
-        # TODO: as early as possible, validate that the user creating the web request is
-        # the same as the authenticated user for that shotgun site.
+        # Try to get the user information. If that fails, we need to report the error.
+        try:
+            request_user_id = message_obj["command"]["data"]["user"]["entity"]["id"]
+        except KeyError as e:
+            raise RuntimeError(
+                "Unexpected error while trying to retrieve the user id: "
+                "No user information was found in this request."
+            )
+
+        # We need to make sure that the user logged into the Shotgun web app
+        # matches the user that's logged into Shotgun Create. If they don't
+        # match, we will warn the user and reject the request.
+        logger.debug("Shotgun web requesting user: %s", request_user_id)
+
+        # We won't continue on with processing the request unless the user
+        # making the request is valid. This will report as invalid if the 
+        # user logged into Shotgun is not the same user that is logged into
+        # SGC.
+        if not self._server_wrapper.validate_user(request_user_id, self._shotgun_site):
+            logger.error("The websocket server determined that the requesting user was not valid.")
+            self._ws_server.closeConnection(self._socket_id)
+            return
 
         if "id" not in message_obj:
             raise RuntimeError("%s: Invalid request!" % self)
@@ -247,28 +267,6 @@ class WebsocketsConnection(object):
         # We expect every response to have the protocol version set earlier
         if message_obj.get("protocol_version") != self.PROTOCOL_VERSION:
             raise RuntimeError("%s: Unexpected protocol version!" % self)
-
-        # Try to get the user information. If that fails, we need to report the error.
-        try:
-            request_user_id = message_obj["command"]["data"]["user"]["entity"]["id"]
-        except KeyError as e:
-            raise RuntimeError(
-                "Unexpected error while trying to retrieve the user id: "
-                "No user information was found in this request."
-            )
-
-        # We need to make sure that the user logged into the Shotgun web app
-        # matches the user that's logged into Shotgun Create. If they don't
-        # match, we will warn the user and reject the request.
-        logger.debug("Shotgun web requesting user: %s", request_user_id)
-
-        if not self._server_wrapper.validate_user(request_user_id, self._shotgun_site):
-            error_msg = "Unable to get Toolkit menu actions for the current user."
-            logger.debug("The websocket server determined that the requesting user was not valid.")
-            # We won't continue on with processing the request.
-            data = {"retcode": -1, "out":"", "err": error_msg}
-            self.reply(data, message_obj["id"])
-            return
 
         # at this point we are handing over execution to the requests
         # implementation. Trap any exceptions and in the case
