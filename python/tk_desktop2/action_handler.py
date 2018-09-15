@@ -185,7 +185,13 @@ class ActionHandler(object):
 
         sg_entity = ShotgunEntityPath(current_path)
 
-        if sg_entity.project_id in self._cached_configs:
+        # If any of the configs we have cached are invalid, we're not going to
+        # use the cached data. Instead, we'll query fresh from SG in case any
+        # of those invalid configs have been fixed since the cache was built.
+        cached_configs = self._cached_configs.get(sg_entity.project_id, [])
+        invalid_configs = [c for c in cached_configs if not c.is_valid]
+
+        if cached_configs and not invalid_configs:
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
@@ -207,9 +213,16 @@ class ActionHandler(object):
             )
 
         else:
-            logger.debug(
-                "No configurations cached. Requesting configuration data for project %s", sg_entity.project_id
-            )
+            if invalid_configs:
+                logger.debug(
+                    "Configurations were cached, but contained at least one invalid config. "
+                    "Requesting configuration data for project %s", sg_entity.project_id
+                )
+            else:
+                logger.debug(
+                    "No configurations cached. Requesting configuration data for "
+                    "project %s", sg_entity.project_id
+                )
             # we don't have any configuration objects cached yet.
             # request it - _on_configurations_loaded will be triggered when configurations are loaded
             self._add_loading_menu_indicator()
@@ -301,7 +314,7 @@ class ActionHandler(object):
         # and request commands to be loaded
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunEntityPath(current_path)
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id == project_id:
             self._request_commands(
