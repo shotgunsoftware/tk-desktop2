@@ -9,3 +9,9 @@
 # pipeline configurations, software entities and other
 # shotgun global state has changed.
 CONFIG_CHECK_TIMEOUT_SECONDS = 60
+
+# The engine to use as a fallback if a tk-desktop2 engine
+# definition isn't found in the environment we're getting
+# actions from. This covers backwards compatibility with
+# older configs that might not be setup with tk-desktop2.
+FALLBACK_ENGINE = "tk-shotgun"

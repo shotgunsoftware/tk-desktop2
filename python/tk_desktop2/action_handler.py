@@ -364,7 +364,7 @@ class ActionHandler(object):
                     entity_type,
                     entity_id,
                     link_entity_type,
-                    engine_fallback="tk-shotgun"
+                    engine_fallback=constants.FALLBACK_ENGINE,
                 )
 
     def _on_commands_loaded(self, project_id, entity_type, entity_id, link_entity_type, config, commands):
