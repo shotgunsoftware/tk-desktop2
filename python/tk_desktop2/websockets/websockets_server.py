@@ -183,7 +183,11 @@ class WebsocketsServer(object):
                 "Create is currently authenticated with user %s, so the "
                 "request was rejected. You will need to log into Shotgun "
                 "Create as user %s in order to receive Toolkit menu actions "
-                "for that user in Shotgun." % (user_name, current_user, user_name)
+                "or use local file linking for that user in Shotgun." % (
+                    user_name,
+                    current_user,
+                    user_name
+                )
             )
             logger.warning(warning_msg)
 

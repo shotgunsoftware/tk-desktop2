@@ -185,7 +185,13 @@ class ActionHandler(object):
 
         sg_entity = ShotgunEntityPath(current_path)
 
-        if sg_entity.project_id in self._cached_configs:
+        # If any of the configs we have cached are invalid, we're not going to
+        # use the cached data. Instead, we'll query fresh from SG in case any
+        # of those invalid configs have been fixed since the cache was built.
+        cached_configs = self._cached_configs.get(sg_entity.project_id, [])
+        invalid_configs = [c for c in cached_configs if not c.is_valid]
+
+        if cached_configs and not invalid_configs:
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
@@ -207,9 +213,16 @@ class ActionHandler(object):
             )
 
         else:
-            logger.debug(
-                "No configurations cached. Requesting configuration data for project %s", sg_entity.project_id
-            )
+            if invalid_configs:
+                logger.debug(
+                    "Configurations were cached, but contained at least one invalid config. "
+                    "Requesting configuration data for project %s", sg_entity.project_id
+                )
+            else:
+                logger.debug(
+                    "No configurations cached. Requesting configuration data for "
+                    "project %s", sg_entity.project_id
+                )
             # we don't have any configuration objects cached yet.
             # request it - _on_configurations_loaded will be triggered when configurations are loaded
             self._add_loading_menu_indicator()
@@ -269,22 +282,17 @@ class ActionHandler(object):
         logger.debug("Requesting new configurations for project id %s.", sg_entity.project_id)
         self._config_loader.request_configurations(sg_entity.project_id)
 
-    def _on_configurations_loaded(self, project_id, configs, error=()):
+    def _on_configurations_loaded(self, project_id, configs):
         """
         Called when external configurations for the given project have been loaded.
 
         :param int project_id: Project id that configurations are associated with
         :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
-        :param tuple error: If an error occurred, this will contain the error message
-            and the traceback, in that order.
         """
-        if error:
-            logger.debug("Received an error when loading configurations: %s", error)
-            self._remove_loading_menu_indicator()
-            return
-
         logger.debug("New configs loaded for project id=%s", project_id)
+
+        
 
         # Cache the configs!
         self._cached_configs[project_id] = configs
@@ -306,7 +314,7 @@ class ActionHandler(object):
         # and request commands to be loaded
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunEntityPath(current_path)
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id == project_id:
             self._request_commands(
@@ -342,6 +350,9 @@ class ActionHandler(object):
             )
 
             for config in self._cached_configs[project_id]:
+                if not config.is_valid:
+                    logger.warning("Configuration %s is not valid. Commands will not be loaded.", config)
+                    continue
 
                 # indicate that we are loading data for this config
                 self._add_loading_menu_indicator(config)
