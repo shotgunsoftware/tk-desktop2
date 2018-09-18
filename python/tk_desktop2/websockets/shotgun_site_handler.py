@@ -47,7 +47,7 @@ class ShotgunSiteHandler(object):
         if self.is_authenticated:
             user = sg_auth.get_user()
             self._shotgun = user.create_sg_connection()
-            self._user = user
+            self._current_user = user
 
             # get the secret from the shotgun site.
             # don't hold on to it but pass it to
@@ -58,7 +58,7 @@ class ShotgunSiteHandler(object):
             self._fernet = Fernet(ws_server_secret)
         else:
             self._shotgun = None
-            self._user = None
+            self._current_user = None
 
     def __repr__(self):
         """
@@ -81,12 +81,12 @@ class ShotgunSiteHandler(object):
         return self._unique_server_id
 
     @property
-    def user(self):
+    def current_user(self):
         """
         The ShotgunUser object provided by sgtk.authentication for the
         currently-authenticated user.
         """
-        return self._user
+        return self._current_user
 
     @property
     def shotgun(self):

@@ -172,7 +172,7 @@ class WebsocketsServer(object):
             self._user_id_to_login_map[user_id] = user_entity["login"]
 
         user_name = self._user_id_to_login_map[user_id]
-        current_user = shotgun_site.user.login
+        current_user = shotgun_site.current_user.login
 
         logger.debug("Shotgun site user: %s", user_name)
         logger.debug("Shotgun Create user: %s", current_user)
