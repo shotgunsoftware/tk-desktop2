@@ -224,7 +224,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             config_name = config["configuration"].pipeline_configuration_name or "Primary"
 
             if config_name == self._config_name:
-                for command in config["commands"]:
+                for command in config["commands"] or []:
                     if command.system_name == self._command_name:
                         self._resolved_command = command
                         break
