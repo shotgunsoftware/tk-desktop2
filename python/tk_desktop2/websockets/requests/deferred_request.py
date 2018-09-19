@@ -147,6 +147,22 @@ class DeferredRequest(object):
                 }
             )
 
+    def register_configurations_failure(self, reason, invalid_configs):
+        """
+        Registers that configurations for the project could not be loaded.
+
+        :param str reason: Error message.
+        :param list invalid_configs: A list of invalid :class:`ExternalConfiguration` objects
+            that were found.
+        """
+        logger.debug("Configuration loading failed (project_id=%s): %s" % (self.project_id, reason))
+
+        for config_dict in self._configurations:
+            if config_dict["configuration"] in invalid_configs:
+                config_dict["commands"] = None
+                config_dict["error"] = reason
+                break
+
     def register_commands(self, config, commands):
         """
         Registers the commands for a given external configuration.

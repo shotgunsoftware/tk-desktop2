@@ -37,15 +37,16 @@ class WebsocketsConnection(object):
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, ws_server, socket_id, shotgun_site, request_runner):
+    def __init__(self, socket_id, shotgun_site, server_wrapper):
         """
-        :param ws_server: Associated :class:`WebsocketsServer`
         :param socket_id: Unique id associated with this connection
         :param shotgun_site: Associated :class:`ShotgunSiteHandler`
-        :param request_runner: Associated :class:`RequestRunner`
+        :param server_wrapper: Associated :class:`WebsocketsServer` wrapper. This is
+            the parent wrapper of the given ws_server and request_runner objects.
         """
-        self._ws_server = ws_server
-        self._request_runner = request_runner
+        self._server_wrapper = server_wrapper
+        self._ws_server = server_wrapper.websockets_server
+        self._request_runner = server_wrapper.request_runner
         self._socket_id = socket_id
         self._shotgun_site = shotgun_site
         self._state = self.AWAITING_HANDSHAKE
@@ -170,8 +171,28 @@ class WebsocketsConnection(object):
 
         logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
 
-        # TODO: as early as possible, validate that the user creating the web request is
-        # the same as the authenticated user for that shotgun site.
+        # Try to get the user information. If that fails, we need to report the error.
+        try:
+            request_user_id = message_obj["command"]["data"]["user"]["entity"]["id"]
+        except KeyError as e:
+            raise RuntimeError(
+                "Unexpected error while trying to retrieve the user id: "
+                "No user information was found in this request."
+            )
+
+        # We need to make sure that the user logged into the Shotgun web app
+        # matches the user that's logged into Shotgun Create. If they don't
+        # match, we will warn the user and reject the request.
+        logger.debug("Shotgun web requesting user: %s", request_user_id)
+
+        # We won't continue on with processing the request unless the user
+        # making the request is valid. This will report as invalid if the 
+        # user logged into Shotgun is not the same user that is logged into
+        # SGC.
+        if not self._server_wrapper.validate_user(request_user_id, self._shotgun_site):
+            logger.error("The websocket server determined that the requesting user was not valid.")
+            self._ws_server.closeConnection(self._socket_id)
+            return
 
         if "id" not in message_obj:
             raise RuntimeError("%s: Invalid request!" % self)

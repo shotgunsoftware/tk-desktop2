@@ -141,7 +141,31 @@ class RequestRunner(QtCore.QObject):
         :param int project_id: Project id that configurations are associated with
         :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
+        :param typle error: If an error occurred when loading configurations, the
+            tuple will contain the error message and traceback, in that order.
         """
+        # NOTE: To maintain behavior with the older browser integration provided
+        # by the desktopserver framework, if any of the configurations are invalid,
+        # we will raise an error back to the web app so that the error will be
+        # seen by the user. The reason we do this is that the web app currently
+        # has two states in the Toolkit actions menu: complete success and complete
+        # failure. What we DON'T want to do is imply that everything is fine when
+        # it isn't, so our best option is to mirror the old behavior and reply with
+        # an error so the user sees it.
+        invalid_configs = [c for c in configs if not c.is_valid]
+        if invalid_configs:
+            invalid_ids = [c.pipeline_configuration_id for c in invalid_configs]
+            reason = "Invalid configurations were found that are inaccessible: ids=%s" % invalid_ids
+            logger.error(reason)
+
+            for deferred_request in self._active_requests:
+                if deferred_request.project_id == project_id:
+                    deferred_request.register_configurations(invalid_configs)
+                    deferred_request.register_configurations_failure(reason, invalid_configs)
+
+            self._execute_ready_requests()
+            return
+
         logger.debug(
             "New configs loaded for project id %s: %s" % (project_id, configs)
         )

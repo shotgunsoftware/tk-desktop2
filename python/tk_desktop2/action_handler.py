@@ -65,6 +65,10 @@ class ActionHandler(object):
         self._cached_configs = {}
         # last time stamp we checked for new configs (unix time)
         self._last_update_check = 0
+        # What we consider to be the current project id. We might end up being asked to
+        # preload configurations for a given project multiple times, but we don't need
+        # to do that if we've already done that.
+        self._last_preloaded_project_id = 0
 
         # actions integration state
         self._actions_model = None
@@ -86,6 +90,7 @@ class ActionHandler(object):
             # install signals from actions model
             self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
             self._actions_model.actionTriggered.connect(self._execute_action)
+            self._actions_model.currentProjectChanged.connect(self._preload_configurations)
 
             # hook up external configuration loader
             self._config_loader = external_config.ExternalConfigurationLoader(
@@ -137,6 +142,23 @@ class ActionHandler(object):
             "Could not retrieve internal object '%s'" % self.ACTION_MODEL_OBJECT_NAME
         )
 
+    def _is_preloading_configs(self):
+        """
+        Checks whether configurations are being preloaded. This helps determine
+        whether additional work should be done to request commands from those
+        configs or not.
+
+        :rtype: bool
+        """
+        # If we don't have an entity path, it's because we were pre-loading configurations
+        # on a project change or initial launch. We don't need to do anything else.
+        current_path = self._actions_model.currentEntityPath()
+
+        if current_path is None or current_path == "":
+            return True
+        else:
+            return False
+
     def _populate_context_menu(self):
         """
         Populate the actions model with items suitable for the
@@ -163,7 +185,13 @@ class ActionHandler(object):
 
         sg_entity = ShotgunEntityPath(current_path)
 
-        if sg_entity.project_id in self._cached_configs:
+        # If any of the configs we have cached are invalid, we're not going to
+        # use the cached data. Instead, we'll query fresh from SG in case any
+        # of those invalid configs have been fixed since the cache was built.
+        cached_configs = self._cached_configs.get(sg_entity.project_id, [])
+        invalid_configs = [c for c in cached_configs if not c.is_valid]
+
+        if cached_configs and not invalid_configs:
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
@@ -185,15 +213,39 @@ class ActionHandler(object):
             )
 
         else:
-            logger.debug(
-                "No configurations cached. Requesting configuration data for project %s" % sg_entity.project_id
-            )
+            if invalid_configs:
+                logger.debug(
+                    "Configurations were cached, but contained at least one invalid config. "
+                    "Requesting configuration data for project %s", sg_entity.project_id
+                )
+            else:
+                logger.debug(
+                    "No configurations cached. Requesting configuration data for "
+                    "project %s", sg_entity.project_id
+                )
             # we don't have any configuration objects cached yet.
             # request it - _on_configurations_loaded will be triggered when configurations are loaded
             self._add_loading_menu_indicator()
             self._config_loader.request_configurations(
                 sg_entity.project_id
             )
+
+    def _preload_configurations(self, project_id):
+        """
+        Preloads pipeline configuration data for the given project id.
+
+        :param int project_id: The entity id of the Project to preload.
+        """
+        # If we've been asked to preload this project more than once in a row,
+        # we can log and do nothing.
+        if self._last_preloaded_project_id == project_id:
+            logger.debug("Project id=%s has already been preloaded. Doing nothing.", project_id)
+        else:
+            logger.debug(
+                "Preloading configurations for project id=%s", project_id
+            )
+            self._last_preloaded_project_id = project_id
+            self._config_loader.request_configurations(project_id)
 
     def _on_configurations_changed(self):
         """
@@ -227,7 +279,7 @@ class ActionHandler(object):
 
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
-        logger.debug("Requesting new configurations for project id %s." % sg_entity.project_id)
+        logger.debug("Requesting new configurations for project id %s.", sg_entity.project_id)
         self._config_loader.request_configurations(sg_entity.project_id)
 
     def _on_configurations_loaded(self, project_id, configs):
@@ -238,23 +290,31 @@ class ActionHandler(object):
         :param list configs: List of class:`ExternalConfiguration` instances belonging to the
             project_id.
         """
-        logger.debug("New configs loaded for project %s" % project_id)
+        logger.debug("New configs loaded for project id=%s", project_id)
+
+        
+
+        # Cache the configs!
+        self._cached_configs[project_id] = configs
 
         # clear any loading indication
         self._remove_loading_menu_indicator()
-
-        # and request commands to be loaded
-        # make sure that the user hasn't switched to a different item
-        # while things were loading
-        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
-
-        # cache our configs
-        self._cached_configs[sg_entity.project_id] = configs
 
         # wire up signals from our cached command objects
         for config in configs:
             config.commands_loaded.connect(self._on_commands_loaded)
             config.commands_load_failed.connect(self._on_commands_load_failed)
+
+        # If we're just doing a preload, then we can stop here since no one is asking
+        # for a list of commands to be requested.
+        if self._is_preloading_configs():
+            logger.debug("No entity path is currently set. Not requesting commands!")
+            return
+
+        # and request commands to be loaded
+        # make sure that the user hasn't switched to a different item
+        # while things were loading
+        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id == project_id:
             self._request_commands(
@@ -278,7 +338,7 @@ class ActionHandler(object):
             is linked with. Tasks and notes are for example linked to other
             objects that they are associated with.
         """
-        if len(self._cached_configs[project_id]) == 0:
+        if not self._cached_configs.get(project_id, []):
             # this project has no configs associated
             # display 'nothing found' message
             self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
@@ -286,22 +346,25 @@ class ActionHandler(object):
         else:
 
             logger.debug(
-                "Requesting commands for project %s, %s %s" % (project_id, entity_type, entity_id)
+                "Requesting commands for project %s, %s %s", project_id, entity_type, entity_id
             )
 
             for config in self._cached_configs[project_id]:
+                if not config.is_valid:
+                    logger.warning("Configuration %s is not valid. Commands will not be loaded.", config)
+                    continue
 
                 # indicate that we are loading data for this config
                 self._add_loading_menu_indicator(config)
 
-                # if the desktop-2 engine cannot be found, fall back
+                # If the tk_desktop2 engine cannot be found, fall back
                 # on the tk-shotgun engine.
                 config.request_commands(
                     project_id,
                     entity_type,
                     entity_id,
                     link_entity_type,
-                    "tk-shotgun"
+                    engine_fallback=constants.FALLBACK_ENGINE,
                 )
 
     def _on_commands_loaded(self, project_id, entity_type, entity_id, link_entity_type, config, commands):
@@ -318,11 +381,19 @@ class ActionHandler(object):
         :param config: Associated class:`ExternalConfiguration` instance.
         :param list commands: List of :class:`ExternalCommand` instances.
         """
-        logger.debug("Commands loaded for %s" % config)
+        logger.debug("Commands loaded for %s (type=%s, id=%s)", config, entity_type, entity_id)
+
+        # If we don't have an entity path, it's because we were pre-loading commands
+        # on a project change or initial launch. We don't need to do anything else.
+        current_path = self._actions_model.currentEntityPath()
+
+        if current_path is None or current_path == "":
+            logger.debug("No entity path is currently set. Not setting new commands!")
+            return
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath(current_path)
 
         if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.

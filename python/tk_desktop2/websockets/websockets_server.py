@@ -40,6 +40,17 @@ class WebsocketsServer(object):
         # whether we've shown the user the warning already and skip it if we have.
         self._has_been_warned_cross_site = False
 
+        # We only want to show the user a warning dialog once if they're logged
+        # into Shotgun as a different user than they're logged into Shotgun
+        # Create as.
+        self._has_been_warned_cross_user = False
+
+        # We're in the situation where we only have access to the HumanUser id from
+        # Shotgun, and we only have access to the username from core. We're going to
+        # query the username from Shotgun from the given id, so we can cache that in
+        # memory.
+        self._user_id_to_login_map = dict()
+
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = self._bundle.toolkit_manager
@@ -108,6 +119,101 @@ class WebsocketsServer(object):
         # set to none for GC
         self._ws_server = None
 
+    @property
+    def websockets_server(self):
+        """
+        The encapsulated :class:`QWebsocketsServer` object.
+        """
+        return self._ws_server
+
+    @property
+    def request_runner(self):
+        """
+        The associated :class:`RequestRunner` object.
+        """
+        return self._request_runner
+
+    def validate_user(self, user_id, shotgun_site):
+        """
+        Checks to see if the given user id matches what's currently authenticated
+        for this site. The first time that this method is called and the user is
+        determined to not be valid, the user will be shown a warning dialog with
+        information about why they're not receiving a successful request to their
+        response. Further attempts to make requests that are not coming from a valid
+        user will be logged, but no dialog will be raised.
+
+        :param int user_id: The HumanUser entity id to validate.
+        :param shotgun_site: Associated :class:`ShotgunSiteHandler`
+
+        :rtype: bool
+        """
+        if not shotgun_site.is_authenticated:
+            logger.debug(
+                "Unable to check the authenticated user because this site is not authenticated."
+            )
+            return False
+
+        # We have to go from the HumanUser entity id to a login. This is because
+        # we don't get the login from Shotgun as part of the payload for a request,
+        # and we don't have easy access to the currently-authenticated user's id
+        # via tk-core. We'll cache it, though, so we only have to do this once per
+        # session.
+        if user_id not in self._user_id_to_login_map:
+            user_entity = self._bundle.shotgun.find_one(
+                "HumanUser",
+                [["id", "is", user_id]],
+                fields=["login"],
+            )
+
+            if not user_entity:
+                logger.debug("The user id given (%s) does not exist in Shotgun.")
+                return False
+
+            self._user_id_to_login_map[user_id] = user_entity["login"]
+
+        user_name = self._user_id_to_login_map[user_id]
+        current_user = shotgun_site.current_user.login
+
+        logger.debug("Shotgun site user: %s", user_name)
+        logger.debug("Shotgun Create user: %s", current_user)
+
+        if current_user != user_name:
+            warning_msg = (
+                "A request was received from Shotgun from user %s. Shotgun "
+                "Create is currently authenticated with user %s, so the "
+                "request was rejected. You will need to log into Shotgun "
+                "Create as user %s in order to receive Toolkit menu actions "
+                "or use local file linking for that user in Shotgun." % (
+                    user_name,
+                    current_user,
+                    user_name
+                )
+            )
+            logger.warning(warning_msg)
+
+            if self._has_been_warned_cross_user:
+                logger.debug(
+                    "The user has already been warned about being logged into "
+                    "Shotgun with a different user than Shotgun Create is "
+                    "authenticated with. A warning dialog will not be raised."
+                )
+            else:
+                # Make sure the user is only warned about this once for this
+                # connection.
+                self._has_been_warned_cross_user = True
+
+                from sgtk.platform.qt import QtGui, QtCore
+                msg_box = QtGui.QMessageBox(
+                    QtGui.QMessageBox.Warning,
+                    "Requesting User Not Authenticated",
+                    warning_msg,
+                )
+                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+                msg_box.exec_()
+
+            return False
+        return True
+
     def _new_connection(self, socket_id, name, address, port, request):
         """
         Callback that fires when a new websockets connection is requested.
@@ -162,10 +268,9 @@ class WebsocketsServer(object):
             return
 
         self._connections[socket_id] = WebsocketsConnection(
-            self._ws_server,
             socket_id,
             self._sites[origin],
-            self._request_runner
+            self,
         )
 
     def _process_message(self, socket_id, message):
