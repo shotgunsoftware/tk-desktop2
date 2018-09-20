@@ -94,10 +94,10 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         if isinstance(first_entity_object, dict):
             # it's a std entity dict
             self._entity_id = first_entity_object["id"]
-            # Legacy support for commands that support running on multiple entities
-            # at once. We'll keep track of a list of all entity ids that were passed
+            # Support for commands that support running on multiple entities at
+            # once. We'll keep track of a list of all entity ids that were passed
             # to us.
-            self._entity_ids = [e["id"] for e in parameter["entity_ids"]]
+            self._entity_ids = [e["id"] for e in parameters["entity_ids"]]
         else:
             # it's just the id
             self._entity_id = first_entity_object
