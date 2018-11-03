@@ -65,10 +65,6 @@ class ActionHandler(object):
         self._cached_configs = {}
         # last time stamp we checked for new configs (unix time)
         self._last_update_check = 0
-        # What we consider to be the current project id. We might end up being asked to
-        # preload configurations for a given project multiple times, but we don't need
-        # to do that if we've already done that.
-        self._last_preloaded_project_id = 0
 
         # actions integration state
         self._actions_model = None
@@ -236,16 +232,10 @@ class ActionHandler(object):
 
         :param int project_id: The entity id of the Project to preload.
         """
-        # If we've been asked to preload this project more than once in a row,
-        # we can log and do nothing.
-        if self._last_preloaded_project_id == project_id:
-            logger.debug("Project id=%s has already been preloaded. Doing nothing.", project_id)
-        else:
-            logger.debug(
-                "Preloading configurations for project id=%s", project_id
-            )
-            self._last_preloaded_project_id = project_id
-            self._config_loader.request_configurations(project_id)
+        logger.debug(
+            "Preloading configurations for project id=%s", project_id
+        )
+        self._config_loader.request_configurations(project_id)
 
     def _on_configurations_changed(self):
         """
