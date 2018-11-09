@@ -8,7 +8,7 @@
 # How often we should reach out to Shotgun and check if the
 # pipeline configurations, software entities and other
 # shotgun global state has changed.
-CONFIG_CHECK_TIMEOUT_SECONDS = 60
+CONFIG_CHECK_TIMEOUT_SECONDS = 10
 
 # The engine to use as a fallback if a tk-desktop2 engine
 # definition isn't found in the environment we're getting
