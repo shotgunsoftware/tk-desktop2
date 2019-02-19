@@ -177,7 +177,12 @@ class WebsocketsServer(object):
         logger.debug("Shotgun site user: %s", user_name)
         logger.debug("Shotgun Create user: %s", current_user)
 
-        if current_user != user_name:
+        # We're forcing lowercase here because we ran into an issue on Windows 7
+        # where it's possible that a user can login with different casing and it
+        # will be maintained. That would cause a problem here if we ended up
+        # trying to compare "Jeff" with "jeff", even though they're technically
+        # the same user as far as we care here.
+        if current_user.lower() != user_name.lower():
             warning_msg = (
                 "A request was received from Shotgun from user %s. Shotgun "
                 "Create is currently authenticated with user %s, so the "
