@@ -12,6 +12,7 @@ import threading
 from sgtk.platform.qt import QtCore, QtGui
 from . import constants
 from .shotgun_entity_path import ShotgunEntityPath
+from .misc_utils import pickle_to_json, json_to_pickle
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -411,7 +412,6 @@ class ActionHandler(object):
                 "the commands associated with the tk-shotgun engine instead." % config
             )
 
-
         # temporary workarounds to remove special 'system' commands which
         # will not execute well inside the multi process environment
         # TODO: This will need revisiting once we have final designs.
@@ -437,10 +437,12 @@ class ActionHandler(object):
             # the same configuration. It's silly behavior, but culling the duplicated here
             # is the simplest solution, and works just fine.
             if not self._actions_model.findItems(display_name):
+
                 self._actions_model.appendAction(
                     display_name,
                     command.tooltip,
-                    command.serialize()
+                    # Convert the Python Pickle to a JSON string for easier processing from the C++ code
+                    pickle_to_json(command.serialize())
                 )
 
         # remove any loading message associated with this batch
@@ -536,8 +538,11 @@ class ActionHandler(object):
             if isinstance(action_str, unicode):
                 action_str = action_str.encode("utf-8")
 
+            # Convert back the JSON string, comming from C++, back to a Python pickle string
+            pickle_string = json_to_pickle(action_str)
+
             # and create a command object.
-            action = external_config.ExternalCommand.deserialize(action_str)
+            action = external_config.ExternalCommand.deserialize(pickle_string)
 
             # Notify the user that the launch is occurring. If it's a DCC, there can
             # be some delay, and this will help them know that the work is happening.
