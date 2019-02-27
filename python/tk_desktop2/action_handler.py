@@ -42,9 +42,9 @@ class ActionHandler(object):
     KEY_PICKLE_STR = "pickle_str"
 
     # labels for loading
-    LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
-    LOADING_ACTIONS_LABEL = "Loading Actions..."
-    NO_ACTIONS_FOUND_LABEL = "No Actions found."
+    #LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
+    #LOADING_ACTIONS_LABEL = "Loading Actions..."
+    #NO_ACTIONS_FOUND_LABEL = "No Actions found."
 
 
     def __init__(self, plugin_id, base_config, task_manager):
@@ -225,7 +225,7 @@ class ActionHandler(object):
                 )
             # we don't have any configuration objects cached yet.
             # request it - _on_configurations_loaded will be triggered when configurations are loaded
-            self._add_loading_menu_indicator()
+            #self._add_loading_menu_indicator()
             self._config_loader.request_configurations(
                 sg_entity.project_id
             )
@@ -292,7 +292,7 @@ class ActionHandler(object):
         self._cached_configs[project_id] = configs
 
         # clear any loading indication
-        self._remove_loading_menu_indicator()
+        #self._remove_loading_menu_indicator()
 
         # wire up signals from our cached command objects
         for config in configs:
@@ -335,7 +335,8 @@ class ActionHandler(object):
         if not self._cached_configs.get(project_id, []):
             # this project has no configs associated
             # display 'nothing found' message
-            self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+            #self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+            pass
 
         else:
 
@@ -349,7 +350,7 @@ class ActionHandler(object):
                     continue
 
                 # indicate that we are loading data for this config
-                self._add_loading_menu_indicator(config)
+                #self._add_loading_menu_indicator(config)
 
                 # If the tk_desktop2 engine cannot be found, fall back
                 # on the tk-shotgun engine.
@@ -450,16 +451,16 @@ class ActionHandler(object):
                     display_name,
                     command.tooltip,
                     # Convert the Python Pickle to a JSON string for easier processing from the C++ code
-                    pickle_to_json(command.serialize())
+                    json_string
                 )
 
         # remove any loading message associated with this batch
-        self._remove_loading_menu_indicator(config)
+        #self._remove_loading_menu_indicator(config)
 
         # if no items exist on the menu, add a "no items found" entry
         # todo: this will change once we have final designs.
-        if self._actions_model.rowCount() == 0:
-            self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+        #if self._actions_model.rowCount() == 0:
+        #    self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
         self._actions_model.actionsChanged()
 
@@ -480,7 +481,7 @@ class ActionHandler(object):
         logger.debug("Commands failed to load for %s" % config)
 
         # remove any loading message associated with this batch
-        self._remove_loading_menu_indicator(config)
+        #self._remove_loading_menu_indicator(config)
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
