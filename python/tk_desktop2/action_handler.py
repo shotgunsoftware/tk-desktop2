@@ -5,14 +5,15 @@
 # this software in either electronic or hard copy form.
 #
 
+import json
 import sgtk
 import time
+import pickle
 import threading
 
 from sgtk.platform.qt import QtCore, QtGui
 from . import constants
 from .shotgun_entity_path import ShotgunEntityPath
-from .misc_utils import pickle_to_json, json_to_pickle
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -37,6 +38,8 @@ class ActionHandler(object):
     """
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
+
+    KEY_PICKLE_STR = "pickle_str"
 
     # labels for loading
     LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
@@ -438,6 +441,11 @@ class ActionHandler(object):
             # is the simplest solution, and works just fine.
             if not self._actions_model.findItems(display_name):
 
+                pickle_string = command.serialize()
+                pickle_dict = pickle.loads(pickle_string)
+                pickle_dict[self.KEY_PICKLE_STR] = pickle_string
+                json_string = json.dumps(pickle_dict)
+
                 self._actions_model.appendAction(
                     display_name,
                     command.tooltip,
@@ -534,14 +542,18 @@ class ActionHandler(object):
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
         if action_str != "":
-            # pyside has mangled the string into unicode. make it utf-8 again.
-            if isinstance(action_str, unicode):
-                action_str = action_str.encode("utf-8")
 
-            # Convert back the JSON string, comming from C++, back to a Python pickle string
-            pickle_string = json_to_pickle(action_str)
+            # Get the Python pickle string out of the JSON obj comming from C++
+            json_obj = json.loads(action_str)
+            if not self.KEY_PICKLE_STR in json_obj:
+                # TODO: ??? without this we cannot fire up DCC
+                #       How to send to log or display a dialog box?
+                raise RuntimeError("Missing '%s' key, was it packaged when calling 'appendAction' method?")
 
             # and create a command object.
+            pickle_string = json_obj[self.KEY_PICKLE_STR]
+            if isinstance(pickle_string, unicode):
+                pickle_string = pickle_string.encode("utf-8")
             action = external_config.ExternalCommand.deserialize(pickle_string)
 
             # Notify the user that the launch is occurring. If it's a DCC, there can
