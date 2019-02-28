@@ -41,12 +41,6 @@ class ActionHandler(object):
 
     KEY_PICKLE_STR = "pickle_str"
 
-    # labels for loading
-    #LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
-    #LOADING_ACTIONS_LABEL = "Loading Actions..."
-    #NO_ACTIONS_FOUND_LABEL = "No Actions found."
-
-
     def __init__(self, plugin_id, base_config, task_manager):
         """
         Start up the engine's built in actions integration.
@@ -223,9 +217,7 @@ class ActionHandler(object):
                     "No configurations cached. Requesting configuration data for "
                     "project %s", sg_entity.project_id
                 )
-            # we don't have any configuration objects cached yet.
-            # request it - _on_configurations_loaded will be triggered when configurations are loaded
-            #self._add_loading_menu_indicator()
+
             self._config_loader.request_configurations(
                 sg_entity.project_id
             )
@@ -286,13 +278,8 @@ class ActionHandler(object):
         """
         logger.debug("New configs loaded for project id=%s", project_id)
 
-        
-
         # Cache the configs!
         self._cached_configs[project_id] = configs
-
-        # clear any loading indication
-        #self._remove_loading_menu_indicator()
 
         # wire up signals from our cached command objects
         for config in configs:
@@ -348,9 +335,6 @@ class ActionHandler(object):
                 if not config.is_valid:
                     logger.warning("Configuration %s is not valid. Commands will not be loaded.", config)
                     continue
-
-                # indicate that we are loading data for this config
-                #self._add_loading_menu_indicator(config)
 
                 # If the tk_desktop2 engine cannot be found, fall back
                 # on the tk-shotgun engine.
@@ -442,6 +426,7 @@ class ActionHandler(object):
             # is the simplest solution, and works just fine.
             if not self._actions_model.findItems(display_name):
 
+                # Convert the Python Pickle to a JSON string for easier processing from the C++ code
                 pickle_string = command.serialize()
                 pickle_dict = pickle.loads(pickle_string)
                 pickle_dict[self.KEY_PICKLE_STR] = pickle_string
@@ -450,17 +435,8 @@ class ActionHandler(object):
                 self._actions_model.appendAction(
                     display_name,
                     command.tooltip,
-                    # Convert the Python Pickle to a JSON string for easier processing from the C++ code
                     json_string
                 )
-
-        # remove any loading message associated with this batch
-        #self._remove_loading_menu_indicator(config)
-
-        # if no items exist on the menu, add a "no items found" entry
-        # todo: this will change once we have final designs.
-        #if self._actions_model.rowCount() == 0:
-        #    self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
         self._actions_model.actionsChanged()
 
@@ -573,53 +549,4 @@ class ActionHandler(object):
             worker.daemon = True
             worker.start()
 
-    def _add_loading_menu_indicator(self, configuration=None):
-        """
-        Adds a menu item saying "loading" for the given config.
-
-        :param configuration: :class:`ExternalConfiguration` to create
-            loading indicator for or None if a general indicator
-            should be created
-        """
-        # TODO - this is pending design and the UI and UI implementation
-        # is also in motion so this implement is placeholder for the time being.
-        # Need to add more robust support for grouping, loading and defaults.
-        if configuration is None:
-            self._actions_model.appendAction(self.LOADING_CONFIGURATIONS_LABEL, "", "")
-        elif configuration.is_primary:
-            self._actions_model.appendAction(self.LOADING_ACTIONS_LABEL, "", "")
-        else:
-            self._actions_model.appendAction(
-                "%s: %s" % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL),
-                "",
-                ""
-            )
-
-        self._actions_model.actionsChanged()
-
-    def _remove_loading_menu_indicator(self, configuration=None):
-        """
-        Removes a loading message for the given config.
-
-        :param configuration: :class:`ExternalConfiguration` to remove
-            load indicator for. If set to None, the general indicator
-            is removed.
-        """
-        # TODO - this is pending design and the UI and UI implementation
-        # is also in motion so this implement is placeholder for the time being.
-        # Need to add more robust support for grouping, loading and defaults.
-        if configuration is None:
-            label = self.LOADING_CONFIGURATIONS_LABEL
-        elif configuration.is_primary:
-            label = self.LOADING_ACTIONS_LABEL
-        else:
-            label = "%s: %s" % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL)
-
-        root_item = self._actions_model.invisibleRootItem()
-        for idx in range(self._actions_model.rowCount()):
-            item = self._actions_model.item(idx)
-            if item.text() == label:
-                # remove it
-                root_item.takeRow(idx)
-                break
 
