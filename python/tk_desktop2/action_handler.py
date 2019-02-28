@@ -456,9 +456,6 @@ class ActionHandler(object):
         """
         logger.debug("Commands failed to load for %s" % config)
 
-        # remove any loading message associated with this batch
-        #self._remove_loading_menu_indicator(config)
-
         # make sure that the user hasn't switched to a different item
         # while things were loading
         sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
@@ -522,13 +519,14 @@ class ActionHandler(object):
 
             # Get the Python pickle string out of the JSON obj comming from C++
             json_obj = json.loads(action_str)
-            if not self.KEY_PICKLE_STR in json_obj:
+            if self.KEY_PICKLE_STR not in json_obj:
                 # TODO: ??? without this we cannot fire up DCC
                 #       How to send to log or display a dialog box?
                 raise RuntimeError("Missing '%s' key, was it packaged when calling 'appendAction' method?")
 
             # and create a command object.
             pickle_string = json_obj[self.KEY_PICKLE_STR]
+            # pyside has mangled the string into unicode. make it utf-8 again.
             if isinstance(pickle_string, unicode):
                 pickle_string = pickle_string.encode("utf-8")
             action = external_config.ExternalCommand.deserialize(pickle_string)
