@@ -5,8 +5,10 @@
 # this software in either electronic or hard copy form.
 #
 
+import json
 import sgtk
 import time
+import cPickle
 import threading
 
 from sgtk.platform.qt import QtCore, QtGui
@@ -37,11 +39,7 @@ class ActionHandler(object):
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
 
-    # labels for loading
-    LOADING_CONFIGURATIONS_LABEL = "Loading Configurations..."
-    LOADING_ACTIONS_LABEL = "Loading Actions..."
-    NO_ACTIONS_FOUND_LABEL = "No Actions found."
-
+    KEY_PICKLE_STR = "pickle_str"
 
     def __init__(self, plugin_id, base_config, task_manager):
         """
@@ -219,9 +217,7 @@ class ActionHandler(object):
                     "No configurations cached. Requesting configuration data for "
                     "project %s", sg_entity.project_id
                 )
-            # we don't have any configuration objects cached yet.
-            # request it - _on_configurations_loaded will be triggered when configurations are loaded
-            self._add_loading_menu_indicator()
+
             self._config_loader.request_configurations(
                 sg_entity.project_id
             )
@@ -282,13 +278,8 @@ class ActionHandler(object):
         """
         logger.debug("New configs loaded for project id=%s", project_id)
 
-        
-
         # Cache the configs!
         self._cached_configs[project_id] = configs
-
-        # clear any loading indication
-        self._remove_loading_menu_indicator()
 
         # wire up signals from our cached command objects
         for config in configs:
@@ -331,7 +322,8 @@ class ActionHandler(object):
         if not self._cached_configs.get(project_id, []):
             # this project has no configs associated
             # display 'nothing found' message
-            self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+            #self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+            pass
 
         else:
 
@@ -343,9 +335,6 @@ class ActionHandler(object):
                 if not config.is_valid:
                     logger.warning("Configuration %s is not valid. Commands will not be loaded.", config)
                     continue
-
-                # indicate that we are loading data for this config
-                self._add_loading_menu_indicator(config)
 
                 # If the tk_desktop2 engine cannot be found, fall back
                 # on the tk-shotgun engine.
@@ -411,7 +400,6 @@ class ActionHandler(object):
                 "the commands associated with the tk-shotgun engine instead." % config
             )
 
-
         # temporary workarounds to remove special 'system' commands which
         # will not execute well inside the multi process environment
         # TODO: This will need revisiting once we have final designs.
@@ -437,19 +425,18 @@ class ActionHandler(object):
             # the same configuration. It's silly behavior, but culling the duplicated here
             # is the simplest solution, and works just fine.
             if not self._actions_model.findItems(display_name):
+
+                # Convert the Python Pickle to a JSON string for easier processing from the C++ code
+                pickle_string = command.serialize()
+                pickle_dict = cPickle.loads(pickle_string)
+                pickle_dict[self.KEY_PICKLE_STR] = pickle_string
+                json_string = json.dumps(pickle_dict)
+
                 self._actions_model.appendAction(
                     display_name,
                     command.tooltip,
-                    command.serialize()
+                    json_string
                 )
-
-        # remove any loading message associated with this batch
-        self._remove_loading_menu_indicator(config)
-
-        # if no items exist on the menu, add a "no items found" entry
-        # todo: this will change once we have final designs.
-        if self._actions_model.rowCount() == 0:
-            self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
 
         self._actions_model.actionsChanged()
 
@@ -468,9 +455,6 @@ class ActionHandler(object):
         :param str reason: Details around the failure.
         """
         logger.debug("Commands failed to load for %s" % config)
-
-        # remove any loading message associated with this batch
-        self._remove_loading_menu_indicator(config)
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
@@ -531,13 +515,22 @@ class ActionHandler(object):
         """
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
+
         if action_str != "":
-            # pyside has mangled the string into unicode. make it utf-8 again.
-            if isinstance(action_str, unicode):
-                action_str = action_str.encode("utf-8")
+
+            # Get the Python pickle string out of the JSON obj comming from C++
+            json_obj = json.loads(action_str)
+            if self.KEY_PICKLE_STR not in json_obj:
+                raise RuntimeError("The command's serialized Python data could not be found in the action's payload"
+                                   "that Shotgun Create provided. The action cannot be executed as a result.")
 
             # and create a command object.
-            action = external_config.ExternalCommand.deserialize(action_str)
+            pickle_string = json_obj[self.KEY_PICKLE_STR]
+            # pyside has mangled the string into unicode. make it utf-8 again.
+            if isinstance(pickle_string, unicode):  # noqa
+                pickle_string = pickle_string.encode("utf-8")
+
+            action = external_config.ExternalCommand.deserialize(pickle_string)
 
             # Notify the user that the launch is occurring. If it's a DCC, there can
             # be some delay, and this will help them know that the work is happening.
@@ -555,53 +548,4 @@ class ActionHandler(object):
             worker.daemon = True
             worker.start()
 
-    def _add_loading_menu_indicator(self, configuration=None):
-        """
-        Adds a menu item saying "loading" for the given config.
-
-        :param configuration: :class:`ExternalConfiguration` to create
-            loading indicator for or None if a general indicator
-            should be created
-        """
-        # TODO - this is pending design and the UI and UI implementation
-        # is also in motion so this implement is placeholder for the time being.
-        # Need to add more robust support for grouping, loading and defaults.
-        if configuration is None:
-            self._actions_model.appendAction(self.LOADING_CONFIGURATIONS_LABEL, "", "")
-        elif configuration.is_primary:
-            self._actions_model.appendAction(self.LOADING_ACTIONS_LABEL, "", "")
-        else:
-            self._actions_model.appendAction(
-                "%s: %s" % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL),
-                "",
-                ""
-            )
-
-        self._actions_model.actionsChanged()
-
-    def _remove_loading_menu_indicator(self, configuration=None):
-        """
-        Removes a loading message for the given config.
-
-        :param configuration: :class:`ExternalConfiguration` to remove
-            load indicator for. If set to None, the general indicator
-            is removed.
-        """
-        # TODO - this is pending design and the UI and UI implementation
-        # is also in motion so this implement is placeholder for the time being.
-        # Need to add more robust support for grouping, loading and defaults.
-        if configuration is None:
-            label = self.LOADING_CONFIGURATIONS_LABEL
-        elif configuration.is_primary:
-            label = self.LOADING_ACTIONS_LABEL
-        else:
-            label = "%s: %s" % (configuration.pipeline_configuration_name, self.LOADING_ACTIONS_LABEL)
-
-        root_item = self._actions_model.invisibleRootItem()
-        for idx in range(self._actions_model.rowCount()):
-            item = self._actions_model.item(idx)
-            if item.text() == label:
-                # remove it
-                root_item.takeRow(idx)
-                break
 
