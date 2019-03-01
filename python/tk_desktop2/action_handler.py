@@ -8,7 +8,7 @@
 import json
 import sgtk
 import time
-import pickle
+import cPickle
 import threading
 
 from sgtk.platform.qt import QtCore, QtGui
@@ -428,7 +428,7 @@ class ActionHandler(object):
 
                 # Convert the Python Pickle to a JSON string for easier processing from the C++ code
                 pickle_string = command.serialize()
-                pickle_dict = pickle.loads(pickle_string)
+                pickle_dict = cPickle.loads(pickle_string)
                 pickle_dict[self.KEY_PICKLE_STR] = pickle_string
                 json_string = json.dumps(pickle_dict)
 
@@ -515,20 +515,21 @@ class ActionHandler(object):
         """
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
+
         if action_str != "":
 
             # Get the Python pickle string out of the JSON obj comming from C++
             json_obj = json.loads(action_str)
             if self.KEY_PICKLE_STR not in json_obj:
-                # TODO: ??? without this we cannot fire up DCC
-                #       How to send to log or display a dialog box?
-                raise RuntimeError("Missing '%s' key, was it packaged when calling 'appendAction' method?")
+                raise RuntimeError("The command's serialized Python data could not be found in the action's payload"
+                                   "that Shotgun Create provided. The action cannot be executed as a result.")
 
             # and create a command object.
             pickle_string = json_obj[self.KEY_PICKLE_STR]
             # pyside has mangled the string into unicode. make it utf-8 again.
-            if isinstance(pickle_string, unicode):
+            if isinstance(pickle_string, unicode):  # noqa
                 pickle_string = pickle_string.encode("utf-8")
+
             action = external_config.ExternalCommand.deserialize(pickle_string)
 
             # Notify the user that the launch is occurring. If it's a DCC, there can
