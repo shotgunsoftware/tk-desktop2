@@ -6,6 +6,8 @@
 #
 import sgtk
 
+from .commands import get_supported_commands
+
 logger = sgtk.LogManager.get_logger(__name__)
 
 
@@ -16,13 +18,7 @@ class WebsocketsRequest(object):
     Requests are created via the `WebsocketsRequest.create` factory classmethod
     and each different command supported by the engine is represented by a class.
 
-    The following requests are currently supported:
-
-    - get_actions - list Toolkit actions.
-    - execute_action - execute Toolkit action.
-    - pick_file_or_directory - select single item.
-    - pick_files_or_directories - select multiple items.
-    - open - open a file on disk.
+    Supported commands are registered in the commands.py file.
     """
 
     @classmethod
@@ -37,17 +33,6 @@ class WebsocketsRequest(object):
         :returns: Object deriving from :class:`WebsocketsRequest`.
         :raises: RuntimeError on protocol errors.
         """
-        # local imports to avoid cyclic deps (these classes derive from WebsocketsRequest)
-        from .local_file_linking import PickFileOrDirectoryWebsocketsRequest
-        from .local_file_linking import OpenFileWebsocketsRequest
-        from .toolkit_actions import ExecuteActionWebsocketsRequest
-        from .toolkit_actions import GetActionsWebsocketsRequest
-        from .sgc_actions import OpenTaskInSGCreateWebsocketsRequest
-        from .sgc_actions import OpenTaskBoardInSGCreateWebsocketsRequest
-        from .sgc_actions import OpenVersionInSGCreateWebsocketsRequest
-        
-        
-
         # commands are on the following form:
         # {
         #     'data': {
@@ -60,57 +45,19 @@ class WebsocketsRequest(object):
         # }
         command_name = command["name"]
         command_data = command["data"]
-
-        if command_name == "get_actions":
-            return GetActionsWebsocketsRequest(
-                connection,
-                request_id,
-                command_data
-            )
-        elif command_name == "execute_action":
-            return ExecuteActionWebsocketsRequest(
-                connection,
-                request_id,
-                command_data
-            )
-        elif command_name == "sgc_open_task":
-            return OpenTaskInSGCreateWebsocketsRequest(
-                connection,
-                request_id,
-                command_data
-            )
-        elif command_name == "sgc_open_task_board":
-            return OpenTaskBoardInSGCreateWebsocketsRequest(
-                connection,
-                request_id,
-                command_data
-            )
-        elif command_name == "sgc_open_version":
-            return OpenVersionInSGCreateWebsocketsRequest(
-                connection,
-                request_id,
-                command_data
-            )
-        elif command_name == "pick_file_or_directory":
-            return PickFileOrDirectoryWebsocketsRequest(
-                connection,
-                request_id,
-                pick_multiple=False
-            )
-        elif command_name == "pick_files_or_directories":
-            return PickFileOrDirectoryWebsocketsRequest(
-                connection,
-                request_id,
-                pick_multiple=True
-            )
-        elif command_name == "open":
-            return OpenFileWebsocketsRequest(
-                connection,
-                request_id,
-                command_data
-            )
+        commands = get_supported_commands()
+        
+        if command_name in commands:
+            # get the class and return an instance
+            Class = commands[command_name]["class"]
+            return Class(connection, request_id, command_data)
         else:
-            raise RuntimeError("Unsupported command '%s'" % command_name)
+            raise RuntimeError(
+                "Unsupported command '%s'. "
+                "Supported commands are %s" % (
+                    command_name, ", ".join(commands)
+                    )
+            )
 
     def __init__(self, connection, id):
         """
