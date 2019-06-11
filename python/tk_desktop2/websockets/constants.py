@@ -8,5 +8,5 @@
 # todo - read this out of the SG prefs
 WEBSOCKETS_PORT_NUMBER = 9000
 
-# the version of the protocol that this implementation supports
-WEBSOCKETS_PROTOCOL_VERSION = 3
+# version of the protocol that this implementation supports
+WEBSOCKETS_PROTOCOL_VERSION = 2

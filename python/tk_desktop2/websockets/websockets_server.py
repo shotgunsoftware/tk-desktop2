@@ -89,6 +89,7 @@ class WebsocketsServer(object):
 
         # Tell the server to listen to the given port
         logger.debug("Starting websockets server on port %s" % constants.WEBSOCKETS_PORT_NUMBER)
+        logger.debug("Supports websockets protocol version %s" % constants.WEBSOCKETS_PROTOCOL_VERSION)
         success = self._ws_server.listen(
             QtNetwork.QHostAddress.LocalHost,
             constants.WEBSOCKETS_PORT_NUMBER
