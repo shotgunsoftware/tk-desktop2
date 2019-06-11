@@ -26,11 +26,15 @@ class OpenVersionInSGCreateWebsocketsRequest(WebsocketsRequest):
 
     def execute(self):
         """
-        
+        Execute the payload of the command
         """
-
         try:
-            logger.error("EXECUTE OPEN VERSION!")
+            toolkit_manager = sgtk.platform.current_bundle().toolkit_manager
+            toolkit_manager.emitToast(
+                "Open Version: %s" % str(self._params),
+                "info",
+                False # Not persistent, meaning it'll stay for 5 seconds and disappear.
+            )
         except Exception as e:
             self._reply_with_status(
                 status=1,
