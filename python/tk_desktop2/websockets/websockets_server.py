@@ -167,7 +167,7 @@ class WebsocketsServer(object):
             )
 
             if not user_entity:
-                logger.debug("The user id given (%s) does not exist in Shotgun.")
+                logger.debug("The user id given (%s) does not exist in Shotgun." % (user_id, ))
                 return False
 
             self._user_id_to_login_map[user_id] = user_entity["login"]
