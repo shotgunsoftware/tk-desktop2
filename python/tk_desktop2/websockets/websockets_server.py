@@ -15,6 +15,8 @@ from .shotgun_site_handler import ShotgunSiteHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
 from .websockets_connection import WebsocketsConnection
 
+from . import constants
+
 logger = sgtk.LogManager.get_logger(__name__)
 
 
@@ -85,14 +87,11 @@ class WebsocketsServer(object):
         self._ws_server.connectionClosed.connect(self._connection_closed)
         self._ws_server.sslErrors.connect(self._on_ssl_errors)
 
-        # TODO: handle port number - read out of sg prefs
-        port_number = 9000
-
         # Tell the server to listen to the given port
-        logger.debug("Starting websockets server on port %s" % port_number)
+        logger.debug("Starting websockets server on port %s" % constants.WEBSOCKETS_PORT_NUMBER)
         success = self._ws_server.listen(
             QtNetwork.QHostAddress.LocalHost,
-            port_number
+            constants.WEBSOCKETS_PORT_NUMBER
         )
 
         if not success:
@@ -103,7 +102,8 @@ class WebsocketsServer(object):
                     "The server could not be started because it appears that something is "
                     "already making use of port %d. The most likely cause of this would be "
                     "having more than one instance of Shotgun Create open at the same time, "
-                    "or running Shotgun Create and Shotgun Desktop simultaneously." % port_number
+                    "or running Shotgun Create and Shotgun "
+                    "Desktop simultaneously." % constants.WEBSOCKETS_PORT_NUMBER
                 )
             else:
                 logger.warning("Websockets server could not be started. Error reported: %s" % error)

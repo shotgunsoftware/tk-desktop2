@@ -9,6 +9,7 @@ import pprint
 import datetime
 from . import util
 from . import requests
+from . import constants
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -31,9 +32,6 @@ class WebsocketsConnection(object):
     associated :class:`RequestRunner` instance which is responsible
     for the actual execution of the commands.
     """
-    # shotgun protocol version to use.
-    PROTOCOL_VERSION = 2
-
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
@@ -97,7 +95,7 @@ class WebsocketsConnection(object):
         payload = {
             "ws_server_id": self._shotgun_site.unique_server_id,
             "timestamp": datetime.datetime.now(),
-            "protocol_version": self.PROTOCOL_VERSION,
+            "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
             "id": request_id,
             "reply": payload,
         }
@@ -123,7 +121,7 @@ class WebsocketsConnection(object):
 
         if message == "get_protocol_version":
             reply = util.create_reply(
-                {"protocol_version": self.PROTOCOL_VERSION}
+                {"protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION}
             )
             self._ws_server.sendTextMessage(self._socket_id, reply)
             self._state = self.AWAITING_SERVER_ID_REQUEST
@@ -202,7 +200,7 @@ class WebsocketsConnection(object):
                 {
                     "ws_server_id": self._shotgun_site.unique_server_id,
                     "timestamp": datetime.datetime.now(),
-                    "protocol_version": self.PROTOCOL_VERSION,
+                    "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                     "id": message_obj["id"],
                 }
             )
@@ -265,7 +263,7 @@ class WebsocketsConnection(object):
         logger.debug("Received Shotgun request: %s" % pprint.pformat(message_obj))
 
         # We expect every response to have the protocol version set earlier
-        if message_obj.get("protocol_version") != self.PROTOCOL_VERSION:
+        if message_obj.get("protocol_version") != constants.WEBSOCKETS_PROTOCOL_VERSION:
             raise RuntimeError("%s: Unexpected protocol version!" % self)
 
         # at this point we are handing over execution to the requests

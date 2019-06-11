@@ -42,6 +42,11 @@ class WebsocketsRequest(object):
         from .local_file_linking import OpenFileWebsocketsRequest
         from .toolkit_actions import ExecuteActionWebsocketsRequest
         from .toolkit_actions import GetActionsWebsocketsRequest
+        from .sgc_actions import OpenTaskInSGCreateWebsocketsRequest
+        from .sgc_actions import OpenTaskBoardInSGCreateWebsocketsRequest
+        from .sgc_actions import OpenVersionInSGCreateWebsocketsRequest
+        
+        
 
         # commands are on the following form:
         # {
@@ -64,6 +69,24 @@ class WebsocketsRequest(object):
             )
         elif command_name == "execute_action":
             return ExecuteActionWebsocketsRequest(
+                connection,
+                request_id,
+                command_data
+            )
+        elif command_name == "sgc_open_task":
+            return OpenTaskInSGCreateWebsocketsRequest(
+                connection,
+                request_id,
+                command_data
+            )
+        elif command_name == "sgc_open_task_board":
+            return OpenTaskBoardInSGCreateWebsocketsRequest(
+                connection,
+                request_id,
+                command_data
+            )
+        elif command_name == "sgc_open_version":
+            return OpenVersionInSGCreateWebsocketsRequest(
                 connection,
                 request_id,
                 command_data
