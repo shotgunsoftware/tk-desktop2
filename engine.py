@@ -20,10 +20,6 @@ class DesktopEngine2(Engine):
 
     SHOTGUN_ENGINE_NAME = "tk-shotgun"
     
-    # app instances with this suffix will only
-    # be registered if debug mode is enabled
-    DEBUG_MODE_ONLY_SUFFIX = "debug-mode-only"
-
     def pre_app_init(self):
         """
         Main initialization entry point.
@@ -38,7 +34,7 @@ class DesktopEngine2(Engine):
         self._ws_handler = None
         # exposes methods of communicating with the host application
         self._toolkit_manager = None
-        
+
         # Setup the styling to be inherited by child apps.
         self._initialize_dark_look_and_feel()
 
