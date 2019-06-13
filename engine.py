@@ -38,17 +38,7 @@ class DesktopEngine2(Engine):
         self._ws_handler = None
         # exposes methods of communicating with the host application
         self._toolkit_manager = None
-
-        # remove all apps which ends with debug-mode-only if debug isn't enabled
-        logger.debug("Checking if there are app instances declared as debug-only...")
-        if not sgtk.LogManager().global_debug:
-            for app_instance_name in self.apps:
-                if app_instance_name.endswith(self.DEBUG_MODE_ONLY_SUFFIX):
-                    logger.debug(
-                        "Removing debug-only app instance %s..." % (app_instance_name,)
-                    )
-                    del self.apps[app_instance_name]
-
+        
         # Setup the styling to be inherited by child apps.
         self._initialize_dark_look_and_feel()
 
