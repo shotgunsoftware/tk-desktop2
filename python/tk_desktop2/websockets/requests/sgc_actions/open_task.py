@@ -22,9 +22,6 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
     Parameters dictionary is expected to be on the following form:
 
     {
-        'project_id': 123, 
-        'entity_type': 'Shot', 
-        'entity_id': 123,
         'task_id': 123
     }     
 
@@ -40,16 +37,12 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
         super(OpenTaskInSGCreateWebsocketsRequest, self).__init__(connection, id)
         
         # validate
-        for field in ["project_id", "entity_type", "entity_id", "task_id"]:
-            if field not in parameters:
-                raise ValueError(
-                    "%s: Missing required '%s' key "
-                    "in parameter payload %s" % (self, field, parameters)
-                    )
+        if "task_id" not in parameters:
+            raise ValueError(
+                "%s: Missing required 'task_id' key "
+                "in parameter payload %s" % (self, parameters)
+                )
 
-        self._project_id = parameters["project_id"]
-        self._entity_type = parameters["entity_type"]
-        self._entity_id = parameters["entity_id"]
         self._task_id = parameters["task_id"]
 
     def execute(self):
@@ -57,18 +50,28 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
         Execute the payload of the command
         """
         try:
-            toolkit_manager = sgtk.platform.current_bundle().toolkit_manager
+            engine = sgtk.platform.current_bundle()
 
+            # resolve link and project
+            version_data = engine.shotgun.find_one(
+                "Task", 
+                [["id", "is", self._task_id]],
+                ["project", "entity"]
+            )
+
+            if version_data["entity"] is None:
+                raise RuntimeError("Tasks not linked to entities are not supported.")
+            
             path = ShotgunEntityPath()
-            path.set_project(self._project_id)
-            path.set_primary_entity(self._entity_type, self._entity_id)
+            path.set_project(version_data["project"]["id"])
+            path.set_primary_entity(version_data["entity"]["type"], version_data["entity"]["id"])
             path.set_secondary_entity("Task", self._task_id)
 
             # TODO - IMPLEMENT THIS METHOD
-            # toolkit_manager.emitOpenTaskRequest(path.as_string())
+            # engine.toolkit_manager.emitOpenTaskRequest(path.as_string())
             
             # PLACEHOLDER EXAMPLE CODE (remove later)
-            toolkit_manager.emitToast(
+            engine.toolkit_manager.emitToast(
                 "Open Task '%s'" % path.as_string(),
                 "info",
                 False # Not persistent, meaning it'll stay for 5 seconds and disappear.
