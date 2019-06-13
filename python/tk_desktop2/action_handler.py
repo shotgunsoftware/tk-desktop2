@@ -176,8 +176,7 @@ class ActionHandler(object):
         # clear loading indicator
         self._actions_model.clear()
 
-
-        sg_entity = ShotgunEntityPath(current_path)
+        sg_entity = ShotgunEntityPath.from_path(current_path)
 
         # If any of the configs we have cached are invalid, we're not going to
         # use the cached data. Instead, we'll query fresh from SG in case any
@@ -201,9 +200,9 @@ class ActionHandler(object):
             # cached configurations.
             self._request_commands(
                 sg_entity.project_id,
-                sg_entity.entity_type,
-                sg_entity.entity_id,
-                sg_entity.linked_entity_type,
+                sg_entity.secondary_entity_type,
+                sg_entity.secondary_entity_id,
+                sg_entity.primary_entity_type,
             )
 
         else:
@@ -261,7 +260,7 @@ class ActionHandler(object):
         self._actions_model.clear()
 
         # load in new configurations for current project
-        sg_entity = ShotgunEntityPath(current_path)
+        sg_entity = ShotgunEntityPath.from_path(current_path)
 
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
@@ -295,14 +294,14 @@ class ActionHandler(object):
         # and request commands to be loaded
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath.from_path(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id == project_id:
             self._request_commands(
                 project_id,
-                sg_entity.entity_type,
-                sg_entity.entity_id,
-                sg_entity.linked_entity_type,
+                sg_entity.secondary_entity_type,
+                sg_entity.secondary_entity_id,
+                sg_entity.primary_entity_type,
             )
 
     def _request_commands(self, project_id, entity_type, entity_id, link_entity_type):
@@ -372,7 +371,7 @@ class ActionHandler(object):
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunEntityPath(current_path)
+        sg_entity = ShotgunEntityPath.from_path(current_path)
 
         if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.
@@ -458,7 +457,7 @@ class ActionHandler(object):
 
         # make sure that the user hasn't switched to a different item
         # while things were loading
-        sg_entity = ShotgunEntityPath(self._actions_model.currentEntityPath())
+        sg_entity = ShotgunEntityPath.from_path(self._actions_model.currentEntityPath())
 
         if sg_entity.project_id != project_id:
             # user switched to other object. Do not update the menu.
