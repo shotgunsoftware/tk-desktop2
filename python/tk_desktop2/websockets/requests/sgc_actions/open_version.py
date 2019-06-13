@@ -43,6 +43,7 @@ class OpenVersionInSGCreateWebsocketsRequest(WebsocketsRequest):
                 "in parameter payload %s" % (self, parameters)
                 )
 
+
         self._version_id = parameters["version_id"]        
 
     def execute(self):
@@ -59,8 +60,11 @@ class OpenVersionInSGCreateWebsocketsRequest(WebsocketsRequest):
                 ["project", "entity"]
             )
 
+            if version_data is None:
+                raise ValueError("Version id %d cannot be found in Shotgun!" % (self._version_id,))
+
             if version_data["entity"] is None:
-                raise RuntimeError("Versions not linked to entities are not supported.")
+                raise ValueError("Versions not linked to entities are not supported.")
             
             path = ShotgunEntityPath()
             path.set_project(version_data["project"]["id"])

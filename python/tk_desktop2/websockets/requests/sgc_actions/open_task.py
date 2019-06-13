@@ -53,18 +53,21 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
             engine = sgtk.platform.current_bundle()
 
             # resolve link and project
-            version_data = engine.shotgun.find_one(
+            task_data = engine.shotgun.find_one(
                 "Task", 
                 [["id", "is", self._task_id]],
                 ["project", "entity"]
             )
 
-            if version_data["entity"] is None:
+            if task_data is None:
+                raise ValueError("Task id %d cannot be found in Shotgun!" % (self._task_id,))
+
+            if task_data["entity"] is None:
                 raise RuntimeError("Tasks not linked to entities are not supported.")
             
             path = ShotgunEntityPath()
-            path.set_project(version_data["project"]["id"])
-            path.set_primary_entity(version_data["entity"]["type"], version_data["entity"]["id"])
+            path.set_project(task_data["project"]["id"])
+            path.set_primary_entity(task_data["entity"]["type"], task_data["entity"]["id"])
             path.set_secondary_entity("Task", self._task_id)
 
             # TODO - IMPLEMENT THIS METHOD
