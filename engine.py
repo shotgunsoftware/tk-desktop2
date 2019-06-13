@@ -19,8 +19,12 @@ class DesktopEngine2(Engine):
     """
 
     SHOTGUN_ENGINE_NAME = "tk-shotgun"
+    
+    # app instances with this suffix will only
+    # be registered if debug mode is enabled
+    DEBUG_MODE_ONLY_SUFFIX = "debug-mode-only"
 
-    def init_engine(self):
+    def pre_app_init(self):
         """
         Main initialization entry point.
         """
@@ -35,14 +39,24 @@ class DesktopEngine2(Engine):
         # exposes methods of communicating with the host application
         self._toolkit_manager = None
 
+        # remove all apps which ends with debug-mode-only if debug isn't enabled
+        logger.debug("Checking if there are app instances declared as debug-only...")
+        if not sgtk.LogManager().global_debug:
+            for app_instance_name in self.apps:
+                if app_instance_name.endswith(self.DEBUG_MODE_ONLY_SUFFIX):
+                    logger.debug(
+                        "Removing debug-only app instance %s..." % (app_instance_name,)
+                    )
+                    del self.apps[app_instance_name]
+
+        # Setup the styling to be inherited by child apps.
+        self._initialize_dark_look_and_feel()
+
     def post_app_init(self):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
         from sgtk.platform.qt import QtCore
-
-        # Setup the styling to be inherited by child apps.
-        self._initialize_dark_look_and_feel()
 
         # Get a handle to the ToolkitManager QObject.
         self._toolkit_manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
