@@ -128,6 +128,13 @@ class ShotgunSiteHandler(object):
             {"ws_server_id": self._unique_server_id}
         )
         ws_server_secret = response["ws_server_secret"]
+
+        if len(ws_server_secret) < 5:
+            raise ValueError(
+                "No localhost certificate registered in Shotgun! "
+                "Please contact support."
+            )
+
         # FIXME: Server doesn't seem to provide a properly padded string. The Javascript side
         # doesn't seem to complain however, so I'm not sure whose implementation is broken.
         if ws_server_secret[-1] != "=":
