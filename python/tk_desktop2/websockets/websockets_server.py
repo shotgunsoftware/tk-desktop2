@@ -170,7 +170,15 @@ class WebsocketsServer(object):
     def validate_user(self, user_id, shotgun_site):
         """
         Checks to see if the given user id matches what's currently authenticated
-        for this site. The first time that this method is called and the user is
+        for this site. 
+        
+        The behaviour of this method is different depending on which version of
+        Shotgun the server is connected to. For versions prior to 8.4, the server
+        will show a modal dialog. For later versions, this is disabled, and the
+        client application (web application) is expected to handle any messages
+        presented to the user.
+        
+        For pre-sg-8.4, fhe first time that this method is called and the user is
         determined to not be valid, the user will be shown a warning dialog with
         information about why they're not receiving a successful request to their
         response. Further attempts to make requests that are not coming from a valid
@@ -179,13 +187,17 @@ class WebsocketsServer(object):
         :param int user_id: The HumanUser entity id to validate.
         :param shotgun_site: Associated :class:`ShotgunSiteHandler`
 
-        :rtype: bool
+        :rtype: (bool, error_string). On success, (true, None) is returned.
+                on failure, (False, error_string) is returned, where the 
+                error string is suitable to send back to the client.
         """
+
+        # first ensure that we are logged in to a site
         if not shotgun_site.is_authenticated:
             logger.debug(
                 "Unable to check the authenticated user because this site is not authenticated."
             )
-            return False
+            return (False, constants.CONNECTION_REFUSED_NOT_AUTHENTICATED)
 
         # We have to go from the HumanUser entity id to a login. This is because
         # we don't get the login from Shotgun as part of the payload for a request,
@@ -201,7 +213,7 @@ class WebsocketsServer(object):
 
             if not user_entity:
                 logger.debug("The user id given (%s) does not exist in Shotgun." % (user_id, ))
-                return False
+                return (False, constants.CONNECTION_REFUSED_USER_MISMATCH)
 
             self._user_id_to_login_map[user_id] = user_entity["login"]
 
