@@ -6,6 +6,7 @@
 #
 
 from sgtk.platform import Engine
+import traceback
 import logging
 import sgtk
 import os
@@ -80,9 +81,21 @@ class DesktopEngine2(Engine):
         """
         try:
             self._initialize_integrations(plugin_id, base_config)
-        except Exception, e:
-            # high level exception trap so we can report to user
-            logger.exception("Failed to initialize integrations.")
+        except Exception:
+            
+            # NOTE: markdown formatting in sgds toast doesn't currently
+            # work, so just doing normal text instead of a preformatted
+            # segment for the call stack.
+            
+            # error message - gets shown as a toast.
+            message = "Failed to initialize integrations.\n\n"
+            message += "%s - %s\n\n" % (sys.exc_type.__name__, sys.exc_value[0], )
+            message += "For more details, see the error logs."
+            logger.error(message)
+
+            # log full stack as a warning
+            message += traceback.format_exc()
+            logger.warning(message)                        
 
     def _initialize_integrations(self, plugin_id, base_config):
         """
