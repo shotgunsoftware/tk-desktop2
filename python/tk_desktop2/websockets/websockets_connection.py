@@ -178,6 +178,10 @@ class WebsocketsConnection(object):
                 "No user information was found in this request."
             )
 
+        # make sure the client has provided an id for the request
+        if "id" not in message_obj:
+            raise RuntimeError("%s: Invalid websockets request - missing id." % self)
+
         # We need to make sure that the user logged into the Shotgun web app
         # matches the user that's logged into Shotgun Create. If they don't
         # match, we will warn the user and reject the request.
@@ -187,13 +191,23 @@ class WebsocketsConnection(object):
         # making the request is valid. This will report as invalid if the 
         # user logged into Shotgun is not the same user that is logged into
         # SGC.
-        if not self._server_wrapper.validate_user(request_user_id, self._shotgun_site):
-            logger.error("The websocket server determined that the requesting user was not valid.")
+        (validation_status, error_code) = self._server_wrapper.validate_user(request_user_id, self._shotgun_site)
+        if not validation_status:
+            
+            # send an error message back with a 'disconnect_reason' code
+            reply = util.create_reply(
+                {
+                    "error": True,
+                    "disconnect_reason": error_code,
+                    "timestamp": datetime.datetime.now(),
+                    "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
+                    "id": message_obj["id"],
+                }
+            )
+            self._ws_server.sendTextMessage(self._socket_id, reply)
+            # and close the connection
             self._ws_server.closeConnection(self._socket_id)
             return
-
-        if "id" not in message_obj:
-            raise RuntimeError("%s: Invalid request!" % self)
 
         if message_obj.get("command", {}).get("name") == "get_ws_server_id":
             reply = util.create_reply(
