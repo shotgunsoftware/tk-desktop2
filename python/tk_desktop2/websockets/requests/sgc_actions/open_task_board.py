@@ -15,15 +15,22 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
     """
-    Requests that the task board (overview page) is opened in 
-    Shotgun create.
+    Requests that the task board (overview page) is opened in Shotgun Create.
 
     This is a 'fire-and-forget' command that doesn't return anything.
 
     Parameters dictionary is expected to be on the following form:
 
-    {'project_id': 123} to indicate that the task board for a given project should be shown
-    {'project_id': null} to indicate that the all projects board should be displayed
+    {'project_id': 123|null, 'task_id': 123|null}
+
+    Parameter details:
+
+    - project_id: If set to null, indicates that the project board for all 
+                  projects should be displayed. If set to a project id, 
+                  the project id for this specific project is displayed.
+    - task_id:    An optional task to select. If a project_id is selected,
+                  this task should belong to that given project. If set to
+                  null, no task is selected.
     """
 
     def __init__(self, connection, id, parameters):
@@ -39,8 +46,13 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
             raise ValueError(
                 "%s: Missing required 'project_id' key in parameter payload %s" % (self, parameters)
                 )
+        if "task_id" not in parameters:
+            raise ValueError(
+                "%s: Missing required 'task_id' key in parameter payload %s" % (self, parameters)
+                )
 
         self._project_id = parameters["project_id"]
+        self._task_id = parameters["project_id"]
         
     def execute(self):
         """
@@ -48,16 +60,21 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
         """
         try:
             toolkit_manager = sgtk.platform.current_bundle().toolkit_manager
-
-            path = ShotgunEntityPath()
-            path.set_project(self._project_id)
+            project_path = ShotgunEntityPath()
+            project_path.set_project(self._project_id)
 
             # TODO - IMPLEMENT THIS METHOD
-            # toolkit_manager.emitOpenTaskBoardRequest(path.as_string())
+            # toolkit_manager.emitOpenTaskBoardRequest(
+            #   project_path.as_string(), 
+            #   self._task_id
+            # )
             
             # PLACEHOLDER EXAMPLE CODE (remove later)
             toolkit_manager.emitToast(
-                "Open Task Board '%s'" % path.as_string(),
+                "Open Task Board for project '%s' focusing on task id '%s'" % (
+                    project_path.as_string(), 
+                    self._task_id
+                ),
                 "info",
                 False # Not persistent, meaning it'll stay for 5 seconds and disappear.
             )

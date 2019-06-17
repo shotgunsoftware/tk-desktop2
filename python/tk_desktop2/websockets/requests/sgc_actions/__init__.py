@@ -7,4 +7,4 @@
 
 from .open_task import OpenTaskInSGCreateWebsocketsRequest
 from .open_task_board import OpenTaskBoardInSGCreateWebsocketsRequest
-from .open_version import OpenVersionInSGCreateWebsocketsRequest
+

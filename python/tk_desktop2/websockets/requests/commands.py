@@ -25,7 +25,6 @@ def get_supported_commands():
     from .toolkit_actions import GetActionsWebsocketsRequest
     from .sgc_actions import OpenTaskInSGCreateWebsocketsRequest
     from .sgc_actions import OpenTaskBoardInSGCreateWebsocketsRequest
-    from .sgc_actions import OpenVersionInSGCreateWebsocketsRequest
     from .list_commands import ListSupportedCommandsWebsocketsRequest
 
     # supported commands
@@ -42,7 +41,6 @@ def get_supported_commands():
         # shotgun create integration
         "sgc_open_task": {"class": OpenTaskInSGCreateWebsocketsRequest},
         "sgc_open_task_board": {"class": OpenTaskBoardInSGCreateWebsocketsRequest},
-        "sgc_open_version": {"class": OpenVersionInSGCreateWebsocketsRequest},
     }
 
     return commands
