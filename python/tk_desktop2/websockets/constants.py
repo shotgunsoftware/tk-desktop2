@@ -10,3 +10,6 @@ WEBSOCKETS_PORT_NUMBER = 9000
 
 # version of the protocol that this implementation supports
 WEBSOCKETS_PROTOCOL_VERSION = 2
+
+# the shotgun preference to read to determine port
+SHOTGUN_WSS_PORT_PREFERENCE_NAME = "shotgun_create_server_port"

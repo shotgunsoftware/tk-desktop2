@@ -14,6 +14,7 @@ from .shotgun_cert_handler import ShotgunCertificateHandler
 from .shotgun_site_handler import ShotgunSiteHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
 from .websockets_connection import WebsocketsConnection
+from . import util
 
 from . import constants
 
@@ -64,10 +65,7 @@ class WebsocketsServer(object):
         try:
             self._sg_certs_handler = ShotgunCertificateHandler()
         except ShotgunLocalHostCertNotSupportedError:
-            logger.warning(
-                "%s does not support shotgunlocalhost certificates. "
-                "Websockets integration will be disabled." % self._bundle.sgtk.shotgun_url
-            )
+            logger.error("Cannot launch websockets: Shotgunlocalhost certificates not enabled.")
             return
 
         # SG certs:
@@ -79,13 +77,45 @@ class WebsocketsServer(object):
             self._sg_certs_handler.cert_path
         )
         if not success:
-            raise RuntimeError("Could not set up Websockets certificates.")
+            logger.error("Websockets certificates failed to load.")
+            return
 
         # Add our callback to process messages.
         self._ws_server.textMessageReceived.connect(self._process_message)
         self._ws_server.newConnectionAdded.connect(self._new_connection)
         self._ws_server.connectionClosed.connect(self._connection_closed)
         self._ws_server.sslErrors.connect(self._on_ssl_errors)
+
+        # Determine which port to run on
+        logger.debug("Retreiving websockets port preference from Shotgun.")
+
+        # populate default value
+        websockets_port = constants.WEBSOCKETS_PORT_NUMBER
+
+        # get pref from Shotgun
+        prefs = self._bundle.shotgun.preferences_read(
+            [constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME]
+        )
+
+        if constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME in prefs:
+            port_value = prefs[constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME]
+            logger.debug("Retrieved port value '%s' from Shotgun")
+            try:
+                websockets_port = int(port_value)
+                if websockets_port < 0:
+                    raise ValueError()
+                elif websockets_port > 65535:
+                    raise ValueError()
+            except ValueError:
+                logger.error("Invalid server port preference set in Shotgun!")
+                # details
+                logger.warning(
+                    "The websockets port preference in Shotgun has the "
+                    "invalid value '%s'. It needs to be a positive integer number "
+                    "between 0 65535."
+                )
+        else:
+            logger.debug("Port Preference does not exist in Shotgun. Will use default.")
 
         # Tell the server to listen to the given port
         logger.debug("Starting websockets server on port %s" % constants.WEBSOCKETS_PORT_NUMBER)
@@ -99,15 +129,18 @@ class WebsocketsServer(object):
             error = self._ws_server.errorString()
 
             if error == "The bound address is already in use":
+                # pop a toast
+                logger.error("Cannot start websockets server: Port %s already in use!" % constants.WEBSOCKETS_PORT_NUMBER)
+                # add more details to log file
                 logger.warning(
-                    "The server could not be started because it appears that something is "
+                    "Details: The server could not be started because it appears that something is "
                     "already making use of port %d. The most likely cause of this would be "
                     "having more than one instance of Shotgun Create open at the same time, "
                     "or running Shotgun Create and Shotgun "
                     "Desktop simultaneously." % constants.WEBSOCKETS_PORT_NUMBER
                 )
             else:
-                logger.warning("Websockets server could not be started. Error reported: %s" % error)
+                logger.error("Cannot start websockets server: %s" % error)
         else:
             logger.debug("Websockets server is ready and listening.")
 

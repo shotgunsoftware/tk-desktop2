@@ -6,6 +6,7 @@
 #
 
 from sgtk.platform import Engine
+import logging
 import sgtk
 import os
 import sys
@@ -51,7 +52,13 @@ class DesktopEngine2(Engine):
     def toolkit_manager(self):
         """
         A handle to the manager object provided by the host application that exposes
-        some necessary functionality.
+        some necessary functionality. Methods exposed via this object effectively
+        acts as the "API" for Shotgun create.
+
+        Note: This property is only set when the tk-desktop2 process is running inside
+        the Shotgun Create application. The tk-desktop2 engine can also run in a separate
+        external process (for example when you launch an app such as the publisher from
+        Shotgun Create). 
         """
         return self._toolkit_manager
 
@@ -66,6 +73,20 @@ class DesktopEngine2(Engine):
 
         A Shotgun-utils external config instance is constructed to handle
         cross-context requests for actions and execution from the action model.
+
+        :param str plugin_id: The plugin id associated with the runtime environment.
+        :param str base_config: Descriptor URI for the config to use by default when
+            no custom pipeline configs have been defined in Shotgun.
+        """
+        try:
+            self._initialize_integrations(plugin_id, base_config)
+        except Exception, e:
+            # high level exception trap so we can report to user
+            logger.exception("Failed to initialize integrations.")
+
+    def _initialize_integrations(self, plugin_id, base_config):
+        """
+        Implementation of :meth:`initialize_integrations`. 
 
         :param str plugin_id: The plugin id associated with the runtime environment.
         :param str base_config: Descriptor URI for the config to use by default when
@@ -124,7 +145,13 @@ class DesktopEngine2(Engine):
         :param record: Std python logging record
         :type record: :class:`~python.logging.LogRecord`
         """
-        # TODO - Figure out what the console should look like
+        # pop up errors as toasts in the console if this exists
+        if record.levelno > logging.WARNING and self.toolkit_manager:
+            self.toolkit_manager.emitToast(
+                record.message,
+                "error",
+                False # Not persistent, meaning it'll stay for 5 seconds and disappear.
+            )
 
     def destroy_engine(self):
         """
@@ -153,7 +180,7 @@ class DesktopEngine2(Engine):
             logger.debug("Engine shutdown complete.")
 
         except Exception as e:
-            self.log_exception("Error running engine teardown logic")
+            self.logger.exception("Error running engine teardown logic")
 
     @property
     def python_interpreter_path(self):
