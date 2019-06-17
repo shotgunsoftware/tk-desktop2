@@ -22,7 +22,7 @@ class WebsocketsConnection(object):
     state management and handles communication.
 
     It has an associated :class:`WebsocketsServer` server as well as
-    an associated :class:`ShotgunSiteHandler` which handles site
+    an associated :class:`EncryptionHandler` which handles site
     specific services such as encryption of messages.
 
     The class implements a state machine which handles the various
@@ -35,10 +35,10 @@ class WebsocketsConnection(object):
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, socket_id, shotgun_site, server_wrapper):
+    def __init__(self, socket_id, encryption_handler, server_wrapper):
         """
         :param socket_id: Unique id associated with this connection
-        :param shotgun_site: Associated :class:`ShotgunSiteHandler`
+        :param encryption_handler: Associated :class:`EncryptionHandler`
         :param server_wrapper: Associated :class:`WebsocketsServer` wrapper. This is
             the parent wrapper of the given ws_server and request_runner objects.
         """
@@ -46,7 +46,7 @@ class WebsocketsConnection(object):
         self._ws_server = server_wrapper.websockets_server
         self._request_runner = server_wrapper.request_runner
         self._socket_id = socket_id
-        self._shotgun_site = shotgun_site
+        self._encryption_handler = encryption_handler
         self._state = self.AWAITING_HANDSHAKE
 
     def __repr__(self):
@@ -54,13 +54,6 @@ class WebsocketsConnection(object):
         String representation
         """
         return "<WebsocketsConnection %s - state %s>" % (self._socket_id, self._state)
-
-    @property
-    def shotgun(self):
-        """
-        Associated shotgun API connection
-        """
-        return self._shotgun_site.shotgun
 
     def process_message(self, message):
         """
@@ -93,7 +86,7 @@ class WebsocketsConnection(object):
         """
         # return data to server
         payload = {
-            "ws_server_id": self._shotgun_site.unique_server_id,
+            "ws_server_id": self._encryption_handler.unique_server_id,
             "timestamp": datetime.datetime.now(),
             "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
             "id": request_id,
@@ -101,7 +94,7 @@ class WebsocketsConnection(object):
         }
         logger.debug("Transmitting response: %s" % pprint.pformat(payload))
         # create json string and encrypt it.
-        reply = util.create_reply(payload, self._shotgun_site.encrypt)
+        reply = util.create_reply(payload, self._encryption_handler.encrypt)
         self._ws_server.sendTextMessage(self._socket_id, reply)
 
     def _handle_protocol_handshake_request(self, message):
@@ -189,16 +182,15 @@ class WebsocketsConnection(object):
 
         # We won't continue on with processing the request unless the user
         # making the request is valid. This will report as invalid if the 
-        # user logged into Shotgun is not the same user that is logged into
-        # SGC.
-        (validation_status, error_code) = self._server_wrapper.validate_user(request_user_id, self._shotgun_site)
-        if not validation_status:
+        # user logged into Shotgun is not the same user that is logged into SGC.
+        if not self._server_wrapper.validate_user(request_user_id):
             
+            logger.debug("Sending user mismatch error status to client...")
             # send an error message back with a 'disconnect_reason' code
             reply = util.create_reply(
                 {
                     "error": True,
-                    "disconnect_reason": error_code,
+                    "disconnect_reason": constants.CONNECTION_REFUSED_USER_MISMATCH,
                     "timestamp": datetime.datetime.now(),
                     "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                     "id": message_obj["id"],
@@ -212,7 +204,7 @@ class WebsocketsConnection(object):
         if message_obj.get("command", {}).get("name") == "get_ws_server_id":
             reply = util.create_reply(
                 {
-                    "ws_server_id": self._shotgun_site.unique_server_id,
+                    "ws_server_id": self._encryption_handler.unique_server_id,
                     "timestamp": datetime.datetime.now(),
                     "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                     "id": message_obj["id"],
@@ -266,8 +258,8 @@ class WebsocketsConnection(object):
         #
 
         # first decrypt message
-        try:
-            message = self._shotgun_site.decrypt(message)
+        try: 
+            message = self._encryption_handler.decrypt(message)
         except Exception as e:
             raise RuntimeError("%s: Could not decrypt payload: %s" % (self, e))
 

@@ -13,12 +13,9 @@ from cryptography.fernet import Fernet #  included as part of main application b
 logger = sgtk.LogManager.get_logger(__name__)
 
 
-class ShotgunSiteHandler(object):
+class EncryptionHandler(object):
     """
-    Represents a shotgun site that a websocket connection has been established to.
-    Each :class:`WebsocketsConnection` instance has an associated :class:`ShotgunSiteHandler`.
-
-    The ShotgunSiteHandler handles the logic for encrypting the traffic to the given site.
+    Handles the logic for encrypting the traffic to the current site.
 
     Upon construction, an API connection will be established and an exchange will be carried
     out whereby this class crafts a unique server id (available via the unique_server_id
@@ -27,51 +24,30 @@ class ShotgunSiteHandler(object):
     encrypt and decrypt websockets traffic sent to the site.
     """
 
-    def __init__(self, site_url):
+    def __init__(self):
         """
         :param str site_url: Shotgun site to create a site handler for.
         """
         self._bundle = sgtk.platform.current_bundle()
-
-        self._site_url = site_url
 
         # Compute a server id and retrieve the secret associated to it.
         # urandom is considered cryptographically secure as it calls the OS's CSRNG, so we can
         # use that to generate our own server id.
         self._unique_server_id = base64.urlsafe_b64encode(os.urandom(16))
 
-        dm = sgtk.authentication.DefaultsManager(fixed_host=site_url)
-        sg_auth = sgtk.authentication.ShotgunAuthenticator(dm)
-        self._is_authenticated = (sg_auth.get_default_user() is not None)
+        # get the secret from the shotgun site.
+        # don't hold on to it but pass it to
+        # the encryption library.
+        ws_server_secret = self._retrieve_server_secret()
 
-        if self.is_authenticated:
-            user = sg_auth.get_user()
-            self._shotgun = user.create_sg_connection()
-            self._current_user = user
-
-            # get the secret from the shotgun site.
-            # don't hold on to it but pass it to
-            # the encryption library.
-            ws_server_secret = self._retrieve_server_secret(self._shotgun)
-
-            # create encryption session
-            self._fernet = Fernet(ws_server_secret)
-        else:
-            self._shotgun = None
-            self._current_user = None
+        # create encryption session
+        self._fernet = Fernet(ws_server_secret)
 
     def __repr__(self):
         """
         String representation
         """
-        return "<ws-site %s>" % self._site_url
-
-    @property
-    def is_authenticated(self):
-        """
-        Whether we're authenticated against this site.
-        """
-        return self._is_authenticated
+        return "<ws-site %s>" % self._bundle.sgtk.site_url
 
     @property
     def unique_server_id(self):
@@ -79,21 +55,6 @@ class ShotgunSiteHandler(object):
         Unique id associated with this shotgun site.
         """
         return self._unique_server_id
-
-    @property
-    def current_user(self):
-        """
-        The ShotgunUser object provided by sgtk.authentication for the
-        currently-authenticated user.
-        """
-        return self._current_user
-
-    @property
-    def shotgun(self):
-        """
-        Associated shotgun API connection
-        """
-        return self._shotgun
 
     def encrypt(self, payload):
         """
@@ -114,7 +75,7 @@ class ShotgunSiteHandler(object):
         b = bytes(payload)
         return self._fernet.decrypt(b)
 
-    def _retrieve_server_secret(self, shotgun):
+    def _retrieve_server_secret(self):
         """
         Retrieves the server secret from Shotgun.
 
@@ -123,7 +84,7 @@ class ShotgunSiteHandler(object):
         """
         logger.debug("Retrieving communication secret from Shotgun")
         # Ask for the secret for this server id.
-        response = shotgun._call_rpc(
+        response = self._bundle.shotgun._call_rpc(
             "retrieve_ws_server_secret",
             {"ws_server_id": self._unique_server_id}
         )
