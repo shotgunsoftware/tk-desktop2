@@ -147,10 +147,17 @@ class DesktopEngine2(Engine):
         """
         # pop up errors as toasts in the console if this exists
         if record.levelno > logging.WARNING and self.toolkit_manager:
+            
+            # note: there seems to be an odd bug where colons truncate the message
+            # as a workaround, remove all colons
+            cleaned_up_message = record.message.replace(":", ".")
+            # note: toasts support markdown
+            message = "**Shotgun Integration Error**\n\n%s" % (cleaned_up_message,)
+            
             self.toolkit_manager.emitToast(
-                record.message,
+                message,
                 "error",
-                False # Not persistent, meaning it'll stay for 5 seconds and disappear.
+                True # don't automatically close.
             )
 
     def destroy_engine(self):
