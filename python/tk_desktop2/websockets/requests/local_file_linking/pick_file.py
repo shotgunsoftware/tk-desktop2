@@ -12,6 +12,7 @@ from ..request import WebsocketsRequest
 
 logger = sgtk.LogManager.get_logger(__name__)
 
+
 class PickFileOrFilesWebsocketsRequest(WebsocketsRequest):
     """
     Pops up a modal file selector dialog and lets the user choose

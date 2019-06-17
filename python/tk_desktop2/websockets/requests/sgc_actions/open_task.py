@@ -5,7 +5,6 @@
 # this software in either electronic or hard copy form.
 #
 
-import os
 import sgtk
 from ..request import WebsocketsRequest
 from ....shotgun_entity_path import ShotgunEntityPath
@@ -43,7 +42,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
             raise ValueError(
                 "%s: Missing required 'task_id' key "
                 "in parameter payload %s" % (self, parameters)
-                )
+            )
 
         self._task_id = parameters["task_id"]
         if "version_id" in parameters:
@@ -103,7 +102,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                     raise ValueError(
                         "Version %d with task %d cannot be "
                         "found in Shotgun!" % (self._version_id, self._task_id)
-                        )
+                    )
 
                 if version_data["entity"] is None:
                     raise ValueError("Versions not linked to entities are not supported.")

@@ -51,7 +51,6 @@ class ShotgunEntityPath(object):
     # the secondary entity types supported
     SUPPORTED_SECONDARY_ENTITY_TYPES = ["Version", "Task"]
 
-
     # note: shotgun entity type names cannot have unicode characters in them 
     #       so we are not supporting that in this parser either.
     _PROJECT_REGEX = re.compile(
@@ -128,7 +127,7 @@ class ShotgunEntityPath(object):
         if self._secondary_entity_id and not self._primary_entity_id:
             raise ValueError("Secondary entity defined but no primary entity defined!")
         if self._primary_entity_id and not self._project_id:
-             raise ValueError("Primary entity defined but no project defined!")
+            raise ValueError("Primary entity defined but no project defined!")
 
         # generate string
         if self._project_id is None:

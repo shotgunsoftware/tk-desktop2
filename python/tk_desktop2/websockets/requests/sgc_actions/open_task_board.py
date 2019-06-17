@@ -5,7 +5,6 @@
 # this software in either electronic or hard copy form.
 #
 
-import os
 import sgtk
 from ..request import WebsocketsRequest
 from ....shotgun_entity_path import ShotgunEntityPath
@@ -45,11 +44,11 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
         if "project_id" not in parameters:
             raise ValueError(
                 "%s: Missing required 'project_id' key in parameter payload %s" % (self, parameters)
-                )
+            )
         if "task_id" not in parameters:
             raise ValueError(
                 "%s: Missing required 'task_id' key in parameter payload %s" % (self, parameters)
-                )
+            )
 
         self._project_id = parameters["project_id"]
         self._task_id = parameters["project_id"]

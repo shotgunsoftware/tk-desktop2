@@ -6,7 +6,6 @@
 #
 
 import sgtk
-import datetime
 import traceback
 
 from sgtk.platform.qt import QtCore, QtGui
@@ -16,7 +15,6 @@ from .shotgun_cert_handler import ShotgunCertificateHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
 from .websockets_connection import WebsocketsConnection
 from .encryption_handler import EncryptionHandler
-from . import util
 
 from . import constants
 
@@ -164,7 +162,7 @@ class WebsocketsServer(object):
         # connection issues - this produces memory leaks.
         try:
             self._new_connection(socket_id, name, address, port, request)
-        except Exception as e:
+        except Exception:
             logger.warning(
                 "Exception raised in QT new connection signal.\n "
                 "Message and details: \n\n %s" % (traceback.format_exc())
@@ -180,7 +178,7 @@ class WebsocketsServer(object):
         # connection issues - this produces memory leaks.
         try:
             self._process_message(socket_id, message)
-        except Exception as e:
+        except Exception:
             logger.warning(
                 "Exception raised in QT process message signal.\n "
                 "Message and details: \n\n %s" % (traceback.format_exc())

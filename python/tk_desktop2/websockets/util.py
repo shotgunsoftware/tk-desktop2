@@ -91,9 +91,9 @@ def show_user_mismatch_popup(bundle, user_id):
     # get current user details
     current_user = sgtk.util.get_current_user(bundle.sgtk)
     # get other user details
-    user_details = self._bundle.shotgun.find_one(
+    user_details = bundle.shotgun.find_one(
         "HumanUser", [["id", "is", user_id]], ["name"]
-        )
+    )
     warning_msg = (
         "A request was received from Shotgun from user %s. Shotgun "
         "Create is currently authenticated with user %s, so the "
@@ -114,6 +114,7 @@ def show_user_mismatch_popup(bundle, user_id):
     )
     msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     msg_box.exec_()
+
 
 def show_site_mismatch_popup(bundle, site_url):
     """

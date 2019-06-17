@@ -6,8 +6,6 @@
 #
 
 import sgtk
-import sys
-import os
 
 logger = sgtk.LogManager.get_logger(__name__)
 

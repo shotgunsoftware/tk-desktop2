@@ -56,7 +56,7 @@ class WebsocketsRequest(object):
                 "Unsupported command '%s'. "
                 "Supported commands are %s" % (
                     command_name, ", ".join(commands)
-                    )
+                )
             )
 
     def __init__(self, connection, id):
