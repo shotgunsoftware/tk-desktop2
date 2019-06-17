@@ -35,14 +35,21 @@ class WebsocketsConnection(object):
     # the various states which the connection can be in
     (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
 
-    def __init__(self, socket_id, encryption_handler, server_wrapper):
+    # handle legacy ui popups for site/user mismatch
+    _legacy_site_warning_displayed = False
+    _legacy_user_warning_displayed = False
+
+    def __init__(self, socket_id, origin_site, encryption_handler, server_wrapper):
         """
         :param socket_id: Unique id associated with this connection
+        :param origin_site: String with the url of the originating request
         :param encryption_handler: Associated :class:`EncryptionHandler`
         :param server_wrapper: Associated :class:`WebsocketsServer` wrapper. This is
             the parent wrapper of the given ws_server and request_runner objects.
         """
+        self._bundle = sgtk.platform.current_bundle()
         self._server_wrapper = server_wrapper
+        self._origin_site = origin_site
         self._ws_server = server_wrapper.websockets_server
         self._request_runner = server_wrapper.request_runner
         self._socket_id = socket_id
@@ -130,6 +137,9 @@ class WebsocketsConnection(object):
         to AWAITING_ENCRYPTED_REQUEST and further requests are
         expected to be encrypted.
 
+        At this point validation is carried out to ensure
+        that the site and user is matching the state of create.
+
         :param str message: Raw message from client
         :raises: RuntimeError on any error
         """
@@ -159,8 +169,14 @@ class WebsocketsConnection(object):
 
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
-
         logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
+
+        # make sure the client has provided an id for the request
+        if "id" not in message_obj:
+            raise RuntimeError("%s: Invalid websockets request - missing id." % self)
+
+        # The version of Shotgun that Shotgun Create is connected to
+        shotgun_version = self._bundle.shotgun.server_caps.version or (0,0,0)
 
         # Try to get the user information. If that fails, we need to report the error.
         try:
@@ -171,36 +187,58 @@ class WebsocketsConnection(object):
                 "No user information was found in this request."
             )
 
-        # make sure the client has provided an id for the request
-        if "id" not in message_obj:
-            raise RuntimeError("%s: Invalid websockets request - missing id." % self)
-
-        # We need to make sure that the user logged into the Shotgun web app
-        # matches the user that's logged into Shotgun Create. If they don't
-        # match, we will warn the user and reject the request.
-        logger.debug("Shotgun web requesting user: %s", request_user_id)
-
-        # We won't continue on with processing the request unless the user
-        # making the request is valid. This will report as invalid if the 
-        # user logged into Shotgun is not the same user that is logged into SGC.
-        if not self._server_wrapper.validate_user(request_user_id):
-            
-            logger.debug("Sending user mismatch error status to client...")
-            # send an error message back with a 'disconnect_reason' code
-            reply = util.create_reply(
-                {
-                    "error": True,
-                    "disconnect_reason": constants.CONNECTION_REFUSED_USER_MISMATCH,
-                    "timestamp": datetime.datetime.now(),
-                    "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
-                    "id": message_obj["id"],
-                }
-            )
-            self._ws_server.sendTextMessage(self._socket_id, reply)
+        # validate that the site of the request matches the sg create site
+        if self._origin_site != self._bundle.sgtk.shotgun_url:
+            if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
+                # pop up UI once
+                if not self._legacy_site_warning_displayed:
+                    util.show_site_mismatch_popup(self._bundle, self._origin_site)
+                    self._legacy_site_warning_displayed = True
+            else:
+                # send error to web client
+                reply = util.create_reply(
+                    {
+                        "error": True,
+                        "disconnect_reason": constants.CONNECTION_REFUSED_SITE_MISMATCH,
+                        "timestamp": datetime.datetime.now(),
+                        "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
+                        "id": message_obj["id"],
+                    }
+                )
+                self._ws_server.sendTextMessage(self._socket_id, reply)
             # and close the connection
             self._ws_server.closeConnection(self._socket_id)
             return
 
+        # validate that the user of the request matches the sg create user
+        # Check so that the user making the request is the same as
+        # the currently logged in user in Shotgun Create.
+        current_user = sgtk.util.get_current_user(self._bundle.sgtk)
+        if request_user_id != current_user["id"]:
+            # the version of shotgun we are talking to
+            if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
+                # pop up UI once
+                if not self._legacy_user_warning_displayed:
+                    util.show_user_mismatch_popup(self._bundle, request_user_id)
+                    self._legacy_user_warning_displayed = True
+            else:
+                # send error to web client
+                reply = util.create_reply(
+                    {
+                        "error": True,
+                        "disconnect_reason": constants.CONNECTION_REFUSED_USER_MISMATCH,
+                        "timestamp": datetime.datetime.now(),
+                        "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
+                        "id": message_obj["id"],
+                    }
+                )
+                self._ws_server.sendTextMessage(self._socket_id, reply)
+            # and close the connection
+            self._ws_server.closeConnection(self._socket_id)
+            return
+
+        # validation is good. Proceed to parse the command, ensuring
+        # that it is "get_ws_server_id".
         if message_obj.get("command", {}).get("name") == "get_ws_server_id":
             reply = util.create_reply(
                 {

@@ -38,17 +38,6 @@ class WebsocketsServer(object):
         self._request_runner = request_runner
         self._bundle = sgtk.platform.current_bundle()
 
-        # We don't allow requests from sites that SG Create isn't logged into. When we
-        # receive a request from another site, we raise a warning dialog telling the user
-        # what's going on, but we only do so once per session. This allows us to track
-        # whether we've shown the user the warning already and skip it if we have.
-        self._has_been_warned_cross_site = False
-
-        # We only want to show the user a warning dialog once if they're logged
-        # into Shotgun as a different user than they're logged into Shotgun
-        # Create as.
-        self._has_been_warned_cross_user = False
-
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
         manager = self._bundle.toolkit_manager
@@ -165,68 +154,6 @@ class WebsocketsServer(object):
         """
         return self._request_runner
 
-    def validate_user(self, user_id):
-        """
-        Checks to see if the given user id matches what's currently authenticated
-        for this site. 
-        
-        The behaviour of this method is different depending on which version of
-        Shotgun the server is connected to. For versions prior to 8.4, the server
-        will show a modal dialog. For later versions, this is disabled, and the
-        client application (web application) is expected to handle any messages
-        presented to the user.
-        
-        For pre-sg-8.4, fhe first time that this method is called and the user is
-        determined to not be valid, the user will be shown a warning dialog with
-        information about why they're not receiving a successful request to their
-        response. Further attempts to make requests that are not coming from a valid
-        user will be logged, but no dialog will be raised.
-
-        :param int user_id: The HumanUser entity id to validate.
-        :param shotgun_site: Associated :class:`ShotgunSiteHandler`
-
-        :rtype: bool. True on success, false on failure.
-        """
-        # Check so that the user making the request is the same as
-        # the currently logged in user in Shotgun Create.
-        current_user = sgtk.util.get_current_user(self._bundle.sgtk)
-
-        if user_id != current_user["id"]:
-            user_details = self._bundle.shotgun.find_one(
-                "HumanUser", [["id", "is", user_id]], ["name"]
-                )
-            warning_msg = (
-                "A request was received from Shotgun from user %s. Shotgun "
-                "Create is currently authenticated with user %s, so the "
-                "request was rejected. You will need to log into Shotgun "
-                "Create as user %s in order to receive Toolkit menu actions "
-                "or use local file linking for that user in Shotgun." % (
-                    user_details["name"],
-                    current_user["name"],
-                    user_details["name"],
-                )
-            )
-            logger.warning(warning_msg)
-
-            shotgun_version = self._bundle.shotgun.server_caps.version or (0,0,0)
-
-            if not self._has_been_warned_cross_user and shotgun_version < (8,4,0):
-                # Make sure the user is only warned about this once for this
-                # connection.
-                self._has_been_warned_cross_user = True
-
-                from sgtk.platform.qt import QtGui, QtCore
-                msg_box = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Warning,
-                    "Requesting User Not Authenticated",
-                    warning_msg,
-                )
-                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-                msg_box.exec_()
-
-            return False
-        return True
-
     def _new_connection_wrapper(self, socket_id, name, address, port, request):
         """
         Callback wrapper that fires when a new websockets connection is requested.
@@ -240,6 +167,22 @@ class WebsocketsServer(object):
         except Exception as e:
             logger.warning(
                 "Exception raised in QT new connection signal.\n "
+                "Message and details: \n\n %s" % (traceback.format_exc())
+            )
+
+    def _process_message_wrapper(self, socket_id, message):
+        """
+        Callback wrapper that fires when a new message arrives.
+        For details, see _process_message.
+        """
+        # add a try-except clause, otherwise exceptions are consumed by QT
+        # note - not using a lambda around the signal due to garbage 
+        # connection issues - this produces memory leaks.
+        try:
+            self._process_message(socket_id, message)
+        except Exception as e:
+            logger.warning(
+                "Exception raised in QT process message signal.\n "
                 "Message and details: \n\n %s" % (traceback.format_exc())
             )
 
@@ -260,66 +203,12 @@ class WebsocketsServer(object):
         # going to want it as a string, so we'll go ahead and convert it right away.
         origin_site = str(request.rawHeader("origin"))
 
-        if origin_site != self._bundle.sgtk.shotgun_url:
-            # send an error message back with a 'disconnect_reason' code
-            logger.debug("Sites do not match between websockets server and connected client.")
-            logger.debug(
-                "Websockets server url: '%s', Client url: '%s'" % (self._bundle.sgtk.shotgun_url, origin_site)
-            )
-            reply = util.create_reply(
-                {
-                    "error": True,
-                    "disconnect_reason": constants.CONNECTION_REFUSED_SITE_MISMATCH,
-                    "timestamp": datetime.datetime.now(),
-                    "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
-                }
-            )
-            self._ws_server.sendTextMessage(socket_id, reply)
-            self._ws_server.closeConnection(socket_id)
-
-            warning_msg = (
-                "A request was received from %s. Shotgun Create is currently not logged into "
-                "that site, so the request has been rejected. You will need to log into %s from "
-                "Shotgun Create in order to see Toolkit menu actions or make use of local file "
-                "linking on that Shotgun site." % (origin_site, origin_site)
-            )
-            logger.warning(warning_msg)
-
-            shotgun_version = self._bundle.shotgun.server_caps.version or (0,0,0)
-
-            if not self._has_been_warned_cross_site and shotgun_version < (8,4,0):
-                from sgtk.platform.qt import QtGui, QtCore
-                msg_box = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Warning,
-                    "Not Authenticated",
-                    warning_msg,
-                )
-                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-                msg_box.exec_()
-                self._has_been_warned_cross_site = True
-
-        else:
-            self._connections[socket_id] = WebsocketsConnection(
-                socket_id,
-                self._encryption_handler,
-                self,
-            )
-
-    def _process_message_wrapper(self, socket_id, message):
-        """
-        Callback wrapper that fires when a new message arrives.
-        For details, see _process_message.
-        """
-        # add a try-except clause, otherwise exceptions are consumed by QT
-        # note - not using a lambda around the signal due to garbage 
-        # connection issues - this produces memory leaks.
-        try:
-            self._process_message(socket_id, message)
-        except Exception as e:
-            logger.warning(
-                "Exception raised in QT process message signal.\n "
-                "Message and details: \n\n %s" % (traceback.format_exc())
-            )
+        self._connections[socket_id] = WebsocketsConnection(
+            socket_id,
+            origin_site,
+            self._encryption_handler,
+            self,
+        )
 
     def _process_message(self, socket_id, message):
         """
