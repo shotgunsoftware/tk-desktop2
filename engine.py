@@ -54,7 +54,7 @@ class DesktopEngine2(Engine):
         """
         A handle to the manager object provided by the host application that exposes
         some necessary functionality. Methods exposed via this object effectively
-        acts as the "API" for Shotgun create.
+        act as the "API" for Shotgun create.
 
         Note: This property is only set when the tk-desktop2 process is running inside
         the Shotgun Create application. The tk-desktop2 engine can also run in a separate
