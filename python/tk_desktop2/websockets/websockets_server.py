@@ -6,6 +6,7 @@
 #
 
 import sgtk
+import json
 import traceback
 
 from sgtk.platform.qt import QtCore, QtGui
@@ -79,28 +80,20 @@ class WebsocketsServer(object):
 
         # get pref from Shotgun
         prefs = self._bundle.shotgun.preferences_read(
-            [constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME]
+            [constants.SHOTGUN_CREATE_PREFS_NAME]
         )
 
-        if constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME in prefs:
-            port_value = prefs[constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME]
-            logger.debug("Retrieved port value '%s' from Shotgun" % port_value)
-            try:
-                websockets_port = int(port_value)
-                if websockets_port < 0:
-                    raise ValueError()
-                elif websockets_port > 65535:
-                    raise ValueError()
-            except ValueError:
-                logger.error("Invalid server port preference set in Shotgun!")
-                # details
-                logger.warning(
-                    "The websockets port preference in Shotgun has the "
-                    "invalid value '%s'. It needs to be a positive integer number "
-                    "between 0 65535."
-                )
-        else:
-            logger.debug("Port Preference does not exist in Shotgun. Will use default.")
+        logger.debug(
+            "Looking for preference '%s' and key '%s'..." % (
+                constants.SHOTGUN_CREATE_PREFS_NAME, 
+                constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY
+            )
+        )
+        if constants.SHOTGUN_CREATE_PREFS_NAME in prefs:
+            prefs_dict = json.loads(prefs[constants.SHOTGUN_CREATE_PREFS_NAME])
+            if constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY in prefs_dict:
+                websockets_port = prefs_dict[constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY]
+                logger.debug("...retrieved port value '%s' from Shotgun prefs" % websockets_port)
 
         # Tell the server to listen to the given port
         logger.debug("Starting websockets server on port %s" % websockets_port)

@@ -11,8 +11,10 @@ WEBSOCKETS_PORT_NUMBER = 9000
 # version of the protocol that this implementation supports
 WEBSOCKETS_PROTOCOL_VERSION = 2
 
-# the shotgun preference to read to determine port
-SHOTGUN_WSS_PORT_PREFERENCE_NAME = "shotgun_create_server_port"
+# the shotgun create preferences area
+SHOTGUN_CREATE_PREFS_NAME = "view_master_settings"
+# the key to look for to control the websockets port
+SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY = "websockets_port"
 
 # connection error codes
 CONNECTION_REFUSED_USER_MISMATCH = "CONNECTION_REFUSED_USER_MISMATCH"
