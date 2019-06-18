@@ -84,7 +84,7 @@ class WebsocketsServer(object):
 
         if constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME in prefs:
             port_value = prefs[constants.SHOTGUN_WSS_PORT_PREFERENCE_NAME]
-            logger.debug("Retrieved port value '%s' from Shotgun")
+            logger.debug("Retrieved port value '%s' from Shotgun" % port_value)
             try:
                 websockets_port = int(port_value)
                 if websockets_port < 0:
@@ -103,11 +103,11 @@ class WebsocketsServer(object):
             logger.debug("Port Preference does not exist in Shotgun. Will use default.")
 
         # Tell the server to listen to the given port
-        logger.debug("Starting websockets server on port %s" % constants.WEBSOCKETS_PORT_NUMBER)
+        logger.debug("Starting websockets server on port %s" % websockets_port)
         logger.debug("Supports websockets protocol version %s" % constants.WEBSOCKETS_PROTOCOL_VERSION)
         success = self._ws_server.listen(
             QtNetwork.QHostAddress.LocalHost,
-            constants.WEBSOCKETS_PORT_NUMBER
+            websockets_port
         )
 
         if not success:
@@ -115,14 +115,14 @@ class WebsocketsServer(object):
 
             if error == "The bound address is already in use":
                 # pop a toast
-                logger.error("Cannot start websockets server: Port %s already in use!" % constants.WEBSOCKETS_PORT_NUMBER)
+                logger.error("Cannot start websockets server: Port %s already in use!" % websockets_port)
                 # add more details to log file
                 logger.warning(
                     "Details: The server could not be started because it appears that something is "
                     "already making use of port %d. The most likely cause of this would be "
                     "having more than one instance of Shotgun Create open at the same time, "
                     "or running Shotgun Create and Shotgun "
-                    "Desktop simultaneously." % constants.WEBSOCKETS_PORT_NUMBER
+                    "Desktop simultaneously." % websockets_port
                 )
             else:
                 logger.error("Cannot start websockets server: %s" % error)
