@@ -191,15 +191,16 @@ class WebsocketsConnection(object):
         if self._origin_site != self._bundle.sgtk.shotgun_url:
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
-                if not self._legacy_site_warning_displayed:
+                if not WebsocketsConnection._legacy_site_warning_displayed:
                     util.show_site_mismatch_popup(self._bundle, self._origin_site)
-                    self._legacy_site_warning_displayed = True
+                    WebsocketsConnection._legacy_site_warning_displayed = True
             else:
                 # send error to web client
                 reply = util.create_reply(
                     {
                         "error": True,
-                        "disconnect_reason": constants.CONNECTION_REFUSED_SITE_MISMATCH,
+                        "error_message": "Calling site does not match server's site.",
+                        "error_data": {"error_code": constants.CONNECTION_REFUSED_SITE_MISMATCH},
                         "timestamp": datetime.datetime.now(),
                         "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                         "id": message_obj["id"],
@@ -218,15 +219,16 @@ class WebsocketsConnection(object):
             # the version of shotgun we are talking to
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
-                if not self._legacy_user_warning_displayed:
+                if not WebsocketsConnection._legacy_user_warning_displayed:
                     util.show_user_mismatch_popup(self._bundle, request_user_id)
-                    self._legacy_user_warning_displayed = True
+                    WebsocketsConnection._legacy_user_warning_displayed = True
             else:
                 # send error to web client
                 reply = util.create_reply(
                     {
                         "error": True,
-                        "disconnect_reason": constants.CONNECTION_REFUSED_USER_MISMATCH,
+                        "error_message": "Calling user does match not currently logged in user.",
+                        "error_data": {"error_code": constants.CONNECTION_REFUSED_USER_MISMATCH},
                         "timestamp": datetime.datetime.now(),
                         "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                         "id": message_obj["id"],

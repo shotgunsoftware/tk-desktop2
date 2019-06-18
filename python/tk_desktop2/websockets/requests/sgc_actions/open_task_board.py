@@ -51,7 +51,7 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
             )
 
         self._project_id = parameters["project_id"]
-        self._task_id = parameters["project_id"]
+        self._task_id = parameters["task_id"]
         
     def execute(self):
         """

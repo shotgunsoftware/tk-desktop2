@@ -94,7 +94,10 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                 # resolve link and project
                 version_data = engine.shotgun.find_one(
                     "Version", 
-                    [["id", "is", self._version_id], ["sg_task", "is", self._task_id]],
+                    [
+                        ["id", "is", self._version_id], 
+                        ["sg_task", "is", {"id": self._task_id, "type": "Task"}]
+                    ],
                     ["project", "entity"]
                 )
 
