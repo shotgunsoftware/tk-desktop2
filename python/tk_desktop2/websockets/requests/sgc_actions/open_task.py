@@ -37,6 +37,8 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
         """
         super(OpenTaskInSGCreateWebsocketsRequest, self).__init__(connection, id)
         
+        self._bundle = sgtk.platform.current_bundle()
+
         # validate
         if "task_id" not in parameters:
             raise ValueError(
@@ -57,41 +59,26 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
         try:
             engine = sgtk.platform.current_bundle()
 
-            if self._version_id is None:
-                # open task
+            # open task - resolve link and project
+            task_data = engine.shotgun.find_one(
+                "Task", 
+                [["id", "is", self._task_id]],
+                ["project", "entity"]
+            )
 
-                # resolve link and project
-                task_data = engine.shotgun.find_one(
-                    "Task", 
-                    [["id", "is", self._task_id]],
-                    ["project", "entity"]
-                )
+            if task_data is None:
+                raise ValueError("Task id %d cannot be found in Shotgun!" % (self._task_id,))
 
-                if task_data is None:
-                    raise ValueError("Task id %d cannot be found in Shotgun!" % (self._task_id,))
-
-                if task_data["entity"] is None:
-                    raise RuntimeError("Tasks not linked to entities are not supported.")
-                
-                path = ShotgunEntityPath()
-                path.set_project(task_data["project"]["id"])
-                path.set_primary_entity(task_data["entity"]["type"], task_data["entity"]["id"])
-                path.set_secondary_entity("Task", self._task_id)
-
-                # TODO - IMPLEMENT THIS METHOD
-                # engine.toolkit_manager.emitOpenTaskRequest(path.as_string())
-                
-                # PLACEHOLDER EXAMPLE CODE (remove later)
-                engine.toolkit_manager.emitToast(
-                    "Open Task '%s'" % path.as_string(),
-                    "info",
-                    False # Not persistent, meaning it'll stay for 5 seconds and disappear.
-                )
+            if task_data["entity"] is None:
+                raise RuntimeError("Tasks not linked to entities are not supported.")
             
-            else:
-                # open version
+            path = ShotgunEntityPath()
+            path.set_project(task_data["project"]["id"])
+            path.set_primary_entity(task_data["entity"]["type"], task_data["entity"]["id"])
+            path.set_secondary_entity("Task", self._task_id)
 
-                # resolve link and project
+            # validate that if a version exists, it's correctly linked to the task
+            if self._version_id:
                 version_data = engine.shotgun.find_one(
                     "Version", 
                     [
@@ -107,24 +94,12 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                         "found in Shotgun!" % (self._version_id, self._task_id)
                     )
 
-                if version_data["entity"] is None:
-                    raise ValueError("Versions not linked to entities are not supported.")
-                
-                path = ShotgunEntityPath()
-                path.set_project(version_data["project"]["id"])
-                path.set_primary_entity(version_data["entity"]["type"], version_data["entity"]["id"])
-                path.set_secondary_entity("Version", self._version_id)
-
-                # TODO - IMPLEMENT THIS METHOD
-                # engine.toolkit_manager.emitOpenVersionRequest(path.as_string())
-                
-                # PLACEHOLDER EXAMPLE CODE (remove later)
-                engine.toolkit_manager.emitToast(
-                    "Open Version '%s'" % path.as_string(),
-                    "info",
-                    False # Not persistent, meaning it'll stay for 5 seconds and disappear.
-                )
-
+            # call out to Shotgun Create UI to focus on the task
+            self._bundle.toolkit_manager.emitOpenTaskRequest(
+                path.as_string(), 
+                self._version_id
+            )
+                            
         except Exception as e:
             self._reply_with_status(
                 status=1,
