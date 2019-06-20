@@ -7,7 +7,6 @@
 
 import sgtk
 from ..request import WebsocketsRequest
-from ....shotgun_entity_path import ShotgunEntityPath
 
 logger = sgtk.LogManager.get_logger(__name__)
 
