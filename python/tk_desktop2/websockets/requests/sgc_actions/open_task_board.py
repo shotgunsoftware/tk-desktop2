@@ -20,7 +20,7 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
 
     Parameters dictionary is expected to be on the following form:
 
-    {'project_id': 123|null, 'task_id': 123|null}
+    {'project_id': 123|null, ['task_id': 123|null]}
 
     Parameter details:
 
@@ -40,43 +40,52 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
         """
         super(OpenTaskBoardInSGCreateWebsocketsRequest, self).__init__(connection, id)
         
+        self._bundle = sgtk.platform.current_bundle()
+
         # validate
         if "project_id" not in parameters:
             raise ValueError(
                 "%s: Missing required 'project_id' key in parameter payload %s" % (self, parameters)
             )
+        else:
+            self._project_id = parameters["project_id"]
+        
         if "task_id" not in parameters:
-            raise ValueError(
-                "%s: Missing required 'task_id' key in parameter payload %s" % (self, parameters)
-            )
-
-        self._project_id = parameters["project_id"]
-        self._task_id = parameters["task_id"]
+            self._task_id = None
+        else:
+            self._task_id = parameters["task_id"]
         
     def execute(self):
         """
         Execute the payload of the command
         """
         try:
-            toolkit_manager = sgtk.platform.current_bundle().toolkit_manager
-            project_path = ShotgunEntityPath()
-            project_path.set_project(self._project_id)
-
-            # TODO - IMPLEMENT THIS METHOD
-            # toolkit_manager.emitOpenTaskBoardRequest(
-            #   project_path.as_string(), 
-            #   self._task_id
-            # )
+            # validate that the project id belongs to a valid project
+            if self._project_id:
+                project_data = self._bundle.shotgun.find_one(
+                    "Project", [["id", "is", self._project_id]]
+                )
+                if not project_data:
+                    raise ValueError("Invalid project id!")
             
-            # PLACEHOLDER EXAMPLE CODE (remove later)
-            toolkit_manager.emitToast(
-                "Open Task Board for project '%s' focusing on task id '%s'" % (
-                    project_path.as_string(), 
-                    self._task_id
-                ),
-                "info",
-                False # Not persistent, meaning it'll stay for 5 seconds and disappear.
-            )
+            # validate that the task id belongs to a valid project
+            # and if a project is specified, that it is linked to 
+            # that project
+            if self._task_id:
+                filters = [["id", "is", self._task_id]]
+                if self._project_id:
+                    filters.append(
+                        ["project", "is", {"id": self._project_id, "type": "Project"}]
+                    )
+
+                task_data = self._bundle.shotgun.find_one("Task", filters)
+                if not task_data:
+                    raise ValueError("Invalid task id!")
+
+            self._bundle.toolkit_manager.emitOpenTaskBoardRequest(
+                self._project_id, 
+                self._task_id
+            )         
         except Exception as e:
             self._reply_with_status(
                 status=1,
