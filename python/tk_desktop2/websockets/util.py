@@ -83,7 +83,7 @@ def _convert(data):
 def show_user_mismatch_popup(bundle, user_id):
     """
     Display modal popup to inform user about user 
-    website/shotgun create mismatch
+    website/shotgun Create mismatch
     
     :param bundle: Bundle object
     :param user_id: Id of user requesting a connection
@@ -119,7 +119,7 @@ def show_user_mismatch_popup(bundle, user_id):
 def show_site_mismatch_popup(bundle, site_url):
     """
     Display modal popup to inform user about site 
-    website/shotgun create mismatch
+    website/shotgun Create mismatch
     
     :param bundle: Bundle object
     :param site_url: Url of site requesting a connection

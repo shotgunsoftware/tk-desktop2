@@ -84,6 +84,9 @@ class ShotgunCertificateHandler(object):
         :param str path: Path to file that should be written.
         :param str cert: Certificate taken from Shotgun.
         """
+        # the cert is a whole chunk of content. We use an arbitrary small
+        # number here (e.g 5), in case there is some white space inside
+        # the preference data.
         if len(cert) < 5:
             raise ValueError(
                 "Invalid localhost certificate data in Shotgun! "

@@ -36,7 +36,7 @@ def get_supported_commands():
         "pick_file_or_directory": {"class": PickFileOrDirectoryWebsocketsRequest},
         "pick_files_or_directories": {"class": PickFilesOrDirectoriesWebsocketsRequest},
         "open": {"class": OpenFileWebsocketsRequest},
-        # shotgun create integration
+        # shotgun Create integration
         "sgc_open_task": {"class": OpenTaskInSGCreateWebsocketsRequest},
         "sgc_open_task_board": {"class": OpenTaskBoardInSGCreateWebsocketsRequest},
     }

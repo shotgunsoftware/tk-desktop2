@@ -107,7 +107,7 @@ class WebsocketsServer(object):
             error = self._ws_server.errorString()
 
             if error == "The bound address is already in use":
-                # pop a toast
+                # the error will generate a toast in the create UI
                 logger.error("Cannot start websockets server: Port %s already in use!" % websockets_port)
                 # add more details to log file
                 logger.warning(

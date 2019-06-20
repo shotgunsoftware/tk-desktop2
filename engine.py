@@ -56,10 +56,10 @@ class DesktopEngine2(Engine):
         some necessary functionality. Methods exposed via this object effectively
         act as the "API" for Shotgun create.
 
-        Note: This property is only set when the tk-desktop2 process is running inside
-        the Shotgun Create application. The tk-desktop2 engine can also run in a separate
-        external process (for example when you launch an app such as the publisher from
-        Shotgun Create). 
+        .. note:: This property is only set when the tk-desktop2 process is running inside
+                  the Shotgun Create application. The tk-desktop2 engine can also run 
+                  in a separate external process (for example when you launch an app 
+                  such as the publisher from Shotgun Create). 
         """
         return self._toolkit_manager
 

@@ -11,7 +11,7 @@ WEBSOCKETS_PORT_NUMBER = 9000
 # version of the protocol that this implementation supports
 WEBSOCKETS_PROTOCOL_VERSION = 2
 
-# the shotgun create preferences area
+# the shotgun Create preferences area
 SHOTGUN_CREATE_PREFS_NAME = "view_master_settings"
 # the key to look for to control the websockets port
 SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY = "websockets_port"

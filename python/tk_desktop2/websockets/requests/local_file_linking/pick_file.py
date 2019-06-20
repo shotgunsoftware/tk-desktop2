@@ -86,10 +86,10 @@ class PickFilesOrDirectoriesWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
 
 class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
     """
-    Command to pick multiple files or directories.
+    Command to pick a single file or directory.
 
-    Pops up a modal file selector dialog and lets the user choose
-    one or more files or directories.
+    Pops up a modal file selector dialog 
+    and lets the user choose one file or directory.
     Part of the local file linking feature set.
 
     Request syntax::

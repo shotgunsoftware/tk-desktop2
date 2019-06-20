@@ -189,7 +189,7 @@ class ShotgunEntityPath(object):
 
     def set_project(self, project_id):
         """
-        Specify the project assocaited with this path
+        Specify the project associated with this path
 
         :param int project_id: Project id to associate
         """
@@ -197,7 +197,7 @@ class ShotgunEntityPath(object):
 
     def set_primary_entity(self, entity_type, entity_id):
         """
-        Specify the primary entity id assocaited with this path.
+        Specify the primary entity id associated with this path.
 
         :param str entity_type: Entity type to associate
         :param int entity_id: Entity id to associate
@@ -207,7 +207,7 @@ class ShotgunEntityPath(object):
 
     def set_secondary_entity(self, entity_type, entity_id):
         """
-        Specify the secondary entity id assocaited with this path.
+        Specify the secondary entity id associated with this path.
 
         The valid subset of entity types can be retrieved via
         self.SUPPORTED_SECONDARY_ENTITY_TYPES
