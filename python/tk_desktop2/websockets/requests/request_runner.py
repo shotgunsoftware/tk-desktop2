@@ -155,7 +155,7 @@ class RequestRunner(QtCore.QObject):
         invalid_configs = [c for c in configs if not c.is_valid]
         if invalid_configs:
             invalid_ids = [c.pipeline_configuration_id for c in invalid_configs]
-            reason = "Cannot resolve configurations with the following ids: %s" % (invalid_ids,))
+            reason = "Cannot resolve configurations with the following ids: %s" % (invalid_ids,)
             logger.warning(reason)
 
             for deferred_request in self._active_requests:
