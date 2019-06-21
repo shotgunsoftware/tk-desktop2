@@ -13,29 +13,20 @@ from ..request import WebsocketsRequest
 logger = sgtk.LogManager.get_logger(__name__)
 
 
-class PickFileOrDirectoryWebsocketsRequest(WebsocketsRequest):
+class PickFileOrFilesWebsocketsRequest(WebsocketsRequest):
     """
     Pops up a modal file selector dialog and lets the user choose
     one or more files or directories.
     Part of the local file linking feature set.
-
-    Request syntax::
-
-        No parameters are defined for this command
-
-    Expected response::
-
-        A list of file paths as strings.
-
     """
-    def __init__(self, connection, id, pick_multiple):
+    def __init__(self, connection, id, pick_multiple=False):
         """
         :param connection: Associated :class:`WebsocketsConnection`.
         :param int id: Id for this request.
         :param bool pick_multiple: Flag to indicate whether multi select should be enabled.
         """
         self._pick_multiple = pick_multiple
-        super(PickFileOrDirectoryWebsocketsRequest, self).__init__(connection, id)
+        super(PickFileOrFilesWebsocketsRequest, self).__init__(connection, id)
 
     def execute(self):
         """
@@ -60,3 +51,65 @@ class PickFileOrDirectoryWebsocketsRequest(WebsocketsRequest):
                 files.append(f)
 
         self._reply(files)
+
+
+class PickFilesOrDirectoriesWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
+    """
+    Command to pick multiple files or directories.
+
+    Pops up a modal file selector dialog and lets the user choose
+    one or more files or directories.
+    Part of the local file linking feature set.
+
+    Request syntax::
+
+        No parameters are defined for this command
+
+    Expected response::
+
+        A list of file paths as strings.
+    """
+
+    def __init__(self, connection, id, parameters):
+        """
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int id: Id for this request.
+        :param dict parameters: Command parameters (see syntax above)
+        :raises: ValueError
+        """
+        super(PickFilesOrDirectoriesWebsocketsRequest, self).__init__(
+            connection, 
+            id, 
+            pick_multiple=True
+        )
+
+
+class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
+    """
+    Command to pick a single file or directory.
+
+    Pops up a modal file selector dialog 
+    and lets the user choose one file or directory.
+    Part of the local file linking feature set.
+
+    Request syntax::
+
+        No parameters are defined for this command
+
+    Expected response::
+
+        A list of file paths as strings.
+    """
+    
+    def __init__(self, connection, id, parameters):
+        """
+        :param connection: Associated :class:`WebsocketsConnection`.
+        :param int id: Id for this request.
+        :param dict parameters: Command parameters (see syntax above)
+        :raises: ValueError
+        """
+        super(PickFileOrDirectoryWebsocketsRequest, self).__init__(
+            connection, 
+            id, 
+            pick_multiple=False
+        )

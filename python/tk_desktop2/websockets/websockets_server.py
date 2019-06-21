@@ -6,14 +6,18 @@
 #
 
 import sgtk
+import json
+import traceback
 
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk.platform.qt5 import QtNetwork, QtWebSockets
 
 from .shotgun_cert_handler import ShotgunCertificateHandler
-from .shotgun_site_handler import ShotgunSiteHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
 from .websockets_connection import WebsocketsConnection
+from .encryption_handler import EncryptionHandler
+
+from . import constants
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -30,26 +34,8 @@ class WebsocketsServer(object):
         """
         logger.debug("Begin initializing websockets server wrapper")
         self._connections = {}
-        self._sites = {}
         self._request_runner = request_runner
         self._bundle = sgtk.platform.current_bundle()
-
-        # We don't allow requests from sites that SG Create isn't logged into. When we
-        # receive a request from another site, we raise a warning dialog telling the user
-        # what's going on, but we only do so once per session. This allows us to track
-        # whether we've shown the user the warning already and skip it if we have.
-        self._has_been_warned_cross_site = False
-
-        # We only want to show the user a warning dialog once if they're logged
-        # into Shotgun as a different user than they're logged into Shotgun
-        # Create as.
-        self._has_been_warned_cross_user = False
-
-        # We're in the situation where we only have access to the HumanUser id from
-        # Shotgun, and we only have access to the username from core. We're going to
-        # query the username from Shotgun from the given id, so we can cache that in
-        # memory.
-        self._user_id_to_login_map = dict()
 
         # retrieve websockets server from C++
         # TODO: this may be done via standard method in the future.
@@ -62,10 +48,7 @@ class WebsocketsServer(object):
         try:
             self._sg_certs_handler = ShotgunCertificateHandler()
         except ShotgunLocalHostCertNotSupportedError:
-            logger.warning(
-                "%s does not support shotgunlocalhost certificates. "
-                "Websockets integration will be disabled." % self._bundle.sgtk.shotgun_url
-            )
+            logger.error("Cannot launch websockets: Shotgunlocalhost certificates not enabled.")
             return
 
         # SG certs:
@@ -77,36 +60,65 @@ class WebsocketsServer(object):
             self._sg_certs_handler.cert_path
         )
         if not success:
-            raise RuntimeError("Could not set up Websockets certificates.")
+            logger.error("Websockets certificates failed to load.")
+            return
+
+        # set up encryption handler for our current site
+        self._encryption_handler = EncryptionHandler()
 
         # Add our callback to process messages.
-        self._ws_server.textMessageReceived.connect(self._process_message)
-        self._ws_server.newConnectionAdded.connect(self._new_connection)
+        self._ws_server.textMessageReceived.connect(self._process_message_wrapper)
+        self._ws_server.newConnectionAdded.connect(self._new_connection_wrapper)
         self._ws_server.connectionClosed.connect(self._connection_closed)
         self._ws_server.sslErrors.connect(self._on_ssl_errors)
 
-        # TODO: handle port number - read out of sg prefs
-        port_number = 9000
+        # Determine which port to run on
+        logger.debug("Retreiving websockets port preference from Shotgun.")
+
+        # populate default value
+        websockets_port = constants.WEBSOCKETS_PORT_NUMBER
+
+        # get pref from Shotgun
+        prefs = self._bundle.shotgun.preferences_read(
+            [constants.SHOTGUN_CREATE_PREFS_NAME]
+        )
+
+        logger.debug(
+            "Looking for preference '%s' and key '%s'..." % (
+                constants.SHOTGUN_CREATE_PREFS_NAME, 
+                constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY
+            )
+        )
+        if constants.SHOTGUN_CREATE_PREFS_NAME in prefs:
+            prefs_dict = json.loads(prefs[constants.SHOTGUN_CREATE_PREFS_NAME])
+            if constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY in prefs_dict:
+                websockets_port = prefs_dict[constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY]
+                logger.debug("...retrieved port value '%s' from Shotgun prefs" % websockets_port)
 
         # Tell the server to listen to the given port
-        logger.debug("Starting websockets server on port %s" % port_number)
+        logger.debug("Starting websockets server on port %s" % websockets_port)
+        logger.debug("Supports websockets protocol version %s" % constants.WEBSOCKETS_PROTOCOL_VERSION)
         success = self._ws_server.listen(
             QtNetwork.QHostAddress.LocalHost,
-            port_number
+            websockets_port
         )
 
         if not success:
             error = self._ws_server.errorString()
 
             if error == "The bound address is already in use":
+                # the error will generate a toast in the create UI
+                logger.error("Cannot start websockets server: Port %s already in use!" % websockets_port)
+                # add more details to log file
                 logger.warning(
-                    "The server could not be started because it appears that something is "
+                    "Details: The server could not be started because it appears that something is "
                     "already making use of port %d. The most likely cause of this would be "
                     "having more than one instance of Shotgun Create open at the same time, "
-                    "or running Shotgun Create and Shotgun Desktop simultaneously." % port_number
+                    "or running Shotgun Create and Shotgun "
+                    "Desktop simultaneously." % websockets_port
                 )
             else:
-                logger.warning("Websockets server could not be started. Error reported: %s" % error)
+                logger.error("Cannot start websockets server: %s" % error)
         else:
             logger.debug("Websockets server is ready and listening.")
 
@@ -133,91 +145,37 @@ class WebsocketsServer(object):
         """
         return self._request_runner
 
-    def validate_user(self, user_id, shotgun_site):
+    def _new_connection_wrapper(self, socket_id, name, address, port, request):
         """
-        Checks to see if the given user id matches what's currently authenticated
-        for this site. The first time that this method is called and the user is
-        determined to not be valid, the user will be shown a warning dialog with
-        information about why they're not receiving a successful request to their
-        response. Further attempts to make requests that are not coming from a valid
-        user will be logged, but no dialog will be raised.
-
-        :param int user_id: The HumanUser entity id to validate.
-        :param shotgun_site: Associated :class:`ShotgunSiteHandler`
-
-        :rtype: bool
+        Callback wrapper that fires when a new websockets connection is requested.
+        For details, see _new_connecton.
         """
-        if not shotgun_site.is_authenticated:
-            logger.debug(
-                "Unable to check the authenticated user because this site is not authenticated."
-            )
-            return False
-
-        # We have to go from the HumanUser entity id to a login. This is because
-        # we don't get the login from Shotgun as part of the payload for a request,
-        # and we don't have easy access to the currently-authenticated user's id
-        # via tk-core. We'll cache it, though, so we only have to do this once per
-        # session.
-        if user_id not in self._user_id_to_login_map:
-            user_entity = self._bundle.shotgun.find_one(
-                "HumanUser",
-                [["id", "is", user_id]],
-                fields=["login"],
+        # add a try-except clause, otherwise exceptions are consumed by QT
+        # note - not using a lambda around the signal due to garbage 
+        # connection issues - this produces memory leaks.
+        try:
+            self._new_connection(socket_id, name, address, port, request)
+        except Exception:
+            logger.warning(
+                "Exception raised in QT new connection signal.\n "
+                "Message and details: \n\n %s" % (traceback.format_exc())
             )
 
-            if not user_entity:
-                logger.debug("The user id given (%s) does not exist in Shotgun.")
-                return False
-
-            self._user_id_to_login_map[user_id] = user_entity["login"]
-
-        user_name = self._user_id_to_login_map[user_id]
-        current_user = shotgun_site.current_user.login
-
-        logger.debug("Shotgun site user: %s", user_name)
-        logger.debug("Shotgun Create user: %s", current_user)
-
-        # We're forcing lowercase here because we ran into an issue on Windows 7
-        # where it's possible that a user can login with different casing and it
-        # will be maintained. That would cause a problem here if we ended up
-        # trying to compare "Jeff" with "jeff", even though they're technically
-        # the same user as far as we care here.
-        if current_user.lower() != user_name.lower():
-            warning_msg = (
-                "A request was received from Shotgun from user %s. Shotgun "
-                "Create is currently authenticated with user %s, so the "
-                "request was rejected. You will need to log into Shotgun "
-                "Create as user %s in order to receive Toolkit menu actions "
-                "or use local file linking for that user in Shotgun." % (
-                    user_name,
-                    current_user,
-                    user_name
-                )
+    def _process_message_wrapper(self, socket_id, message):
+        """
+        Callback wrapper that fires when a new message arrives.
+        For details, see _process_message.
+        """
+        # add a try-except clause, otherwise exceptions are consumed by QT
+        # note - not using a lambda around the signal due to garbage 
+        # connection issues - this produces memory leaks.
+        try:
+            self._process_message(socket_id, message)
+        except Exception:
+            logger.warning(
+                "Exception raised in QT process message signal.\n "
+                "Message and details: \n\n %s" % (traceback.format_exc())
             )
-            logger.warning(warning_msg)
-
-            if self._has_been_warned_cross_user:
-                logger.debug(
-                    "The user has already been warned about being logged into "
-                    "Shotgun with a different user than Shotgun Create is "
-                    "authenticated with. A warning dialog will not be raised."
-                )
-            else:
-                # Make sure the user is only warned about this once for this
-                # connection.
-                self._has_been_warned_cross_user = True
-
-                from sgtk.platform.qt import QtGui, QtCore
-                msg_box = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Warning,
-                    "Requesting User Not Authenticated",
-                    warning_msg,
-                )
-                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-                msg_box.exec_()
-
-            return False
-        return True
 
     def _new_connection(self, socket_id, name, address, port, request):
         """
@@ -234,47 +192,12 @@ class WebsocketsServer(object):
 
         # The origin coming from the request's raw header will be a bytearray. We're
         # going to want it as a string, so we'll go ahead and convert it right away.
-        origin = str(request.rawHeader("origin"))
-
-        if origin not in self._sites:
-            # This will NEVER pop up a login dialog. If we're not already authenticated
-            # with the site, then we do not continue and we close the connection below.
-            self._sites[origin] = ShotgunSiteHandler(origin)
-
-        # We do not allow cross-site connections, meaning that if we're not already
-        # authenticated with the site requesting a connection, we immediately close
-        # it and show the user a one-time warning message.
-        if not self._sites[origin].is_authenticated:
-            self._ws_server.closeConnection(socket_id)
-
-            warning_msg = (
-                "A request was received from %s. Shotgun Create is currently not logged into "
-                "that site, so the request has been rejected. You will need to log into %s from "
-                "Shotgun Create in order to see Toolkit menu actions or make use of local file "
-                "linking on that Shotgun site." % (origin, origin)
-            )
-            logger.warning(warning_msg)
-
-            if self._has_been_warned_cross_site:
-                logger.debug(
-                    "The user has already been shown the cross-site warning dialog -- not showing."
-                )
-            else:
-                from sgtk.platform.qt import QtGui, QtCore
-                msg_box = QtGui.QMessageBox(
-                    QtGui.QMessageBox.Warning,
-                    "Not Authenticated",
-                    warning_msg,
-                )
-                msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
-                msg_box.exec_()
-                self._has_been_warned_cross_site = True
-
-            return
+        origin_site = str(request.rawHeader("origin"))
 
         self._connections[socket_id] = WebsocketsConnection(
             socket_id,
-            self._sites[origin],
+            origin_site,
+            self._encryption_handler,
             self,
         )
 

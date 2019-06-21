@@ -94,6 +94,8 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         """
         super(GetActionsWebsocketsRequest, self).__init__(connection, id)
 
+        self._bundle = sgtk.platform.current_bundle()
+
         # note - parameter data is coming in from javascript so we
         #        perform some in-depth validation of the values
         #        prior to blindly accepting them.
@@ -124,7 +126,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         # websockets protocol as a performance improvement.
         if self._entity_type == "Task" and self._entity_id:
             logger.debug("Resolving linked entity for Task %s...", self._entity_id)
-            sg_data = connection.shotgun.find_one(
+            sg_data = self._bundle.shotgun.find_one(
                 "Task",
                 [["id", "is", self._entity_id]],
                 ["entity"]

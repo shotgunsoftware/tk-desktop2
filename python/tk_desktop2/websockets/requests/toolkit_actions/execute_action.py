@@ -66,6 +66,8 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         """
         super(ExecuteActionWebsocketsRequest, self).__init__(connection, id)
 
+        self._bundle = sgtk.platform.current_bundle()
+
         # note - parameter data is coming in from javascript so we
         #        perform some in-depth validation of the values
         #        prior to blindly accepting them.
@@ -110,7 +112,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         if parameters.get("project_id") is None:
             # resolve project id in case we are on a non-project page
             # todo: this could be handled in a far more elegant way on the javascript side
-            sg_data = connection.shotgun.find_one(
+            sg_data = self._bundle.shotgun.find_one(
                 self._entity_type,
                 [["id", "is", self._entity_id]],
                 ["project"]

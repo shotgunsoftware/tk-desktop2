@@ -6,6 +6,8 @@
 #
 
 from sgtk.platform import Engine
+import traceback
+import logging
 import sgtk
 import os
 import sys
@@ -19,8 +21,8 @@ class DesktopEngine2(Engine):
     """
 
     SHOTGUN_ENGINE_NAME = "tk-shotgun"
-
-    def init_engine(self):
+    
+    def pre_app_init(self):
         """
         Main initialization entry point.
         """
@@ -35,14 +37,14 @@ class DesktopEngine2(Engine):
         # exposes methods of communicating with the host application
         self._toolkit_manager = None
 
+        # Setup the styling to be inherited by child apps.
+        self._initialize_dark_look_and_feel()
+
     def post_app_init(self):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
         from sgtk.platform.qt import QtCore
-
-        # Setup the styling to be inherited by child apps.
-        self._initialize_dark_look_and_feel()
 
         # Get a handle to the ToolkitManager QObject.
         self._toolkit_manager = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
@@ -51,7 +53,13 @@ class DesktopEngine2(Engine):
     def toolkit_manager(self):
         """
         A handle to the manager object provided by the host application that exposes
-        some necessary functionality.
+        some necessary functionality. Methods exposed via this object effectively
+        act as the "API" for Shotgun create.
+
+        .. note:: This property is only set when the tk-desktop2 process is running inside
+                  the Shotgun Create application. The tk-desktop2 engine can also run 
+                  in a separate external process (for example when you launch an app 
+                  such as the publisher from Shotgun Create). 
         """
         return self._toolkit_manager
 
@@ -66,6 +74,32 @@ class DesktopEngine2(Engine):
 
         A Shotgun-utils external config instance is constructed to handle
         cross-context requests for actions and execution from the action model.
+
+        :param str plugin_id: The plugin id associated with the runtime environment.
+        :param str base_config: Descriptor URI for the config to use by default when
+            no custom pipeline configs have been defined in Shotgun.
+        """
+        try:
+            self._initialize_integrations(plugin_id, base_config)
+        except Exception:
+            
+            # NOTE: markdown formatting in sgds toast doesn't currently
+            # work, so just doing normal text instead of a preformatted
+            # segment for the call stack.
+            
+            # error message - gets shown as a toast.
+            message = "Failed to initialize integrations.\n\n"
+            message += "%s - %s\n\n" % (sys.exc_type.__name__, sys.exc_value[0], )
+            message += "For more details, see the error logs."
+            logger.error(message)
+
+            # log full stack as a warning
+            message += traceback.format_exc()
+            logger.warning(message)                        
+
+    def _initialize_integrations(self, plugin_id, base_config):
+        """
+        Implementation of :meth:`initialize_integrations`. 
 
         :param str plugin_id: The plugin id associated with the runtime environment.
         :param str base_config: Descriptor URI for the config to use by default when
@@ -124,7 +158,20 @@ class DesktopEngine2(Engine):
         :param record: Std python logging record
         :type record: :class:`~python.logging.LogRecord`
         """
-        # TODO - Figure out what the console should look like
+        # pop up errors as toasts in the console if this exists
+        if record.levelno > logging.WARNING and self.toolkit_manager:
+            
+            # note: there seems to be an odd bug where colons truncate the message
+            # as a workaround, remove all colons
+            cleaned_up_message = record.message.replace(":", ".")
+            # note: toasts support markdown
+            message = "**Shotgun Integration Error**\n\n%s" % (cleaned_up_message,)
+            
+            self.toolkit_manager.emitToast(
+                message,
+                "error",
+                True # don't automatically close.
+            )
 
     def destroy_engine(self):
         """
@@ -153,7 +200,7 @@ class DesktopEngine2(Engine):
             logger.debug("Engine shutdown complete.")
 
         except Exception as e:
-            self.log_exception("Error running engine teardown logic")
+            self.logger.exception("Error running engine teardown logic")
 
     @property
     def python_interpreter_path(self):

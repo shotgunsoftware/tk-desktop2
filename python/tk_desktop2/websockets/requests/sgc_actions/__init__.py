@@ -5,5 +5,6 @@
 # this software in either electronic or hard copy form.
 #
 
-from .open_file import OpenFileWebsocketsRequest
-from .pick_file import PickFileOrDirectoryWebsocketsRequest, PickFilesOrDirectoriesWebsocketsRequest
+from .open_task import OpenTaskInSGCreateWebsocketsRequest
+from .open_task_board import OpenTaskBoardInSGCreateWebsocketsRequest
+
