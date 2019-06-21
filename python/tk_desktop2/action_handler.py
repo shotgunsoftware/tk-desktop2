@@ -473,7 +473,7 @@ class ActionHandler(object):
 
         self._actions_model.appendAction(display_name, reason, "")
 
-        logger.error("Could not load actions for %s: %s" % (config, reason))
+        logger.warning("Could not load actions for %s: %s" % (config, reason))
 
     def _execute_action_payload(self, command):
         """
