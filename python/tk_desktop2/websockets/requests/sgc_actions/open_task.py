@@ -77,6 +77,8 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
             task_path.set_primary_entity(task_data["entity"]["type"], task_data["entity"]["id"])
             task_path.set_secondary_entity("Task", self._task_id)
 
+            version_path_str = None
+
             # validate that if a version exists, it's correctly linked to the task
             if self._version_id:
                 version_data = engine.shotgun.find_one(
@@ -94,15 +96,16 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                         "found in Shotgun!" % (self._version_id, self._task_id)
                     )
 
-            version_path = ShotgunEntityPath()
-            version_path.set_project(version_data["project"]["id"])
-            version_path.set_primary_entity(version_data["entity"]["type"], version_data["entity"]["id"])
-            version_path.set_secondary_entity("Version", self._version_id)
+                version_path = ShotgunEntityPath()
+                version_path.set_project(version_data["project"]["id"])
+                version_path.set_primary_entity(version_data["entity"]["type"], version_data["entity"]["id"])
+                version_path.set_secondary_entity("Version", self._version_id)
+                version_path_str = version_path.as_string()
 
             # call out to Shotgun Create UI to focus on the task
             self._bundle.toolkit_manager.emitOpenTaskRequest(
                 task_path.as_string(),
-                version_path.as_string(),
+                version_path_str
             )
                             
         except Exception as e:
