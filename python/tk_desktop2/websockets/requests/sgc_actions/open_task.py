@@ -52,6 +52,13 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
         else:
             self._version_id = None
 
+    @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics.
+        """
+        return "open_create_task"
+
     def execute(self):
         """
         Execute the payload of the command

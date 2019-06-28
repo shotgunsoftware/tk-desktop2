@@ -123,6 +123,13 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             self._project_id = parameters["project_id"]
 
     @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics.
+        """
+        return "execute_toolkit_action"
+
+    @property
     def requires_toolkit(self):
         """
         True if the request requires toolkit

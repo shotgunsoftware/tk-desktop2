@@ -83,6 +83,12 @@ class PickFilesOrDirectoriesWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
             pick_multiple=True
         )
 
+    @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics.
+        """
+        return "local_file_linking_pick_multiple_files"
 
 class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
     """
@@ -113,3 +119,10 @@ class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
             id, 
             pick_multiple=False
         )
+
+    @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics.
+        """
+        return "local_file_linking_pick_single_file"

@@ -73,6 +73,14 @@ class RequestRunner(QtCore.QObject):
 
         :param request: :class:`WebsocketsRequest` instance to execute.
         """
+        # log analytics
+        if request.analytics_command_name:
+            bundle = sgtk.platform.current_bundle()
+            bundle.log_metric(
+                "Executed websockets command", 
+                command_name=request.analytics_command_name
+            )
+
         if not request.requires_toolkit:
             # no toolkit context needed. Action straight away.
             request.execute()

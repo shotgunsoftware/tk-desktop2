@@ -70,6 +70,13 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
 
         self._path = parameters["filepath"]
 
+    @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics.
+        """
+        return "local_file_linking_open_file"
+
     def _execute(self):
         """
         Execute payload in a separate thread.

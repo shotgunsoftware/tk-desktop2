@@ -54,6 +54,13 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
         else:
             self._task_id = parameters["task_id"]
         
+    @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics.
+        """
+        return "open_create_task_board"
+
     def execute(self):
         """
         Execute the payload of the command

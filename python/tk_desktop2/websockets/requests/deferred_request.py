@@ -64,6 +64,13 @@ class DeferredRequest(object):
         """
         return self._request.linked_entity_type
 
+    @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics or None if no value should be logged.
+        """
+        return self._request.analytics_command_name
+
     def can_be_executed(self):
         """
         True if the request is ready to be executed, false if not
