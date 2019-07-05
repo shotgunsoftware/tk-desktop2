@@ -227,7 +227,7 @@ class WebsocketsConnection(object):
                 reply = util.create_reply(
                     {
                         "error": True,
-                        "error_message": "Calling user does match not currently logged in user.",
+                        "error_message": "Calling user does not match currently logged in user.",
                         "error_data": {"error_code": constants.CONNECTION_REFUSED_USER_MISMATCH},
                         "timestamp": datetime.datetime.now(),
                         "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
