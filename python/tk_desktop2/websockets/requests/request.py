@@ -106,6 +106,13 @@ class WebsocketsRequest(object):
         return None
 
     @property
+    def analytics_command_name(self):
+        """
+        The command name to pass to analytics or None if no value should be logged.
+        """
+        return None
+
+    @property
     def linked_entity_type(self):
         """
         Linked entity type associated with this request or None if not applicable.
