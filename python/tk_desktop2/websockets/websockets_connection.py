@@ -7,6 +7,7 @@
 import sgtk
 import pprint
 import datetime
+import re
 from . import util
 from . import requests
 from . import constants
@@ -38,6 +39,10 @@ class WebsocketsConnection(object):
     # handle legacy ui popups for site/user mismatch
     _legacy_site_warning_displayed = False
     _legacy_user_warning_displayed = False
+
+    # Pre-compiled shotgunlocalhost.com/localhost regex matcher
+    # You can play with it here: https://regex101.com/r/7n3JIp/3
+    localhost_re = re.compile(r"^https?://(?:shotgunlocalhost\.com|localhost):[0-9]{1,5}$")
 
     def __init__(self, socket_id, origin_site, encryption_handler, server_wrapper):
         """
@@ -186,9 +191,9 @@ class WebsocketsConnection(object):
                 "Unexpected error while trying to retrieve the user id: "
                 "No user information was found in this request."
             )
-
-        # validate that the site of the request matches the sg create site
-        if self._origin_site != self._bundle.sgtk.shotgun_url:
+        
+        # validate that the site of the request matches shotgunlocalhost.com or the sg create site
+        if not WebsocketsConnection.localhost_re.match(self._origin_site) and self._origin_site != self._bundle.sgtk.shotgun_url:
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
                 if not WebsocketsConnection._legacy_site_warning_displayed:
@@ -338,3 +343,4 @@ class WebsocketsConnection(object):
             )
             data = {"retcode": -1, "out": "", "err": str(e)}
             self.reply(data, message_obj["id"])
+
