@@ -40,9 +40,9 @@ class WebsocketsConnection(object):
     _legacy_site_warning_displayed = False
     _legacy_user_warning_displayed = False
 
-    # localhost url regex matcher
-    # https://regex101.com/r/OeTZRx/4
-    localhost_re = re.compile(r"^(?:[A-Za-z]+://)?(?:(?:shotgunlocalhost\.com)|(?:localhost))(?::\d+)?(?:/\S*)*$")
+    # Pre-compiled shotgunlocalhost.com/localhost regex matcher
+    # You can play with it here: https://regex101.com/r/7n3JIp/3
+    localhost_re = re.compile(r"^https?://(?:shotgunlocalhost\.com|localhost):[0-9]{1,5}$")
 
     def __init__(self, socket_id, origin_site, encryption_handler, server_wrapper):
         """
