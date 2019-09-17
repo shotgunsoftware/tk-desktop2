@@ -34,15 +34,17 @@ class WebsocketsConnection(object):
     for the actual execution of the commands.
     """
     # the various states which the connection can be in
-    (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST, AWAITING_ENCRYPTED_REQUEST) = range(3)
+    (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST,
+     AWAITING_ENCRYPTED_REQUEST) = range(3)
 
     # handle legacy ui popups for site/user mismatch
     _legacy_site_warning_displayed = False
     _legacy_user_warning_displayed = False
 
     # Pre-compiled shotgunlocalhost.com/localhost regex matcher
-    # You can play with it here: https://regex101.com/r/7n3JIp/3
-    localhost_re = re.compile(r"^https?://(?:shotgunlocalhost\.com|localhost):[0-9]{1,5}$")
+    # You can play with it here: https://regex101.com/r/7n3JIp/8
+    localhost_re = re.compile(
+        r"^https?://(?:shotgunlocalhost\.com|localhost|127\.0\.0\.1)(?::[0-9]{1,5})?$")
 
     def __init__(self, socket_id, origin_site, encryption_handler, server_wrapper):
         """
@@ -174,14 +176,16 @@ class WebsocketsConnection(object):
 
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
-        logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
+        logger.debug("Received server id request: %s" %
+                     pprint.pformat(message_obj))
 
         # make sure the client has provided an id for the request
         if "id" not in message_obj:
-            raise RuntimeError("%s: Invalid websockets request - missing id." % self)
+            raise RuntimeError(
+                "%s: Invalid websockets request - missing id." % self)
 
         # The version of Shotgun that Shotgun Create is connected to
-        shotgun_version = self._bundle.shotgun.server_caps.version or (0,0,0)
+        shotgun_version = self._bundle.shotgun.server_caps.version or (0, 0, 0)
 
         # Try to get the user information. If that fails, we need to report the error.
         try:
@@ -191,13 +195,26 @@ class WebsocketsConnection(object):
                 "Unexpected error while trying to retrieve the user id: "
                 "No user information was found in this request."
             )
-        
+
+        request_is_localhost = WebsocketsConnection.localhost_re.match(
+            self._origin_site)
+        request_is_shotgunsite = self._origin_site != self._bundle.sgtk.shotgun_url
+
+        if request_is_localhost:
+            logger.debug("Request's origin site is localhost")
+        elif request_is_shotgunsite:
+            logger.debug(
+                "Request's origin is the currently logged in Shotgun site")
+        else:
+            logger.debug("{} is an unknown origin".format(self._origin_site))
+
         # validate that the site of the request matches shotgunlocalhost.com or the sg create site
-        if not WebsocketsConnection.localhost_re.match(self._origin_site) and self._origin_site != self._bundle.sgtk.shotgun_url:
+        if not request_is_localhost and not request_is_shotgunsite:
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
                 if not WebsocketsConnection._legacy_site_warning_displayed:
-                    util.show_site_mismatch_popup(self._bundle, self._origin_site)
+                    util.show_site_mismatch_popup(
+                        self._bundle, self._origin_site)
                     WebsocketsConnection._legacy_site_warning_displayed = True
             else:
                 # send error to web client
@@ -225,7 +242,8 @@ class WebsocketsConnection(object):
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
                 if not WebsocketsConnection._legacy_user_warning_displayed:
-                    util.show_user_mismatch_popup(self._bundle, request_user_id)
+                    util.show_user_mismatch_popup(
+                        self._bundle, request_user_id)
                     WebsocketsConnection._legacy_user_warning_displayed = True
             else:
                 # send error to web client
@@ -303,7 +321,7 @@ class WebsocketsConnection(object):
         #
 
         # first decrypt message
-        try: 
+        try:
             message = self._encryption_handler.decrypt(message)
         except Exception as e:
             raise RuntimeError("%s: Could not decrypt payload: %s" % (self, e))
@@ -311,7 +329,8 @@ class WebsocketsConnection(object):
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
 
-        logger.debug("Received Shotgun request: %s" % pprint.pformat(message_obj))
+        logger.debug("Received Shotgun request: %s" %
+                     pprint.pformat(message_obj))
 
         # We expect every response to have the protocol version set earlier
         if message_obj.get("protocol_version") != constants.WEBSOCKETS_PROTOCOL_VERSION:
@@ -338,9 +357,9 @@ class WebsocketsConnection(object):
 
         except Exception as e:
             logger.debug(
-                "Exception raised while scheduling request %s" % pprint.pformat(message_obj),
+                "Exception raised while scheduling request %s" % pprint.pformat(
+                    message_obj),
                 exc_info=True
             )
             data = {"retcode": -1, "out": "", "err": str(e)}
             self.reply(data, message_obj["id"])
-
