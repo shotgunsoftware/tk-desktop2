@@ -7,4 +7,4 @@
 
 from .open_task import OpenTaskInSGCreateWebsocketsRequest
 from .open_task_board import OpenTaskBoardInSGCreateWebsocketsRequest
-
+from .set_media_path import SetMediaPathInSGCreateWebsocketsRequest
