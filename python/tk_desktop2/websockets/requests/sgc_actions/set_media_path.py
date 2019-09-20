@@ -13,11 +13,11 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class SetMediaPathInSGCreateWebsocketsRequest(WebsocketsRequest):
     """
-    Requests that set the current media in the Shotgun Create player.
+    Requests that sets the current media in the Shotgun Create player.
 
     This is a 'fire-and-forget' command that doesn't return anything.
 
-    Parameters dictionary is expected to be on the following form:
+    Parameters dictionary is expected to be of the following form:
 
     {
         'path': "/path/to/a/file/to/load"
@@ -37,7 +37,6 @@ class SetMediaPathInSGCreateWebsocketsRequest(WebsocketsRequest):
 
         self._bundle = sgtk.platform.current_bundle()
 
-        # validate
         if "path" not in parameters:
             raise ValueError(
                 "%s: Missing required 'path' key "
