@@ -198,7 +198,7 @@ class WebsocketsConnection(object):
 
         request_is_localhost = WebsocketsConnection.localhost_re.match(
             self._origin_site)
-        request_is_shotgunsite = self._origin_site != self._bundle.sgtk.shotgun_url
+        request_is_shotgunsite = self._origin_site == self._bundle.sgtk.shotgun_url
 
         if request_is_localhost:
             logger.debug("Request's origin site is localhost")
