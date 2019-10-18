@@ -23,7 +23,7 @@ def get_supported_commands():
     from .toolkit_actions import GetActionsWebsocketsRequest
     from .sgc_actions import OpenTaskInSGCreateWebsocketsRequest
     from .sgc_actions import OpenTaskBoardInSGCreateWebsocketsRequest
-    from .sgc_actions import SetMediaPathInSGCreateWebsocketsRequest
+    from .sgc_actions import OpenVersionDraftInSGCreateWebsocketsRequest
     from .list_commands import ListSupportedCommandsWebsocketsRequest
 
     # supported commands
@@ -40,7 +40,7 @@ def get_supported_commands():
         # shotgun Create integration
         "sgc_open_task": {"class": OpenTaskInSGCreateWebsocketsRequest},
         "sgc_open_task_board": {"class": OpenTaskBoardInSGCreateWebsocketsRequest},
-        "set_media_path": {"class": SetMediaPathInSGCreateWebsocketsRequest}
+        "sgc_open_version_draft": {"class": OpenVersionDraftInSGCreateWebsocketsRequest}
     }
 
     return commands
