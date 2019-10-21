@@ -23,8 +23,8 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
 
     Parameter details:
 
-    - project_id: If set to null, indicates that the project board for all 
-                  projects should be displayed. If set to a project id, 
+    - project_id: If set to null, indicates that the project board for all
+                  projects should be displayed. If set to a project id,
                   the project id for this specific project is displayed.
     - task_id:    An optional task to select. If a project_id is selected,
                   this task should belong to that given project. If set to
@@ -38,22 +38,23 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
         :param dict params: Parameters payload from websockets.
         """
         super(OpenTaskBoardInSGCreateWebsocketsRequest, self).__init__(connection, id)
-        
+
         self._bundle = sgtk.platform.current_bundle()
 
         # validate
         if "project_id" not in parameters:
             raise ValueError(
-                "%s: Missing required 'project_id' key in parameter payload %s" % (self, parameters)
+                "%s: Missing required 'project_id' key in parameter payload %s"
+                % (self, parameters)
             )
         else:
             self._project_id = parameters["project_id"]
-        
+
         if "task_id" not in parameters:
             self._task_id = None
         else:
             self._task_id = parameters["task_id"]
-        
+
     @property
     def analytics_command_name(self):
         """
@@ -73,9 +74,9 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
                 )
                 if not project_data:
                     raise ValueError("Invalid project id!")
-            
+
             # validate that the task id belongs to a valid project
-            # and if a project is specified, that it is linked to 
+            # and if a project is specified, that it is linked to
             # that project
             if self._task_id:
                 filters = [["id", "is", self._task_id]]
@@ -89,13 +90,9 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
                     raise ValueError("Invalid task id!")
 
             self._bundle.toolkit_manager.emitOpenTaskBoardRequest(
-                self._project_id, 
-                self._task_id
-            )         
-        except Exception as e:
-            self._reply_with_status(
-                status=1,
-                error=str(e)
+                self._project_id, self._task_id
             )
+        except Exception as e:
+            self._reply_with_status(status=1, error=str(e))
         else:
             self._reply_with_status(0)

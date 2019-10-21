@@ -17,8 +17,7 @@ from .shotgun_entity_path import ShotgunEntityPath
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils",
-    "external_config"
+    "tk-framework-shotgunutils", "external_config"
 )
 
 
@@ -36,6 +35,7 @@ class ActionHandler(object):
     project and cross context and the external_config Shotgunutils
     module is utilized to retrieve the actions.
     """
+
     # QObject name for the C++ actions model
     ACTION_MODEL_OBJECT_NAME = "ToolkitActionModel"
 
@@ -82,9 +82,13 @@ class ActionHandler(object):
             )
         else:
             # install signals from actions model
-            self._actions_model.currentEntityPathChanged.connect(self._populate_context_menu)
+            self._actions_model.currentEntityPathChanged.connect(
+                self._populate_context_menu
+            )
             self._actions_model.actionTriggered.connect(self._execute_action)
-            self._actions_model.currentProjectChanged.connect(self._preload_configurations)
+            self._actions_model.currentProjectChanged.connect(
+                self._preload_configurations
+            )
 
             # hook up external configuration loader
             self._config_loader = external_config.ExternalConfigurationLoader(
@@ -93,10 +97,14 @@ class ActionHandler(object):
                 plugin_id,
                 base_config,
                 task_manager,
-                qt_parent
+                qt_parent,
             )
-            self._config_loader.configurations_loaded.connect(self._on_configurations_loaded)
-            self._config_loader.configurations_changed.connect(self._on_configurations_changed)
+            self._config_loader.configurations_loaded.connect(
+                self._on_configurations_loaded
+            )
+            self._config_loader.configurations_changed.connect(
+                self._on_configurations_changed
+            )
 
     def destroy(self):
         """
@@ -107,7 +115,9 @@ class ActionHandler(object):
         if self._actions_model:
             # make sure that we release signals from the C++ object
             logger.debug("Disconnecting engine from internal actions model.")
-            self._actions_model.currentEntityPathChanged.disconnect(self._populate_context_menu)
+            self._actions_model.currentEntityPathChanged.disconnect(
+                self._populate_context_menu
+            )
             self._actions_model.actionTriggered.disconnect(self._execute_action)
             self._actions_model = None
 
@@ -188,10 +198,14 @@ class ActionHandler(object):
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
-            cache_out_of_date = (time.time() - self._last_update_check) > constants.CONFIG_CHECK_TIMEOUT_SECONDS
+            cache_out_of_date = (
+                time.time() - self._last_update_check
+            ) > constants.CONFIG_CHECK_TIMEOUT_SECONDS
             if cache_out_of_date:
                 # time to check with Shotgun if there are updates
-                logger.debug("Requesting a check to see if any changes have happened in Shotgun.")
+                logger.debug(
+                    "Requesting a check to see if any changes have happened in Shotgun."
+                )
                 self._last_update_check = time.time()
                 # refresh - this may trigger a call to _on_configurations_changed
                 self._config_loader.refresh_shotgun_global_state()
@@ -209,17 +223,17 @@ class ActionHandler(object):
             if invalid_configs:
                 logger.debug(
                     "Configurations were cached, but contained at least one invalid config. "
-                    "Requesting configuration data for project %s", sg_entity.project_id
+                    "Requesting configuration data for project %s",
+                    sg_entity.project_id,
                 )
             else:
                 logger.debug(
                     "No configurations cached. Requesting configuration data for "
-                    "project %s", sg_entity.project_id
+                    "project %s",
+                    sg_entity.project_id,
                 )
 
-            self._config_loader.request_configurations(
-                sg_entity.project_id
-            )
+            self._config_loader.request_configurations(sg_entity.project_id)
 
     def _preload_configurations(self, project_id):
         """
@@ -227,9 +241,7 @@ class ActionHandler(object):
 
         :param int project_id: The entity id of the Project to preload.
         """
-        logger.debug(
-            "Preloading configurations for project id=%s", project_id
-        )
+        logger.debug("Preloading configurations for project id=%s", project_id)
         self._config_loader.request_configurations(project_id)
 
     def _on_configurations_changed(self):
@@ -264,7 +276,9 @@ class ActionHandler(object):
 
         # reload our configurations
         # _on_configurations_loaded will triggered when configurations are loaded
-        logger.debug("Requesting new configurations for project id %s.", sg_entity.project_id)
+        logger.debug(
+            "Requesting new configurations for project id %s.", sg_entity.project_id
+        )
         self._config_loader.request_configurations(sg_entity.project_id)
 
     def _on_configurations_loaded(self, project_id, configs):
@@ -321,18 +335,24 @@ class ActionHandler(object):
         if not self._cached_configs.get(project_id, []):
             # this project has no configs associated
             # display 'nothing found' message
-            #self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
+            # self._actions_model.appendAction(self.NO_ACTIONS_FOUND_LABEL, "", "")
             pass
 
         else:
 
             logger.debug(
-                "Requesting commands for project %s, %s %s", project_id, entity_type, entity_id
+                "Requesting commands for project %s, %s %s",
+                project_id,
+                entity_type,
+                entity_id,
             )
 
             for config in self._cached_configs[project_id]:
                 if not config.is_valid:
-                    logger.warning("Configuration %s is not valid. Commands will not be loaded.", config)
+                    logger.warning(
+                        "Configuration %s is not valid. Commands will not be loaded.",
+                        config,
+                    )
                     continue
 
                 # If the tk_desktop2 engine cannot be found, fall back
@@ -345,7 +365,9 @@ class ActionHandler(object):
                     engine_fallback=constants.FALLBACK_ENGINE,
                 )
 
-    def _on_commands_loaded(self, project_id, entity_type, entity_id, link_entity_type, config, commands):
+    def _on_commands_loaded(
+        self, project_id, entity_type, entity_id, link_entity_type, config, commands
+    ):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -359,7 +381,9 @@ class ActionHandler(object):
         :param config: Associated class:`ExternalConfiguration` instance.
         :param list commands: List of :class:`ExternalCommand` instances.
         """
-        logger.debug("Commands loaded for %s (type=%s, id=%s)", config, entity_type, entity_id)
+        logger.debug(
+            "Commands loaded for %s (type=%s, id=%s)", config, entity_type, entity_id
+        )
 
         # If we don't have an entity path, it's because we were pre-loading commands
         # on a project change or initial launch. We don't need to do anything else.
@@ -416,7 +440,10 @@ class ActionHandler(object):
             if config.is_primary:
                 display_name = command.display_name
             else:
-                display_name = "%s: %s" % (config.pipeline_configuration_name, command.display_name)
+                display_name = "%s: %s" % (
+                    config.pipeline_configuration_name,
+                    command.display_name,
+                )
 
             # This is addressing a pretty extreme edge case, but if there are multiple
             # PC entities for the project referencing the exact same config on disk,
@@ -432,14 +459,14 @@ class ActionHandler(object):
                 json_string = json.dumps(pickle_dict)
 
                 self._actions_model.appendAction(
-                    display_name,
-                    command.tooltip,
-                    json_string
+                    display_name, command.tooltip, json_string
                 )
 
         self._actions_model.actionsChanged()
 
-    def _on_commands_load_failed(self, project_id, entity_type, entity_id, link_entity_type, config, reason):
+    def _on_commands_load_failed(
+        self, project_id, entity_type, entity_id, link_entity_type, config, reason
+    ):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -469,7 +496,9 @@ class ActionHandler(object):
         if config.is_primary:
             display_name = "Error Loading Actions"
         else:
-            display_name = "%s: Error Loading Actions" % config.pipeline_configuration_name
+            display_name = (
+                "%s: Error Loading Actions" % config.pipeline_configuration_name
+            )
 
         self._actions_model.appendAction(display_name, reason, "")
 
@@ -495,7 +524,10 @@ class ActionHandler(object):
             # however the Shotgun engine could not find a PyQt or PySide installation in
             # your python system path. We recommend that you install PySide if you want to
             # run UI applications from within Shotgun.
-            if "Looks like you are trying to run a Sgtk App that uses a QT based UI" in str(e):
+            if (
+                "Looks like you are trying to run a Sgtk App that uses a QT based UI"
+                in str(e)
+            ):
                 logger.error(
                     "The version of the Toolkit Shotgun Engine (tk-shotgun) you "
                     "are running does not support PySide2. Please upgrade your "
@@ -520,8 +552,10 @@ class ActionHandler(object):
             # Get the Python pickle string out of the JSON obj comming from C++
             json_obj = json.loads(action_str)
             if self.KEY_PICKLE_STR not in json_obj:
-                raise RuntimeError("The command's serialized Python data could not be found in the action's payload"
-                                   "that Shotgun Create provided. The action cannot be executed as a result.")
+                raise RuntimeError(
+                    "The command's serialized Python data could not be found in the action's payload"
+                    "that Shotgun Create provided. The action cannot be executed as a result."
+                )
 
             # and create a command object.
             pickle_string = json_obj[self.KEY_PICKLE_STR]
@@ -536,7 +570,7 @@ class ActionHandler(object):
             self._toolkit_manager.emitToast(
                 "Launching %s..." % action.display_name,
                 "info",
-                False # Not persistent, meaning it'll stay for 5 seconds and disappear.
+                False,  # Not persistent, meaning it'll stay for 5 seconds and disappear.
             )
 
             # run in a thread to not block
@@ -546,5 +580,3 @@ class ActionHandler(object):
             # and the action process can live on
             worker.daemon = True
             worker.start()
-
-

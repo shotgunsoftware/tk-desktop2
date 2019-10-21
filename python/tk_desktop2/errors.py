@@ -5,6 +5,7 @@
 # this software in either electronic or hard copy form.
 #
 
+
 class PathParseError(RuntimeError):
     """
     Raised when a desktop2 style path cannot be parsed

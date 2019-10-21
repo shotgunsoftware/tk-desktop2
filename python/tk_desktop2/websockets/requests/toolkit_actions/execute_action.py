@@ -12,8 +12,7 @@ from ..request import WebsocketsRequest
 logger = sgtk.LogManager.get_logger(__name__)
 
 external_config = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils",
-    "external_config"
+    "tk-framework-shotgunutils", "external_config"
 )
 
 
@@ -77,11 +76,13 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             "pc",
             "entity_ids",
             "entity_type",
-            "project_id"
+            "project_id",
         ]
         for required_param in required_params:
             if required_param not in parameters:
-                raise ValueError("%s: Missing parameter '%s' in payload." % (self, required_param))
+                raise ValueError(
+                    "%s: Missing parameter '%s' in payload." % (self, required_param)
+                )
 
         self._resolved_command = None
         self._command_name = parameters["name"]
@@ -113,9 +114,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             # resolve project id in case we are on a non-project page
             # todo: this could be handled in a far more elegant way on the javascript side
             sg_data = self._bundle.shotgun.find_one(
-                self._entity_type,
-                [["id", "is", self._entity_id]],
-                ["project"]
+                self._entity_type, [["id", "is", self._entity_id]], ["project"]
             )
             self._project_id = sg_data["project"]["id"]
         else:
@@ -164,8 +163,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         try:
             if self._resolved_command.support_shotgun_multiple_selection:
                 output = self._resolved_command.execute_on_multiple_entities(
-                    pre_cache=True,
-                    entity_ids=self._entity_ids,
+                    pre_cache=True, entity_ids=self._entity_ids
                 )
             else:
                 output = self._resolved_command.execute(pre_cache=True)
@@ -184,22 +182,22 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
             # your python system path. We recommend that you install PySide if you want to
             # run UI applications from within Shotgun.
 
-            if "Looks like you are trying to run a Sgtk App that uses a QT based UI" in str(e):
+            if (
+                "Looks like you are trying to run a Sgtk App that uses a QT based UI"
+                in str(e)
+            ):
                 self._reply_with_status(
                     status=1,
                     error=(
                         "The version of the Toolkit Shotgun Engine (tk-shotgun) you "
                         "are running does not support PySide2. Please upgrade your "
                         "configuration to use version v0.8.0 or above of the engine."
-                    )
+                    ),
                 )
 
             else:
                 # bubble up the error message
-                self._reply_with_status(
-                    status=1,
-                    error=str(e)
-                )
+                self._reply_with_status(status=1, error=str(e))
 
     def execute_with_context(self, associated_commands):
         """
@@ -230,7 +228,9 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
 
             # this is a zero config setup with no record in Shotgun
             # such a config is expected to be named Primary in Shotgun
-            config_name = config["configuration"].pipeline_configuration_name or "Primary"
+            config_name = (
+                config["configuration"].pipeline_configuration_name or "Primary"
+            )
 
             if config_name == self._config_name:
                 for command in config["commands"] or []:

@@ -62,7 +62,10 @@ class DesktopEngine2(Engine):
         """
         try:
             from sgtk.platform.qt import QtCore
-            return QtCore.QCoreApplication.instance().findChild(QtCore.QObject, "sgtk-manager")
+
+            return QtCore.QCoreApplication.instance().findChild(
+                QtCore.QObject, "sgtk-manager"
+            )
         except:
             return None
 
@@ -92,7 +95,7 @@ class DesktopEngine2(Engine):
 
             # error message - gets shown as a toast.
             message = "Failed to initialize integrations.\n\n"
-            message += "%s - %s\n\n" % (sys.exc_type.__name__, sys.exc_value[0], )
+            message += "%s - %s\n\n" % (sys.exc_type.__name__, sys.exc_value[0])
             message += "For more details, see the error logs."
             logger.error(message)
 
@@ -109,6 +112,7 @@ class DesktopEngine2(Engine):
             no custom pipeline configs have been defined in Shotgun.
         """
         from sgtk.platform.qt import QtCore, QtGui
+
         logger.debug("Begin initializing action integrations")
         logger.debug("Engine instance name: %s" % self.name)
         logger.debug("Plugin id: %s" % plugin_id)
@@ -122,9 +126,7 @@ class DesktopEngine2(Engine):
 
         # create a background task manager
         self._task_manager = task_manager.BackgroundTaskManager(
-            qt_parent,
-            start_processing=True,
-            max_threads=1
+            qt_parent, start_processing=True, max_threads=1
         )
 
         # set it up with the Shotgun globals
@@ -134,23 +136,16 @@ class DesktopEngine2(Engine):
 
         # start up the action handler which handles menu interaction
         self._actions_handler = tk_desktop2.ActionHandler(
-            plugin_id,
-            base_config,
-            self._task_manager
+            plugin_id, base_config, self._task_manager
         )
 
         # initialize the runner which executes websocket commands
         self._ws_runner = tk_desktop2.RequestRunner(
-            self.SHOTGUN_ENGINE_NAME,
-            plugin_id,
-            base_config,
-            self._task_manager
+            self.SHOTGUN_ENGINE_NAME, plugin_id, base_config, self._task_manager
         )
 
         # start up websockets server
-        self._ws_handler = tk_desktop2.WebsocketsServer(
-            self._ws_runner
-        )
+        self._ws_handler = tk_desktop2.WebsocketsServer(self._ws_runner)
 
     def _emit_log_message(self, handler, record):
         """
@@ -174,22 +169,21 @@ class DesktopEngine2(Engine):
                 else:  # record.levelno < logging.INFO
                     log_level = "debug"
 
-                self.toolkit_manager.logMessage(
-                    log_level, record.message)
+                self.toolkit_manager.logMessage(log_level, record.message)
 
             # Log a toast when the level is higher than Warning
-            if hasattr(self.toolkit_manager, "emitToast") and record.levelno > logging.WARNING:
+            if (
+                hasattr(self.toolkit_manager, "emitToast")
+                and record.levelno > logging.WARNING
+            ):
                 # note: there seems to be an odd bug where colons truncate the message
                 # as a workaround, remove all colons
                 cleaned_up_message = record.message.replace(":", ".")
                 # note: toasts support markdown
-                message = "**Shotgun Integration Error**\n\n%s" % (
-                    cleaned_up_message,)
+                message = "**Shotgun Integration Error**\n\n%s" % (cleaned_up_message,)
 
                 self.toolkit_manager.emitToast(
-                    message,
-                    "error",
-                    True  # don't automatically close.
+                    message, "error", True  # don't automatically close.
                 )
 
     def destroy_engine(self):

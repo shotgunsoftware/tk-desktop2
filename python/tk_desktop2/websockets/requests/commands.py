@@ -40,7 +40,9 @@ def get_supported_commands():
         # shotgun Create integration
         "sgc_open_task": {"class": OpenTaskInSGCreateWebsocketsRequest},
         "sgc_open_task_board": {"class": OpenTaskBoardInSGCreateWebsocketsRequest},
-        "sgc_open_version_draft": {"class": OpenVersionDraftInSGCreateWebsocketsRequest}
+        "sgc_open_version_draft": {
+            "class": OpenVersionDraftInSGCreateWebsocketsRequest
+        },
     }
 
     return commands

@@ -97,9 +97,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
         combo.setEditable(True)
 
         # Search for the line edit widget, it has no name so scan for it.
-        line_edits = filter(
-            lambda c: isinstance(c, QtGui.QLineEdit), combo.children()
-        )
+        line_edits = filter(lambda c: isinstance(c, QtGui.QLineEdit), combo.children())
 
         if len(line_edits) != 1:
             logger.warning(

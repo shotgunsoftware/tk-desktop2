@@ -46,7 +46,7 @@ class WebsocketsRequest(object):
         command_name = command["name"]
         command_data = command["data"]
         commands = get_supported_commands()
-        
+
         if command_name in commands:
             # get the class and return an instance
             Class = commands[command_name]["class"]
@@ -54,9 +54,7 @@ class WebsocketsRequest(object):
         else:
             raise RuntimeError(
                 "Unsupported command '%s'. "
-                "Supported commands are %s" % (
-                    command_name, ", ".join(commands)
-                )
+                "Supported commands are %s" % (command_name, ", ".join(commands))
             )
 
     def __init__(self, connection, id):
@@ -71,11 +69,7 @@ class WebsocketsRequest(object):
         """
         String representation
         """
-        return "<%s id %s@%s>" % (
-            self.__class__.__name__,
-            self._id,
-            self._connection
-        )
+        return "<%s id %s@%s>" % (self.__class__.__name__, self._id, self._connection)
 
     @property
     def requires_toolkit(self):
@@ -171,10 +165,4 @@ class WebsocketsRequest(object):
         :param str output: Messages
         :param str error: Error messages
         """
-        self._reply(
-            {
-                "retcode": status,
-                "out": (output or ""),
-                "err": (error or ""),
-            }
-        )
+        self._reply({"retcode": status, "out": (output or ""), "err": (error or "")})

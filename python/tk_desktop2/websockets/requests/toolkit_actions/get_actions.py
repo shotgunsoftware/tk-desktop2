@@ -82,7 +82,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
 
     # RPC return codes.
     SUCCESSFUL_LOOKUP = 0
-    CACHING_NOT_COMPLETED = 1    # legacy
+    CACHING_NOT_COMPLETED = 1  # legacy
     UNSUPPORTED_ENTITY_TYPE = 2  # legacy
     CACHING_ERROR = 3
 
@@ -99,14 +99,12 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         # note - parameter data is coming in from javascript so we
         #        perform some in-depth validation of the values
         #        prior to blindly accepting them.
-        required_params = [
-            "entity_id",
-            "entity_type",
-            "project_id"
-        ]
+        required_params = ["entity_id", "entity_type", "project_id"]
         for required_param in required_params:
             if required_param not in parameters:
-                raise ValueError("%s: Missing parameter '%s' in payload." % (self, required_param))
+                raise ValueError(
+                    "%s: Missing parameter '%s' in payload." % (self, required_param)
+                )
 
         self._entity_id = parameters["entity_id"]
         self._entity_type = parameters["entity_type"]
@@ -127,9 +125,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         if self._entity_type == "Task" and self._entity_id:
             logger.debug("Resolving linked entity for Task %s...", self._entity_id)
             sg_data = self._bundle.shotgun.find_one(
-                "Task",
-                [["id", "is", self._entity_id]],
-                ["entity"]
+                "Task", [["id", "is", self._entity_id]], ["entity"]
             )
             logger.debug("Task is linked with %s", sg_data)
             if sg_data["entity"]:
@@ -201,40 +197,37 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
                 errors.append(command["error"])
 
         if len(errors) > 0:
-            self._reply_with_status(
-                status=self.CACHING_ERROR,
-                error="\n".join(errors)
-            )
+            self._reply_with_status(status=self.CACHING_ERROR, error="\n".join(errors))
             return
 
         # compile response
-        response = {
-            "retcode": 0,
-            "pcs": [],
-            "actions": {}
-        }
+        response = {"retcode": 0, "pcs": [], "actions": {}}
 
         for config in associated_commands:
 
             # this is a zero config setup with no record in Shotgun
             # such a config is expected to be named Primary in Shotgun
-            config_name = config["configuration"].pipeline_configuration_name or "Primary"
+            config_name = (
+                config["configuration"].pipeline_configuration_name or "Primary"
+            )
 
             response["pcs"].append(config_name)
 
             # figure out the actions
             actions = []
             for command in config["commands"]:
-                actions.append({
-                    "name": command.system_name,
-                    "title": command.display_name,
-                    "deny_permissions": command.excluded_permission_groups_hint,
-                    "app_name": "UNSPECIFIED",  # legacy
-                    "group": command.group,
-                    "group_default": command.is_group_default,
-                    "engine_name": "UNSPECIFIED",  # legacy
-                    "supports_multiple_selection": command.support_shotgun_multiple_selection,
-                })
+                actions.append(
+                    {
+                        "name": command.system_name,
+                        "title": command.display_name,
+                        "deny_permissions": command.excluded_permission_groups_hint,
+                        "app_name": "UNSPECIFIED",  # legacy
+                        "group": command.group,
+                        "group_default": command.is_group_default,
+                        "engine_name": "UNSPECIFIED",  # legacy
+                        "supports_multiple_selection": command.support_shotgun_multiple_selection,
+                    }
+                )
 
             response["actions"][config_name] = {
                 "config": config_name,

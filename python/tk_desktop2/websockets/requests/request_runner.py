@@ -13,8 +13,7 @@ from ... import constants
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
-    "tk-framework-shotgunutils",
-    "external_config"
+    "tk-framework-shotgunutils", "external_config"
 )
 
 
@@ -61,10 +60,14 @@ class RequestRunner(QtCore.QObject):
             plugin_id,
             base_config,
             task_manager,
-            qt_parent
+            qt_parent,
         )
-        self._config_loader.configurations_loaded.connect(self._on_configurations_loaded)
-        self._config_loader.configurations_changed.connect(self._on_configurations_changed)
+        self._config_loader.configurations_loaded.connect(
+            self._on_configurations_loaded
+        )
+        self._config_loader.configurations_changed.connect(
+            self._on_configurations_changed
+        )
 
     def execute(self, request):
         """
@@ -77,8 +80,8 @@ class RequestRunner(QtCore.QObject):
         if request.analytics_command_name:
             bundle = sgtk.platform.current_bundle()
             bundle.log_metric(
-                "Executed websockets command", 
-                command_name=request.analytics_command_name
+                "Executed websockets command",
+                command_name=request.analytics_command_name,
             )
 
         if not request.requires_toolkit:
@@ -99,10 +102,14 @@ class RequestRunner(QtCore.QObject):
             logger.debug("Configurations cached in memory.")
             # we got the configs cached!
             # ping a check to check that Shotgun pipeline configs are up to date
-            cache_out_of_date = (time.time() - self._last_update_check) > constants.CONFIG_CHECK_TIMEOUT_SECONDS
+            cache_out_of_date = (
+                time.time() - self._last_update_check
+            ) > constants.CONFIG_CHECK_TIMEOUT_SECONDS
             if cache_out_of_date:
                 # time to check with Shotgun if there are updates
-                logger.debug("Requesting a check to see if any changes have happened in Shotgun.")
+                logger.debug(
+                    "Requesting a check to see if any changes have happened in Shotgun."
+                )
                 self._last_update_check = time.time()
                 # refresh - this may trigger a call to _on_configurations_changed
                 self._config_loader.refresh_shotgun_global_state()
@@ -116,7 +123,7 @@ class RequestRunner(QtCore.QObject):
                     deferred_request.project_id,
                     deferred_request.entity_type,
                     deferred_request.entity_id,
-                    deferred_request.linked_entity_type
+                    deferred_request.linked_entity_type,
                 )
 
         else:
@@ -139,7 +146,9 @@ class RequestRunner(QtCore.QObject):
         )
 
         for deferred_request in self._active_requests:
-            logger.debug("Requesting new configurations for %s." % deferred_request.project_id)
+            logger.debug(
+                "Requesting new configurations for %s." % deferred_request.project_id
+            )
             self._config_loader.request_configurations(deferred_request.project_id)
 
     def _on_configurations_loaded(self, project_id, configs):
@@ -163,20 +172,22 @@ class RequestRunner(QtCore.QObject):
         invalid_configs = [c for c in configs if not c.is_valid]
         if invalid_configs:
             invalid_ids = [c.pipeline_configuration_id for c in invalid_configs]
-            reason = "Cannot resolve configurations with the following ids: %s" % (invalid_ids,)
+            reason = "Cannot resolve configurations with the following ids: %s" % (
+                invalid_ids,
+            )
             logger.warning(reason)
 
             for deferred_request in self._active_requests:
                 if deferred_request.project_id == project_id:
                     deferred_request.register_configurations(invalid_configs)
-                    deferred_request.register_configurations_failure(reason, invalid_configs)
+                    deferred_request.register_configurations_failure(
+                        reason, invalid_configs
+                    )
 
             self._execute_ready_requests()
             return
 
-        logger.debug(
-            "New configs loaded for project id %s: %s" % (project_id, configs)
-        )
+        logger.debug("New configs loaded for project id %s: %s" % (project_id, configs))
 
         # cache our configs
         self._cached_configs[project_id] = configs
@@ -195,10 +206,12 @@ class RequestRunner(QtCore.QObject):
                         project_id,
                         deferred_request.entity_type,
                         deferred_request.entity_id,
-                        deferred_request.linked_entity_type
+                        deferred_request.linked_entity_type,
                     )
 
-    def _on_commands_loaded(self, project_id, entity_type, entity_id, link_entity_type, config, commands):
+    def _on_commands_loaded(
+        self, project_id, entity_type, entity_id, link_entity_type, config, commands
+    ):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -212,15 +225,23 @@ class RequestRunner(QtCore.QObject):
         :param config: Associated class:`ExternalConfiguration` instance.
         :param list commands: List of :class:`ExternalCommand` instances.
         """
-        logger.debug("%s commands loaded for project id %s, %s" % (len(commands), project_id, config))
+        logger.debug(
+            "%s commands loaded for project id %s, %s"
+            % (len(commands), project_id, config)
+        )
         for deferred_request in self._active_requests:
-            if deferred_request.project_id == project_id and deferred_request.entity_type == entity_type:
+            if (
+                deferred_request.project_id == project_id
+                and deferred_request.entity_type == entity_type
+            ):
                 deferred_request.register_commands(config, commands)
 
         # kick off any requests that are waiting
         self._execute_ready_requests()
 
-    def _on_commands_load_failed(self, project_id, entity_type, entity_id, link_entity_type, config, reason):
+    def _on_commands_load_failed(
+        self, project_id, entity_type, entity_id, link_entity_type, config, reason
+    ):
         """
         Called when commands have been loaded for a given configuration.
 
@@ -234,9 +255,14 @@ class RequestRunner(QtCore.QObject):
         :param config: Associated class:`ExternalConfiguration` instance.
         :param str reason: Details around the failure.
         """
-        logger.debug("Loading commands failed for project id %s, %s" % (config, project_id))
+        logger.debug(
+            "Loading commands failed for project id %s, %s" % (config, project_id)
+        )
         for deferred_request in self._active_requests:
-            if deferred_request.project_id == project_id and deferred_request.entity_type == entity_type:
+            if (
+                deferred_request.project_id == project_id
+                and deferred_request.entity_type == entity_type
+            ):
                 deferred_request.register_commands_failure(config, reason)
 
         # kick off any requests that are waiting
@@ -259,4 +285,3 @@ class RequestRunner(QtCore.QObject):
 
         logger.debug("There are now %s pending requests." % len(remaining_requests))
         self._active_requests = remaining_requests
-

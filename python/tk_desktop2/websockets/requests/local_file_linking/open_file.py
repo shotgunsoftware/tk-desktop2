@@ -45,6 +45,7 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
     If an environment variable SHOTGUN_PLUGIN_LAUNCHER is specified,
     this will override the default launch command described above.
     """
+
     def __init__(self, connection, id, parameters):
         """
         :param connection: Associated :class:`WebsocketsConnection`.
@@ -93,15 +94,9 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
                 subprocess_check_output([self._launcher, self._path])
         except SubprocessCalledProcessError as e:
             logger.debug("Error opening path [%s].", exc_info=True)
-            self._reply_with_status(
-                status=e.returncode,
-                error=e.output
-            )
+            self._reply_with_status(status=e.returncode, error=e.output)
         except Exception as e:
-            self._reply_with_status(
-                status=1,
-                error=str(e)
-            )
+            self._reply_with_status(status=1, error=str(e))
         else:
             # operation succeeded. Reply with single boolean.
             self._reply(True)
