@@ -147,11 +147,7 @@ class DeferredRequest(object):
         self._configurations = []
         for config in configs:
             self._configurations.append(
-                {
-                    "configuration": config,
-                    "commands": None,
-                    "error": None
-                }
+                {"configuration": config, "commands": None, "error": None}
             )
 
     def register_configurations_failure(self, reason, invalid_configs):
@@ -162,7 +158,10 @@ class DeferredRequest(object):
         :param list invalid_configs: A list of invalid :class:`ExternalConfiguration` objects
             that were found.
         """
-        logger.debug("Configuration loading failed (project_id=%s): %s" % (self.project_id, reason))
+        logger.debug(
+            "Configuration loading failed (project_id=%s): %s"
+            % (self.project_id, reason)
+        )
 
         for config_dict in self._configurations:
             if config_dict["configuration"] in invalid_configs:

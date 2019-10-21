@@ -32,8 +32,7 @@ class SetMediaPathInSGCreateWebsocketsRequest(WebsocketsRequest):
         :param int id: Id for this request.
         :param dict params: Parameters payload from websockets.
         """
-        super(SetMediaPathInSGCreateWebsocketsRequest,
-              self).__init__(connection, id)
+        super(SetMediaPathInSGCreateWebsocketsRequest, self).__init__(connection, id)
 
         self._bundle = sgtk.platform.current_bundle()
 
@@ -58,13 +57,8 @@ class SetMediaPathInSGCreateWebsocketsRequest(WebsocketsRequest):
         """
         try:
             # call out to Shotgun Create UI to set the media path
-            self._bundle.toolkit_manager.emitSetMediaPath(
-                self._media_path
-            )
+            self._bundle.toolkit_manager.emitSetMediaPath(self._media_path)
         except Exception as e:
-            self._reply_with_status(
-                status=1,
-                error=str(e)
-            )
+            self._reply_with_status(status=1, error=str(e))
         else:
             self._reply_with_status(0)

@@ -5,9 +5,9 @@
 # this software in either electronic or hard copy form.
 #
 
+
 class ShotgunLocalHostCertNotSupportedError(RuntimeError):
     """
     Exception to indicate that the shotgunlocalhost certificate
     exchange feature isn't available.
     """
-

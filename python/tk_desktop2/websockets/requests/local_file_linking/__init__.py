@@ -6,4 +6,7 @@
 #
 
 from .open_file import OpenFileWebsocketsRequest
-from .pick_file import PickFileOrDirectoryWebsocketsRequest, PickFilesOrDirectoriesWebsocketsRequest
+from .pick_file import (
+    PickFileOrDirectoryWebsocketsRequest,
+    PickFilesOrDirectoriesWebsocketsRequest,
+)

@@ -33,9 +33,13 @@ class WebsocketsConnection(object):
     associated :class:`RequestRunner` instance which is responsible
     for the actual execution of the commands.
     """
+
     # the various states which the connection can be in
-    (AWAITING_HANDSHAKE, AWAITING_SERVER_ID_REQUEST,
-     AWAITING_ENCRYPTED_REQUEST) = range(3)
+    (
+        AWAITING_HANDSHAKE,
+        AWAITING_SERVER_ID_REQUEST,
+        AWAITING_ENCRYPTED_REQUEST,
+    ) = range(3)
 
     # handle legacy ui popups for site/user mismatch
     _legacy_site_warning_displayed = False
@@ -44,7 +48,8 @@ class WebsocketsConnection(object):
     # Pre-compiled shotgunlocalhost.com/localhost regex matcher
     # You can play with it here: https://regex101.com/r/7n3JIp/8
     localhost_re = re.compile(
-        r"^https?://(?:shotgunlocalhost\.com|localhost|127\.0\.0\.1)(?::[0-9]{1,5})?$")
+        r"^https?://(?:shotgunlocalhost\.com|localhost|127\.0\.0\.1)(?::[0-9]{1,5})?$"
+    )
 
     def __init__(self, socket_id, origin_site, encryption_handler, server_wrapper):
         """
@@ -176,13 +181,11 @@ class WebsocketsConnection(object):
 
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
-        logger.debug("Received server id request: %s" %
-                     pprint.pformat(message_obj))
+        logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
 
         # make sure the client has provided an id for the request
         if "id" not in message_obj:
-            raise RuntimeError(
-                "%s: Invalid websockets request - missing id." % self)
+            raise RuntimeError("%s: Invalid websockets request - missing id." % self)
 
         # The version of Shotgun that Shotgun Create is connected to
         shotgun_version = self._bundle.shotgun.server_caps.version or (0, 0, 0)
@@ -197,14 +200,14 @@ class WebsocketsConnection(object):
             )
 
         request_is_localhost = WebsocketsConnection.localhost_re.match(
-            self._origin_site)
+            self._origin_site
+        )
         request_is_shotgunsite = self._origin_site == self._bundle.sgtk.shotgun_url
 
         if request_is_localhost:
             logger.debug("Request's origin site is localhost")
         elif request_is_shotgunsite:
-            logger.debug(
-                "Request's origin is the currently logged in Shotgun site")
+            logger.debug("Request's origin is the currently logged in Shotgun site")
         else:
             logger.debug("{} is an unknown origin".format(self._origin_site))
 
@@ -213,8 +216,7 @@ class WebsocketsConnection(object):
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
                 if not WebsocketsConnection._legacy_site_warning_displayed:
-                    util.show_site_mismatch_popup(
-                        self._bundle, self._origin_site)
+                    util.show_site_mismatch_popup(self._bundle, self._origin_site)
                     WebsocketsConnection._legacy_site_warning_displayed = True
             else:
                 # send error to web client
@@ -222,7 +224,9 @@ class WebsocketsConnection(object):
                     {
                         "error": True,
                         "error_message": "Calling site does not match server's site.",
-                        "error_data": {"error_code": constants.CONNECTION_REFUSED_SITE_MISMATCH},
+                        "error_data": {
+                            "error_code": constants.CONNECTION_REFUSED_SITE_MISMATCH
+                        },
                         "timestamp": datetime.datetime.now(),
                         "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                         "id": message_obj["id"],
@@ -242,8 +246,7 @@ class WebsocketsConnection(object):
             if shotgun_version < constants.SHOTGUN_VERSION_SUPPORTING_ERROR_STATES:
                 # pop up UI once
                 if not WebsocketsConnection._legacy_user_warning_displayed:
-                    util.show_user_mismatch_popup(
-                        self._bundle, request_user_id)
+                    util.show_user_mismatch_popup(self._bundle, request_user_id)
                     WebsocketsConnection._legacy_user_warning_displayed = True
             else:
                 # send error to web client
@@ -251,7 +254,9 @@ class WebsocketsConnection(object):
                     {
                         "error": True,
                         "error_message": "Calling user does not match currently logged in user.",
-                        "error_data": {"error_code": constants.CONNECTION_REFUSED_USER_MISMATCH},
+                        "error_data": {
+                            "error_code": constants.CONNECTION_REFUSED_USER_MISMATCH
+                        },
                         "timestamp": datetime.datetime.now(),
                         "protocol_version": constants.WEBSOCKETS_PROTOCOL_VERSION,
                         "id": message_obj["id"],
@@ -329,8 +334,7 @@ class WebsocketsConnection(object):
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
 
-        logger.debug("Received Shotgun request: %s" %
-                     pprint.pformat(message_obj))
+        logger.debug("Received Shotgun request: %s" % pprint.pformat(message_obj))
 
         # We expect every response to have the protocol version set earlier
         if message_obj.get("protocol_version") != constants.WEBSOCKETS_PROTOCOL_VERSION:
@@ -347,9 +351,7 @@ class WebsocketsConnection(object):
         try:
             # create a request
             request = requests.WebsocketsRequest.create(
-                self,
-                message_obj["id"],
-                message_obj["command"]
+                self, message_obj["id"], message_obj["command"]
             )
 
             # request that the request runner actions the request
@@ -357,9 +359,9 @@ class WebsocketsConnection(object):
 
         except Exception as e:
             logger.debug(
-                "Exception raised while scheduling request %s" % pprint.pformat(
-                    message_obj),
-                exc_info=True
+                "Exception raised while scheduling request %s"
+                % pprint.pformat(message_obj),
+                exc_info=True,
             )
             data = {"retcode": -1, "out": "", "err": str(e)}
             self.reply(data, message_obj["id"])

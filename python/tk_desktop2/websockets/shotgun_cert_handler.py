@@ -30,7 +30,8 @@ class ShotgunCertificateHandler(object):
         # ensure we support this
         if not self._site_supports_shotgunlocalhost():
             raise ShotgunLocalHostCertNotSupportedError(
-                "Shotgun site does not support Certificate download.")
+                "Shotgun site does not support Certificate download."
+            )
 
         # ensure we have fresh certs
         self._retrieve_certificates_from_shotgun()
@@ -56,7 +57,8 @@ class ShotgunCertificateHandler(object):
         logger.debug("Retrieving certificates from Shotgun")
         certs = self._bundle.shotgun._call_rpc("sg_desktop_certificates", {})
         self._write_cert(
-            self.cert_path, certs["sg_desktop_cert"] + "\n" + certs["sg_desktop_ca"])
+            self.cert_path, certs["sg_desktop_cert"] + "\n" + certs["sg_desktop_ca"]
+        )
         self._write_cert(self.key_path, certs["sg_desktop_key"])
 
     def _get_shotgunlocalhost_keys_folder(self):
@@ -74,8 +76,7 @@ class ShotgunCertificateHandler(object):
         :returns: True if supported, false if not
         """
         return self._bundle.shotgun.server_info.get(
-            "shotgunlocalhost_browser_integration_enabled",
-            False
+            "shotgunlocalhost_browser_integration_enabled", False
         )
 
     def _write_cert(self, path, cert):
