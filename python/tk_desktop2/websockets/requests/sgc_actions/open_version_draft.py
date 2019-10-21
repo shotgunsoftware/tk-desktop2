@@ -36,8 +36,9 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
         :param int id: Id for this request.
         :param dict params: Parameters payload from websockets.
         """
-        super(OpenVersionDraftInSGCreateWebsocketsRequest,
-              self).__init__(connection, id)
+        super(OpenVersionDraftInSGCreateWebsocketsRequest, self).__init__(
+            connection, id
+        )
 
         self._bundle = sgtk.platform.current_bundle()
 
@@ -73,35 +74,29 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
 
             # open task - resolve link and project
             task_data = engine.shotgun.find_one(
-                "Task",
-                [["id", "is", self._task_id]],
-                ["project", "entity"]
+                "Task", [["id", "is", self._task_id]], ["project", "entity"]
             )
 
             if task_data is None:
                 raise ValueError(
-                    "Task id %d cannot be found in Shotgun!" % (self._task_id,))
+                    "Task id %d cannot be found in Shotgun!" % (self._task_id,)
+                )
 
             if task_data["entity"] is None:
-                raise RuntimeError(
-                    "Tasks not linked to entities are not supported.")
+                raise RuntimeError("Tasks not linked to entities are not supported.")
 
             task_path = ShotgunEntityPath()
             task_path.set_project(task_data["project"]["id"])
             task_path.set_primary_entity(
-                task_data["entity"]["type"], task_data["entity"]["id"])
+                task_data["entity"]["type"], task_data["entity"]["id"]
+            )
             task_path.set_secondary_entity("Task", self._task_id)
 
             # call out to Shotgun Create UI to set the media path
             self._bundle.toolkit_manager.emitOpenVersionDraft(
-                task_path.as_string(),
-                self._draft_path,
-                self._version_data
+                task_path.as_string(), self._draft_path, self._version_data
             )
         except Exception as e:
-            self._reply_with_status(
-                status=1,
-                error=str(e)
-            )
+            self._reply_with_status(status=1, error=str(e))
         else:
             self._reply_with_status(0)
