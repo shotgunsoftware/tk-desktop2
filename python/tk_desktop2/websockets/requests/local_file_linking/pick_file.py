@@ -19,6 +19,7 @@ class PickFileOrFilesWebsocketsRequest(WebsocketsRequest):
     one or more files or directories.
     Part of the local file linking feature set.
     """
+
     def __init__(self, connection, id, pick_multiple=False):
         """
         :param connection: Associated :class:`WebsocketsConnection`.
@@ -78,9 +79,7 @@ class PickFilesOrDirectoriesWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
         :raises: ValueError
         """
         super(PickFilesOrDirectoriesWebsocketsRequest, self).__init__(
-            connection, 
-            id, 
-            pick_multiple=True
+            connection, id, pick_multiple=True
         )
 
     @property
@@ -90,11 +89,12 @@ class PickFilesOrDirectoriesWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
         """
         return "local_file_linking_pick_multiple_files"
 
+
 class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
     """
     Command to pick a single file or directory.
 
-    Pops up a modal file selector dialog 
+    Pops up a modal file selector dialog
     and lets the user choose one file or directory.
     Part of the local file linking feature set.
 
@@ -106,7 +106,7 @@ class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
 
         A list of file paths as strings.
     """
-    
+
     def __init__(self, connection, id, parameters):
         """
         :param connection: Associated :class:`WebsocketsConnection`.
@@ -115,9 +115,7 @@ class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
         :raises: ValueError
         """
         super(PickFileOrDirectoryWebsocketsRequest, self).__init__(
-            connection, 
-            id, 
-            pick_multiple=False
+            connection, id, pick_multiple=False
         )
 
     @property

@@ -8,7 +8,7 @@
 import os
 import sgtk
 import base64
-from cryptography.fernet import Fernet #  included as part of main application build
+from cryptography.fernet import Fernet  #  included as part of main application build
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -85,8 +85,7 @@ class EncryptionHandler(object):
         logger.debug("Retrieving communication secret from Shotgun")
         # Ask for the secret for this server id.
         response = self._bundle.shotgun._call_rpc(
-            "retrieve_ws_server_secret",
-            {"ws_server_id": self._unique_server_id}
+            "retrieve_ws_server_secret", {"ws_server_id": self._unique_server_id}
         )
         ws_server_secret = response["ws_server_secret"]
 

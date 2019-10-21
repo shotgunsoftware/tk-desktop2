@@ -14,13 +14,14 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class ListSupportedCommandsWebsocketsRequest(WebsocketsRequest):
     """
-    Websockets command to list the commands that are supported 
+    Websockets command to list the commands that are supported
     by this websockets server.
 
     Expected response::
 
         A list of strings with command names.
     """
+
     def __init__(self, connection, id, parameters):
         """
         :param connection: Associated :class:`WebsocketsConnection`.
@@ -36,4 +37,3 @@ class ListSupportedCommandsWebsocketsRequest(WebsocketsRequest):
         """
         commands = get_supported_commands()
         self._reply(commands.keys())
-        

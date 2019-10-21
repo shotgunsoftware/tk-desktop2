@@ -40,7 +40,7 @@ def get_supported_commands():
         # shotgun Create integration
         "sgc_open_task": {"class": OpenTaskInSGCreateWebsocketsRequest},
         "sgc_open_task_board": {"class": OpenTaskBoardInSGCreateWebsocketsRequest},
-        "set_media_path": {"class": SetMediaPathInSGCreateWebsocketsRequest}
+        "set_media_path": {"class": SetMediaPathInSGCreateWebsocketsRequest},
     }
 
     return commands

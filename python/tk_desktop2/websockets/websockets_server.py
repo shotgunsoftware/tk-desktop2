@@ -41,14 +41,18 @@ class WebsocketsServer(object):
         # TODO: this may be done via standard method in the future.
         manager = self._bundle.toolkit_manager
         server_name = manager.initializeWebSocketServer(True)
-        self._ws_server = QtCore.QCoreApplication.instance().findChild(QtCore.QObject, server_name)
+        self._ws_server = QtCore.QCoreApplication.instance().findChild(
+            QtCore.QObject, server_name
+        )
         logger.debug("Retrieved websockets server %s" % self._ws_server)
 
         # set up certificates handler
         try:
             self._sg_certs_handler = ShotgunCertificateHandler()
         except ShotgunLocalHostCertNotSupportedError:
-            logger.error("Cannot launch websockets: Shotgunlocalhost certificates not enabled.")
+            logger.error(
+                "Cannot launch websockets: Shotgunlocalhost certificates not enabled."
+            )
             return
 
         # SG certs:
@@ -56,8 +60,7 @@ class WebsocketsServer(object):
         logger.debug("Key file: %s" % self._sg_certs_handler.key_path)
         logger.debug("Cert file: %s" % self._sg_certs_handler.cert_path)
         success = self._ws_server.setSslPem(
-            self._sg_certs_handler.key_path,
-            self._sg_certs_handler.cert_path
+            self._sg_certs_handler.key_path, self._sg_certs_handler.cert_path
         )
         if not success:
             logger.error("Websockets certificates failed to load.")
@@ -84,23 +87,30 @@ class WebsocketsServer(object):
         )
 
         logger.debug(
-            "Looking for preference '%s' and key '%s'..." % (
-                constants.SHOTGUN_CREATE_PREFS_NAME, 
-                constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY
+            "Looking for preference '%s' and key '%s'..."
+            % (
+                constants.SHOTGUN_CREATE_PREFS_NAME,
+                constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY,
             )
         )
         if constants.SHOTGUN_CREATE_PREFS_NAME in prefs:
             prefs_dict = json.loads(prefs[constants.SHOTGUN_CREATE_PREFS_NAME])
             if constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY in prefs_dict:
-                websockets_port = prefs_dict[constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY]
-                logger.debug("...retrieved port value '%s' from Shotgun prefs" % websockets_port)
+                websockets_port = prefs_dict[
+                    constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY
+                ]
+                logger.debug(
+                    "...retrieved port value '%s' from Shotgun prefs" % websockets_port
+                )
 
         # Tell the server to listen to the given port
         logger.debug("Starting websockets server on port %s" % websockets_port)
-        logger.debug("Supports websockets protocol version %s" % constants.WEBSOCKETS_PROTOCOL_VERSION)
+        logger.debug(
+            "Supports websockets protocol version %s"
+            % constants.WEBSOCKETS_PROTOCOL_VERSION
+        )
         success = self._ws_server.listen(
-            QtNetwork.QHostAddress.LocalHost,
-            websockets_port
+            QtNetwork.QHostAddress.LocalHost, websockets_port
         )
 
         if not success:
@@ -108,7 +118,10 @@ class WebsocketsServer(object):
 
             if error == "The bound address is already in use":
                 # the error will generate a toast in the create UI
-                logger.error("Cannot start websockets server: Port %s already in use!" % websockets_port)
+                logger.error(
+                    "Cannot start websockets server: Port %s already in use!"
+                    % websockets_port
+                )
                 # add more details to log file
                 logger.warning(
                     "Details: The server could not be started because it appears that something is "
@@ -151,7 +164,7 @@ class WebsocketsServer(object):
         For details, see _new_connecton.
         """
         # add a try-except clause, otherwise exceptions are consumed by QT
-        # note - not using a lambda around the signal due to garbage 
+        # note - not using a lambda around the signal due to garbage
         # connection issues - this produces memory leaks.
         try:
             self._new_connection(socket_id, name, address, port, request)
@@ -167,7 +180,7 @@ class WebsocketsServer(object):
         For details, see _process_message.
         """
         # add a try-except clause, otherwise exceptions are consumed by QT
-        # note - not using a lambda around the signal due to garbage 
+        # note - not using a lambda around the signal due to garbage
         # connection issues - this produces memory leaks.
         try:
             self._process_message(socket_id, message)
@@ -195,10 +208,7 @@ class WebsocketsServer(object):
         origin_site = str(request.rawHeader("origin"))
 
         self._connections[socket_id] = WebsocketsConnection(
-            socket_id,
-            origin_site,
-            self._encryption_handler,
-            self,
+            socket_id, origin_site, self._encryption_handler, self
         )
 
     def _process_message(self, socket_id, message):
@@ -236,4 +246,3 @@ class WebsocketsServer(object):
         :param errors: Error details
         """
         logger.error("SSL Error: %s" % errors)
-

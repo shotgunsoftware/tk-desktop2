@@ -20,6 +20,6 @@ SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY = "websockets_port"
 CONNECTION_REFUSED_USER_MISMATCH = "CONNECTION_REFUSED_USER_MISMATCH"
 CONNECTION_REFUSED_SITE_MISMATCH = "CONNECTION_REFUSED_SITE_MISMATCH"
 
-# shotgun version which is designed to respond to 
+# shotgun version which is designed to respond to
 # error states correctly
 SHOTGUN_VERSION_SUPPORTING_ERROR_STATES = (8, 4, 0)

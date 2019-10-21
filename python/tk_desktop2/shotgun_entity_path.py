@@ -51,11 +51,9 @@ class ShotgunEntityPath(object):
     # the secondary entity types supported
     SUPPORTED_SECONDARY_ENTITY_TYPES = ["Version", "Task"]
 
-    # note: shotgun entity type names cannot have unicode characters in them 
+    # note: shotgun entity type names cannot have unicode characters in them
     #       so we are not supporting that in this parser either.
-    _PROJECT_REGEX = re.compile(
-        r"^/Project/(?P<project_id>\d+)$"
-    )
+    _PROJECT_REGEX = re.compile(r"^/Project/(?P<project_id>\d+)$")
     _PRIMARY_ENTITY_REGEX = re.compile(
         r"^/Project/(?P<project_id>\d+)/(?P<entity_type>\w+)/(?P<entity_id>[0-9]+)$"
     )
@@ -67,7 +65,7 @@ class ShotgunEntityPath(object):
     def from_path(cls, path):
         """
         Constructs a shotgun path object given a path string
-        
+
         :param str path: Path string to parse
         :returns: :class:`ShotgunEntityPath` instance
         :raises: ValueError on path parse failure
@@ -78,14 +76,21 @@ class ShotgunEntityPath(object):
             # path matches a project+primary+secondary format
             path_match = cls._SECONDARY_ENTITY_REGEX.match(path)
             path_obj.set_project(int(path_match.group("project_id")))
-            path_obj.set_primary_entity(path_match.group("entity_type"), int(path_match.group("entity_id")))
-            path_obj.set_secondary_entity(path_match.group("secondary_entity_type"), int(path_match.group("secondary_entity_id")))
+            path_obj.set_primary_entity(
+                path_match.group("entity_type"), int(path_match.group("entity_id"))
+            )
+            path_obj.set_secondary_entity(
+                path_match.group("secondary_entity_type"),
+                int(path_match.group("secondary_entity_id")),
+            )
 
         elif cls._PRIMARY_ENTITY_REGEX.match(path):
             # path matches a project+primary format
             path_match = cls._PRIMARY_ENTITY_REGEX.match(path)
             path_obj.set_project(int(path_match.group("project_id")))
-            path_obj.set_primary_entity(path_match.group("entity_type"), int(path_match.group("entity_id")))
+            path_obj.set_primary_entity(
+                path_match.group("entity_type"), int(path_match.group("entity_id"))
+            )
 
         elif cls._PROJECT_REGEX.match(path):
             # path matches a project format
@@ -136,17 +141,17 @@ class ShotgunEntityPath(object):
             return "/Project/%d" % (self._project_id)
         elif self._secondary_entity_id is None:
             return "/Project/%d/%s/%d" % (
-                self._project_id, 
-                self._primary_entity_type, 
-                self._primary_entity_id
+                self._project_id,
+                self._primary_entity_type,
+                self._primary_entity_id,
             )
         else:
             return "/Project/%d/%s/%d/%s/%d" % (
-                self._project_id, 
-                self._primary_entity_type, 
+                self._project_id,
+                self._primary_entity_type,
                 self._primary_entity_id,
                 self._secondary_entity_type,
-                self._secondary_entity_id
+                self._secondary_entity_id,
             )
 
     def is_valid(self):
@@ -220,5 +225,3 @@ class ShotgunEntityPath(object):
             raise ValueError("Unsupported secondary entity type '%s'" % (entity_type,))
         self._secondary_entity_type = entity_type
         self._secondary_entity_id = entity_id
-
-

@@ -21,11 +21,9 @@ def create_reply(data, encrypt_fn=None):
     :returns: Server ready payload
     """
     # ensure_ascii allows unicode strings.
-    payload = json.dumps(
-        data,
-        ensure_ascii=False,
-        default=_json_date_handler,
-    ).encode("utf8")
+    payload = json.dumps(data, ensure_ascii=False, default=_json_date_handler).encode(
+        "utf8"
+    )
 
     if encrypt_fn:
         payload = encrypt_fn(payload)
@@ -82,9 +80,9 @@ def _convert(data):
 
 def show_user_mismatch_popup(bundle, user_id):
     """
-    Display modal popup to inform user about user 
+    Display modal popup to inform user about user
     website/shotgun Create mismatch
-    
+
     :param bundle: Bundle object
     :param user_id: Id of user requesting a connection
     """
@@ -99,18 +97,14 @@ def show_user_mismatch_popup(bundle, user_id):
         "Create is currently authenticated with user %s, so the "
         "request was rejected. You will need to log into Shotgun "
         "Create as user %s in order to receive Toolkit menu actions "
-        "or use local file linking for that user in Shotgun." % (
-            user_details["name"],
-            current_user["name"],
-            user_details["name"],
-        )
+        "or use local file linking for that user in Shotgun."
+        % (user_details["name"], current_user["name"], user_details["name"])
     )
     logger.warning(warning_msg)
     from sgtk.platform.qt import QtGui, QtCore
+
     msg_box = QtGui.QMessageBox(
-        QtGui.QMessageBox.Warning,
-        "Requesting User Not Authenticated",
-        warning_msg,
+        QtGui.QMessageBox.Warning, "Requesting User Not Authenticated", warning_msg
     )
     msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     msg_box.exec_()
@@ -118,9 +112,9 @@ def show_user_mismatch_popup(bundle, user_id):
 
 def show_site_mismatch_popup(bundle, site_url):
     """
-    Display modal popup to inform user about site 
+    Display modal popup to inform user about site
     website/shotgun Create mismatch
-    
+
     :param bundle: Bundle object
     :param site_url: Url of site requesting a connection
     """
@@ -132,10 +126,9 @@ def show_site_mismatch_popup(bundle, site_url):
     )
     logger.warning(warning_msg)
     from sgtk.platform.qt import QtGui, QtCore
+
     msg_box = QtGui.QMessageBox(
-        QtGui.QMessageBox.Warning,
-        "Not Authenticated",
-        warning_msg,
+        QtGui.QMessageBox.Warning, "Not Authenticated", warning_msg
     )
     msg_box.setWindowFlags(msg_box.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
     msg_box.exec_()
