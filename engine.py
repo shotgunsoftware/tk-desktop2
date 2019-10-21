@@ -45,12 +45,6 @@ class DesktopEngine2(Engine):
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
         from sgtk import LogManager
-        from sgtk.platform.qt import QtCore
-
-        # Get a handle to the ToolkitManager QObject.
-        self._toolkit_manager = QtCore.QCoreApplication.instance().findChild(
-            QtCore.QObject, "sgtk-manager"
-        )
 
         LogManager().global_debug = True
 
@@ -66,7 +60,14 @@ class DesktopEngine2(Engine):
                   in a separate external process (for example when you launch an app
                   such as the publisher from Shotgun Create).
         """
-        return self._toolkit_manager
+        try:
+            from sgtk.platform.qt import QtCore
+
+            return QtCore.QCoreApplication.instance().findChild(
+                QtCore.QObject, "sgtk-manager"
+            )
+        except Exception:
+            return None
 
     def initialize_integrations(self, plugin_id, base_config):
         """

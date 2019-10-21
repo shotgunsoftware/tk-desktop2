@@ -93,6 +93,7 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
                 self._project_id, self._task_id
             )
         except Exception as e:
+            self._bundle.logger.exception(e)
             self._reply_with_status(status=1, error=str(e))
         else:
             self._reply_with_status(0)
