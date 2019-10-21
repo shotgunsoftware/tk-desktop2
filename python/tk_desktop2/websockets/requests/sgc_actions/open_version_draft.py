@@ -1,4 +1,4 @@
-# Copyright 2018 Autodesk, Inc.  All rights reserved.
+# Copyright 2019 Autodesk, Inc.  All rights reserved.
 #
 # Use of this software is subject to the terms of the Autodesk license agreement
 # provided at the time of installation or download, or which otherwise accompanies
@@ -70,7 +70,7 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
         Execute the payload of the command
         """
         try:
-            engine = sgtk.platform.current_bundle()
+            engine = sgtk.platform.current_engine()
 
             # open task - resolve link and project
             task_data = engine.shotgun.find_one(
@@ -97,6 +97,7 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
                 task_path.as_string(), self._draft_path, self._version_data
             )
         except Exception as e:
+            self._bundle.logger.exception(e)
             self._reply_with_status(status=1, error=str(e))
         else:
             self._reply_with_status(0)

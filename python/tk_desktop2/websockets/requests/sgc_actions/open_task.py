@@ -64,7 +64,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
         Execute the payload of the command
         """
         try:
-            engine = sgtk.platform.current_bundle()
+            engine = sgtk.platform.current_engine()
 
             # open task - resolve link and project
             task_data = engine.shotgun.find_one(
@@ -119,6 +119,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
             )
 
         except Exception as e:
+            self._bundle.logger.exception(e)
             self._reply_with_status(status=1, error=str(e))
         else:
             self._reply_with_status(0)

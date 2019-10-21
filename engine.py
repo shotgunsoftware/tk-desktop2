@@ -66,7 +66,7 @@ class DesktopEngine2(Engine):
             return QtCore.QCoreApplication.instance().findChild(
                 QtCore.QObject, "sgtk-manager"
             )
-        except:
+        except Exception:
             return None
 
     def initialize_integrations(self, plugin_id, base_config):
