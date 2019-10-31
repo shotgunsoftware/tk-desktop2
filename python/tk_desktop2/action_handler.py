@@ -445,6 +445,11 @@ class ActionHandler(object):
                     command.display_name,
                 )
 
+            # Inject the engine's interpreter in the command.
+            command._interpreter = (
+                sgtk.platform.current_engine().python_interpreter_path
+            )
+
             # This is addressing a pretty extreme edge case, but if there are multiple
             # PC entities for the project referencing the exact same config on disk,
             # we end up with duplicate actions equal to the number of PC entities sharing
