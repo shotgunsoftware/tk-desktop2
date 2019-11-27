@@ -192,8 +192,17 @@ class RequestRunner(QtCore.QObject):
         # cache our configs
         self._cached_configs[project_id] = configs
 
+        logger.debug(
+            "Config interpreter paths will be updated to: %s",
+            self._bundle.python_interpreter_path
+        )
+
         # wire up signals from our cached command objects
         for config in configs:
+            # SG Create's Python interpreter path changes after the application is updated.
+            # we need to ensure that our path isn't stale, as it might have been cached
+            # to disk before the most recent update.
+            config.interpreter = self._bundle.python_interpreter_path
             config.commands_loaded.connect(self._on_commands_loaded)
             config.commands_load_failed.connect(self._on_commands_load_failed)
 
