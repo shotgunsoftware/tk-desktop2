@@ -44,7 +44,7 @@ class RequestRunner(QtCore.QObject):
         logger.debug("Engine instance name: %s" % engine_instance_name)
         logger.debug("Plugin id: %s" % plugin_id)
         logger.debug("Base config: %s" % base_config)
-        bundle = sgtk.platform.current_bundle()
+        self._bundle = sgtk.platform.current_bundle()
 
         # caching of configurations in memory
         self._cached_configs = {}
@@ -55,7 +55,7 @@ class RequestRunner(QtCore.QObject):
 
         # hook up external configuration loader
         self._config_loader = external_config.ExternalConfigurationLoader(
-            bundle.python_interpreter_path,
+            self._bundle.python_interpreter_path,
             engine_instance_name,
             plugin_id,
             base_config,
@@ -79,7 +79,7 @@ class RequestRunner(QtCore.QObject):
         # log analytics
         if request.analytics_command_name:
             bundle = sgtk.platform.current_bundle()
-            bundle.log_metric(
+            self._bundle.log_metric(
                 "Executed websockets command",
                 command_name=request.analytics_command_name,
             )
@@ -229,6 +229,29 @@ class RequestRunner(QtCore.QObject):
             "%s commands loaded for project id %s, %s"
             % (len(commands), project_id, config)
         )
+
+        # SG Create's Python interpreter path will change when the application
+        # is updated. This necessitates making sure we set the correct interpreter
+        # after loading cached commands, because they might have been cached to
+        # disk before the most recent update of SG Create.
+        #
+        # NOTE: we know there's an underlying problem here and that we have more
+        # work to do in the future before we can bake Create's Python interpreter
+        # into advanced config setups. Because it changes during an update, the
+        # path referenced in a config will also have to update along with it. We
+        # have the beginnings of a plan in place where we will reference a manifest
+        # that directs us to a Python interpreter path that is current, and we'll
+        # need to follow that when Toolkit is referencing the Python path. The
+        # beginnings of that work is done (the manifest file exists now), but
+        # we aren't quite ready to do the rest of the work required.
+        logger.debug(
+            "Command interpreter paths will be updated to: %s",
+            self._bundle.python_interpreter_path
+        )
+
+        for command in commands:
+            command.interpreter = self._bundle.python_interpreter_path
+
         for deferred_request in self._active_requests:
             if (
                 deferred_request.project_id == project_id
