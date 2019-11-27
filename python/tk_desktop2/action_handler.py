@@ -294,8 +294,18 @@ class ActionHandler(object):
         # Cache the configs!
         self._cached_configs[project_id] = configs
 
+        logger.debug(
+            "Config interpreter paths will be updated to: %s",
+            self._bundle.python_interpreter_path
+        )
+
         # wire up signals from our cached command objects
         for config in configs:
+            # SG Create's Python interpreter path changes when the application is updated.
+            # We need to make sure the interpreter referenced by the config object is
+            # current, because it might have been cached to disk prior to the most recent
+            # update of Create.
+            config.interpreter = self._bundle.python_interpreter_path
             config.commands_loaded.connect(self._on_commands_loaded)
             config.commands_load_failed.connect(self._on_commands_load_failed)
 
@@ -444,7 +454,7 @@ class ActionHandler(object):
             #
             # NOTE: we know there's an underlying problem here and that we have more
             # work to do in the future before we can bake Create's Python interpreter
-            # into advanced config setups. Because it changes during update, the
+            # into advanced config setups. Because it changes during an update, the
             # path referenced in a config will also have to update along with it. We
             # have the beginnings of a plan in place where we will reference a manifest
             # that directs us to a Python interpreter path that is current, and we'll
