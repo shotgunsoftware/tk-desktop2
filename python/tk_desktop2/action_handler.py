@@ -428,6 +428,11 @@ class ActionHandler(object):
         # TODO: This will need revisiting once we have final designs.
         SYSTEM_COMMANDS = ["Toggle Debug Logging", "Open Log Folder"]
 
+        logger.debug(
+            "Command interpreter paths will be updated to: %s",
+            self._bundle.python_interpreter_path
+        )
+
         for command in commands:
 
             if command.display_name in SYSTEM_COMMANDS:
