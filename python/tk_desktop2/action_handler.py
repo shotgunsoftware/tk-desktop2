@@ -57,7 +57,7 @@ class ActionHandler(object):
             no custom pipeline configs have been defined in Shotgun.
         :param task_manager: Task Manager to use for async processing.
         """
-        bundle = sgtk.platform.current_bundle()
+        self._bundle = sgtk.platform.current_bundle()
 
         # list of cached configuration objects, keyed by project id
         self._cached_configs = {}
@@ -68,7 +68,7 @@ class ActionHandler(object):
         self._actions_model = None
         self._config_loader = None
         self._task_manager = None
-        self._toolkit_manager = bundle.toolkit_manager
+        self._toolkit_manager = self._bundle.toolkit_manager
 
         qt_parent = QtCore.QCoreApplication.instance()
 
@@ -92,8 +92,8 @@ class ActionHandler(object):
 
             # hook up external configuration loader
             self._config_loader = external_config.ExternalConfigurationLoader(
-                bundle.python_interpreter_path,
-                bundle.name,
+                self._bundle.python_interpreter_path,
+                self._bundle.name,
                 plugin_id,
                 base_config,
                 task_manager,
@@ -294,8 +294,18 @@ class ActionHandler(object):
         # Cache the configs!
         self._cached_configs[project_id] = configs
 
+        logger.debug(
+            "Config interpreter paths will be updated to: %s",
+            self._bundle.python_interpreter_path
+        )
+
         # wire up signals from our cached command objects
         for config in configs:
+            # SG Create's Python interpreter path changes when the application is updated.
+            # We need to make sure the interpreter referenced by the config object is
+            # current, because it might have been cached to disk prior to the most recent
+            # update of Create.
+            config.interpreter = self._bundle.python_interpreter_path
             config.commands_loaded.connect(self._on_commands_loaded)
             config.commands_load_failed.connect(self._on_commands_load_failed)
 
@@ -428,10 +438,30 @@ class ActionHandler(object):
         # TODO: This will need revisiting once we have final designs.
         SYSTEM_COMMANDS = ["Toggle Debug Logging", "Open Log Folder"]
 
+        logger.debug(
+            "Command interpreter paths will be updated to: %s",
+            self._bundle.python_interpreter_path
+        )
+
         for command in commands:
 
             if command.display_name in SYSTEM_COMMANDS:
                 continue
+
+            # Create's Python interpreter path might not be the same now as it was
+            # when the command was cached to disk. This would happen if Create
+            # auto-updated after the commands were cached.
+            #
+            # NOTE: we know there's an underlying problem here and that we have more
+            # work to do in the future before we can bake Create's Python interpreter
+            # into advanced config setups. Because it changes during an update, the
+            # path referenced in a config will also have to update along with it. We
+            # have the beginnings of a plan in place where we will reference a manifest
+            # that directs us to a Python interpreter path that is current, and we'll
+            # need to follow that when Toolkit is referencing the Python path. The
+            # beginnings of that work is done (the manifest file exists now), but
+            # we aren't quite ready to do the rest of the work required.
+            command.interpreter = self._bundle.python_interpreter_path
 
             # populate the actions model with actions.
             # serialize the external command object so we can
