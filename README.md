@@ -1,5 +1,5 @@
 # tk-desktop2
-Toolkit Engine for Shotgun Create (Open Beta)
+Toolkit Engine for Shotgun Create
 
 ## Documentation
 This repository is a part of the Shotgun Pipeline Toolkit.
