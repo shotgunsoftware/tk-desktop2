@@ -87,7 +87,7 @@ class DesktopEngine2(Engine):
         """
         try:
             self._initialize_integrations(plugin_id, base_config)
-        except Exception:
+        except Exception as e:
 
             # NOTE: markdown formatting in sgds toast doesn't currently
             # work, so just doing normal text instead of a preformatted
@@ -95,7 +95,7 @@ class DesktopEngine2(Engine):
 
             # error message - gets shown as a toast.
             message = "Failed to initialize integrations.\n\n"
-            message += "%s - %s\n\n" % (sys.exc_type.__name__, sys.exc_value[0])
+            message += "%s - %s\n\n" % (type(e).__name__, str(e))
             message += "For more details, see the error logs."
             logger.error(message)
 

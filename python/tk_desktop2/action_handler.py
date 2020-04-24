@@ -8,12 +8,12 @@
 import json
 import sgtk
 import time
-import cPickle
 import threading
 
 from sgtk.platform.qt import QtCore, QtGui
 from . import constants
 from .shotgun_entity_path import ShotgunEntityPath
+from tank_vendor import six
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -261,7 +261,7 @@ class ActionHandler(object):
         # our cached configuration objects are no longer valid
         # disconnect any signals so we no longer get callbacks from
         # these stale items
-        for (project_id, configurations) in self._cached_configs.iteritems():
+        for (project_id, configurations) in self._cached_configs.items():
             for config in configurations:
                 config.commands_loaded.disconnect(self._on_commands_loaded)
                 config.commands_load_failed.disconnect(self._on_commands_load_failed)
@@ -296,7 +296,7 @@ class ActionHandler(object):
 
         logger.debug(
             "Config interpreter paths will be updated to: %s",
-            self._bundle.python_interpreter_path
+            self._bundle.python_interpreter_path,
         )
 
         # wire up signals from our cached command objects
@@ -440,7 +440,7 @@ class ActionHandler(object):
 
         logger.debug(
             "Command interpreter paths will be updated to: %s",
-            self._bundle.python_interpreter_path
+            self._bundle.python_interpreter_path,
         )
 
         for command in commands:
@@ -484,7 +484,7 @@ class ActionHandler(object):
 
                 # Convert the Python Pickle to a JSON string for easier processing from the C++ code
                 pickle_string = command.serialize()
-                pickle_dict = cPickle.loads(pickle_string)
+                pickle_dict = sgtk.util.pickle.loads(pickle_string)
                 pickle_dict[self.KEY_PICKLE_STR] = pickle_string
                 json_string = json.dumps(pickle_dict)
 
@@ -572,8 +572,9 @@ class ActionHandler(object):
         Triggered from the engine when a user clicks an action
 
         :param str path: entity path representation.
-        :param unicode action_str: serialized :class:`ExternalCommand` payload.
+        :param str action_str: serialized :class:`ExternalCommand` payload.
         """
+        action_str = six.ensure_str(action_str)
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
 
@@ -589,9 +590,6 @@ class ActionHandler(object):
 
             # and create a command object.
             pickle_string = json_obj[self.KEY_PICKLE_STR]
-            # pyside has mangled the string into unicode. make it utf-8 again.
-            if isinstance(pickle_string, unicode):  # noqa
-                pickle_string = pickle_string.encode("utf-8")
 
             action = external_config.ExternalCommand.deserialize(pickle_string)
 

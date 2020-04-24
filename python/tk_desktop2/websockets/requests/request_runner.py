@@ -194,7 +194,7 @@ class RequestRunner(QtCore.QObject):
 
         logger.debug(
             "Config interpreter paths will be updated to: %s",
-            self._bundle.python_interpreter_path
+            self._bundle.python_interpreter_path,
         )
 
         # wire up signals from our cached command objects
@@ -255,7 +255,7 @@ class RequestRunner(QtCore.QObject):
         # we aren't quite ready to do the rest of the work required.
         logger.debug(
             "Command interpreter paths will be updated to: %s",
-            self._bundle.python_interpreter_path
+            self._bundle.python_interpreter_path,
         )
 
         for command in commands:

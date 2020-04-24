@@ -7,8 +7,9 @@
 
 import os
 import sgtk
+from tank_vendor import six
 import base64
-from cryptography.fernet import Fernet  #  included as part of main application build
+from cryptography.fernet import Fernet  # included as part of main application build
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -33,7 +34,9 @@ class EncryptionHandler(object):
         # Compute a server id and retrieve the secret associated to it.
         # urandom is considered cryptographically secure as it calls the OS's CSRNG, so we can
         # use that to generate our own server id.
-        self._unique_server_id = base64.urlsafe_b64encode(os.urandom(16))
+        self._unique_server_id = six.ensure_str(
+            base64.urlsafe_b64encode(os.urandom(16))
+        )
 
         # get the secret from the shotgun site.
         # don't hold on to it but pass it to
