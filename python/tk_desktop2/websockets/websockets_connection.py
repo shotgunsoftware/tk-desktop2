@@ -8,6 +8,7 @@ import sgtk
 import pprint
 import datetime
 import re
+from tank_vendor import six
 from . import util
 from . import requests
 from . import constants
@@ -81,8 +82,7 @@ class WebsocketsConnection(object):
         :param str message: Raw message payload as sent by client.
         :raises: RuntimeError
         """
-        if isinstance(message, unicode):
-            message = message.encode("utf8")
+        message = six.ensure_str(message)
 
         if self._state == self.AWAITING_HANDSHAKE:
             self._handle_protocol_handshake_request(message)

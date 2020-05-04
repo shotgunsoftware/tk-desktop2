@@ -9,6 +9,8 @@ import sgtk
 import json
 import collections
 
+from tank_vendor import six
+
 logger = sgtk.LogManager.get_logger(__name__)
 
 
@@ -20,10 +22,7 @@ def create_reply(data, encrypt_fn=None):
     :param encrypt_fn: Optional Encryption method.
     :returns: Server ready payload
     """
-    # ensure_ascii allows unicode strings.
-    payload = json.dumps(data, ensure_ascii=False, default=_json_date_handler).encode(
-        "utf8"
-    )
+    payload = json.dumps(data, ensure_ascii=True, default=_json_date_handler)
 
     if encrypt_fn:
         payload = encrypt_fn(payload)
@@ -68,14 +67,13 @@ def _convert(data):
     :param dict data: Object with unicode values
     :returns: Object with only utf-8 encoded strings
     """
-    if isinstance(data, unicode):
-        return data.encode("utf8")
-    elif isinstance(data, collections.Mapping):
-        return dict(map(_convert, data.iteritems()))
+
+    if isinstance(data, collections.Mapping):
+        return dict(map(_convert, data.items()))
     elif isinstance(data, collections.Iterable):
         return type(data)(map(_convert, data))
     else:
-        return data
+        return six.ensure_str(data)
 
 
 def show_user_mismatch_popup(bundle, user_id):
