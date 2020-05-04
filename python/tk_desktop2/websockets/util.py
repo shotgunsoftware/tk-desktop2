@@ -22,11 +22,7 @@ def create_reply(data, encrypt_fn=None):
     :param encrypt_fn: Optional Encryption method.
     :returns: Server ready payload
     """
-    payload = json.dumps(
-            data,
-            ensure_ascii=True,
-            default=self._json_date_handler,
-        )
+    payload = json.dumps(data, ensure_ascii=True, default=_json_date_handler)
 
     if encrypt_fn:
         payload = encrypt_fn(payload)
