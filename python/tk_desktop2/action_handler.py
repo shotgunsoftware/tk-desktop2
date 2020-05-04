@@ -261,7 +261,7 @@ class ActionHandler(object):
         # our cached configuration objects are no longer valid
         # disconnect any signals so we no longer get callbacks from
         # these stale items
-        for (project_id, configurations) in self._cached_configs.items():
+        for (_project_id, configurations) in self._cached_configs.items():
             for config in configurations:
                 config.commands_loaded.disconnect(self._on_commands_loaded)
                 config.commands_load_failed.disconnect(self._on_commands_load_failed)
