@@ -492,7 +492,7 @@ class ActionHandler(object):
                     display_name, command.tooltip, json_string
                 )
 
-        self._actions_model.actionsChanged()
+        self._actions_model.actionsChanged(entity_type, entity_id)
 
     def _on_commands_load_failed(
         self, project_id, entity_type, entity_id, link_entity_type, config, reason
