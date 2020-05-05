@@ -68,10 +68,10 @@ def _convert(data):
     :returns: Object with only utf-8 encoded strings
     """
 
-    if isinstance(data, collections.Mapping):
-        return dict(map(_convert, data.items()))
-    elif isinstance(data, collections.Iterable):
-        return type(data)(map(_convert, data))
+    if isinstance(data, six.moves.collections_abc.Mapping):
+        return {k: _convert(v) for k, v in data.items()}
+    elif isinstance(data, six.moves.collections_abc.Iterable):
+        return [_convert(v) for v in data]
     else:
         return six.ensure_str(data)
 
