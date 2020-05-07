@@ -23,10 +23,8 @@ def create_reply(data, encrypt_fn=None):
     :returns: Server ready payload
     """
     payload = json.dumps(data, ensure_ascii=True, default=_json_date_handler)
-
     if encrypt_fn:
         payload = encrypt_fn(payload)
-
     return payload
 
 
@@ -68,12 +66,14 @@ def _convert(data):
     :returns: Object with only utf-8 encoded strings
     """
 
+    if isinstance(data, six.string_types):
+        return six.ensure_str(data)
     if isinstance(data, six.moves.collections_abc.Mapping):
         return {k: _convert(v) for k, v in data.items()}
     elif isinstance(data, six.moves.collections_abc.Iterable):
         return [_convert(v) for v in data]
     else:
-        return six.ensure_str(data)
+        return data
 
 
 def show_user_mismatch_popup(bundle, user_id):
