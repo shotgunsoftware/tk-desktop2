@@ -207,7 +207,7 @@ class WebsocketsServer(object):
 
         # The origin coming from the request's raw header will be a bytearray. We're
         # going to want it as a string, so we'll go ahead and convert it right away.
-        origin_site = request.rawHeader(QtCore.QByteArray(six.b("origin"))).data()
+        origin_site = request.rawHeader(six.b("origin")).data()
 
         self._connections[socket_id] = WebsocketsConnection(
             socket_id, six.ensure_str(origin_site), self._encryption_handler, self

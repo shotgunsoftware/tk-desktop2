@@ -66,7 +66,9 @@ class EncryptionHandler(object):
         :param str payload: String to encrypt.
         :returns: Encrypted string
         """
-        return six.ensure_str(self._fernet.encrypt(six.b(payload)))
+
+        b = six.ensure_binary(payload)
+        return six.ensure_str(self._fernet.encrypt(b))
 
     def decrypt(self, payload):
         """
@@ -75,7 +77,7 @@ class EncryptionHandler(object):
         :param str payload: String to decrypt.
         :returns: Decrypted string
         """
-        b = six.b(payload)
+        b = six.ensure_binary(payload)
         return six.ensure_str(self._fernet.decrypt(b))
 
     def _retrieve_server_secret(self):
