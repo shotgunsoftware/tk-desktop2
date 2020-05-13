@@ -36,4 +36,4 @@ class ListSupportedCommandsWebsocketsRequest(WebsocketsRequest):
         Command execution.
         """
         commands = get_supported_commands()
-        self._reply(commands.keys())
+        self._reply(list(commands.keys()))
