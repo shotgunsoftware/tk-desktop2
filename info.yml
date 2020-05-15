@@ -22,4 +22,4 @@ requires_shotgun_version:
 requires_core_version: "v0.19.1"
 
 frameworks:
-  - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.6.2"}
+  - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.7.4"}
