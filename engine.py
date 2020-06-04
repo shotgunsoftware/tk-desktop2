@@ -44,9 +44,7 @@ class DesktopEngine2(Engine):
         """
         Initialization that runs after all apps and the QT abstractions have been loaded.
         """
-        from sgtk import LogManager
-
-        LogManager().global_debug = True
+        pass
 
     @property
     def toolkit_manager(self):
