@@ -76,7 +76,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                     "Task id %d cannot be found in Shotgun!" % (self._task_id,)
                 )
 
-             task_path = ShotgunEntityPath()
+            task_path = ShotgunEntityPath()
             task_path.set_project(task_data["project"]["id"])
             if task_data["entity"] is None:
                 task_path.set_primary_entity("Task", self._task_id)
@@ -107,10 +107,14 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
 
                 version_path = ShotgunEntityPath()
                 version_path.set_project(version_data["project"]["id"])
-                version_path.set_primary_entity(
-                    version_data["entity"]["type"], version_data["entity"]["id"]
-                )
-                version_path.set_secondary_entity("Version", self._version_id)
+                if version_data["entity"] is None:
+                    version_path.set_primary_entity("Version", self._version_id)
+                else :
+                    version_path.set_primary_entity(
+                        version_data["entity"]["type"], version_data["entity"]["id"]
+                    )
+                    version_path.set_secondary_entity("Version", self._version_id)
+
                 version_path_str = version_path.as_string()
 
             # call out to Shotgun Create UI to focus on the task
