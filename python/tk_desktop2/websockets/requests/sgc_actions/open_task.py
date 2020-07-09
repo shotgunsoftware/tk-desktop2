@@ -109,7 +109,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                 version_path.set_project(version_data["project"]["id"])
                 if version_data["entity"] is None:
                     version_path.set_primary_entity("Version", self._version_id)
-                else :
+                else:
                     version_path.set_primary_entity(
                         version_data["entity"]["type"], version_data["entity"]["id"]
                     )
