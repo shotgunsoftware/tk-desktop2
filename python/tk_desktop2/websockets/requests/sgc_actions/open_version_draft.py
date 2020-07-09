@@ -84,7 +84,6 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
 
             task_path = ShotgunEntityPath()
             task_path.set_project(task_data["project"]["id"])
-            
             if task_data["entity"] is None:
                 task_path.set_primary_entity("Task", self._task_id)
             else:
