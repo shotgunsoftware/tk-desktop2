@@ -82,15 +82,15 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
                     "Task id %d cannot be found in Shotgun!" % (self._task_id,)
                 )
 
-            if task_data["entity"] is None:
-                raise RuntimeError("Tasks not linked to entities are not supported.")
-
             task_path = ShotgunEntityPath()
             task_path.set_project(task_data["project"]["id"])
-            task_path.set_primary_entity(
-                task_data["entity"]["type"], task_data["entity"]["id"]
-            )
-            task_path.set_secondary_entity("Task", self._task_id)
+            if task_data["entity"] is None:
+                task_path.set_primary_entity("Task", self._task_id)
+            else:
+                task_path.set_primary_entity(
+                    task_data["entity"]["type"], task_data["entity"]["id"]
+                )
+                task_path.set_secondary_entity("Task", self._task_id)
 
             # call out to Shotgun Create UI to set the media path
             self._bundle.toolkit_manager.emitOpenVersionDraft(
