@@ -189,7 +189,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
                 self._reply_with_status(
                     status=1,
                     error=(
-                        "The version of the Toolkit Shotgun Engine (tk-shotgun) you "
+                        "The version of the Toolkit ShotGrid Engine (tk-shotgun) you "
                         "are running does not support PySide2. Please upgrade your "
                         "configuration to use version v0.8.0 or above of the engine."
                     ),

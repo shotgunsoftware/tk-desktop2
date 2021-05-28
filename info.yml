@@ -14,8 +14,8 @@ requires_shotgun_fields:
 
 
 # More verbose description of this item
-display_name: "Shotgun Engine for Shotgun Desktop v2"
-description: "Shotgun Support in Shotgun Desktop v2"
+display_name: "ShotGrid Engine for ShotGrid Desktop v2"
+description: "ShotGrid Support in ShotGrid Desktop v2"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
