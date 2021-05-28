@@ -53,7 +53,7 @@ class WebsocketsServer(object):
             self._sg_certs_handler = ShotgunCertificateHandler()
         except ShotgunLocalHostCertNotSupportedError:
             logger.error(
-                "Cannot launch websockets: ShotGridlocalhost certificates not enabled."
+                "Cannot launch websockets: Shotgunlocalhost certificates not enabled."
             )
             return
 
