@@ -73,7 +73,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
 
             if task_data is None:
                 raise ValueError(
-                    "Task id %d cannot be found in Shotgun!" % (self._task_id,)
+                    "Task id %d cannot be found in ShotGrid!" % (self._task_id,)
                 )
 
             task_path = ShotgunEntityPath()
@@ -102,7 +102,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                 if version_data is None:
                     raise ValueError(
                         "Version %d with task %d cannot be "
-                        "found in Shotgun!" % (self._version_id, self._task_id)
+                        "found in ShotGrid!" % (self._version_id, self._task_id)
                     )
 
                 version_path = ShotgunEntityPath()

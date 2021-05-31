@@ -91,11 +91,11 @@ def show_user_mismatch_popup(bundle, user_id):
         "HumanUser", [["id", "is", user_id]], ["name"]
     )
     warning_msg = (
-        "A request was received from Shotgun from user %s. Shotgun "
+        "A request was received from ShotGrid from user %s. ShotGrid "
         "Create is currently authenticated with user %s, so the "
-        "request was rejected. You will need to log into Shotgun "
+        "request was rejected. You will need to log into ShotGrid "
         "Create as user %s in order to receive Toolkit menu actions "
-        "or use local file linking for that user in Shotgun."
+        "or use local file linking for that user in ShotGrid."
         % (user_details["name"], current_user["name"], user_details["name"])
     )
     logger.warning(warning_msg)
@@ -117,10 +117,10 @@ def show_site_mismatch_popup(bundle, site_url):
     :param site_url: Url of site requesting a connection
     """
     warning_msg = (
-        "A request was received from %s. Shotgun Create is currently not logged into "
+        "A request was received from %s. ShotGrid Create is currently not logged into "
         "that site, so the request has been rejected. You will need to log into %s from "
-        "Shotgun Create in order to see Toolkit menu actions or make use of local file "
-        "linking on that Shotgun site." % (site_url, site_url)
+        "ShotGrid Create in order to see Toolkit menu actions or make use of local file "
+        "linking on that ShotGrid site." % (site_url, site_url)
     )
     logger.warning(warning_msg)
     from sgtk.platform.qt import QtGui, QtCore

@@ -117,9 +117,9 @@ class ShotgunEntityPath(object):
     def __repr__(self):
         """String representation"""
         if self.is_valid():
-            return "<ShotgunEntityPath '%s'>" % self.as_string()
+            return "<ShotGridEntityPath '%s'>" % self.as_string()
         else:
-            return "<ShotgunEntityPath 'PARTIAL'>"
+            return "<ShotGridEntityPath 'PARTIAL'>"
 
     def as_string(self):
         """
@@ -169,7 +169,7 @@ class ShotgunEntityPath(object):
 
     @property
     def project_id(self):
-        """The Shotgun project id associated with this path"""
+        """The ShotGrid project id associated with this path"""
         return self._project_id
 
     @property

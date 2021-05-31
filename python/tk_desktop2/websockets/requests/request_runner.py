@@ -108,7 +108,7 @@ class RequestRunner(QtCore.QObject):
             if cache_out_of_date:
                 # time to check with Shotgun if there are updates
                 logger.debug(
-                    "Requesting a check to see if any changes have happened in Shotgun."
+                    "Requesting a check to see if any changes have happened in ShotGrid."
                 )
                 self._last_update_check = time.time()
                 # refresh - this may trigger a call to _on_configurations_changed
@@ -141,7 +141,7 @@ class RequestRunner(QtCore.QObject):
         and that we should discard any cached configurations and reload them.
         """
         logger.debug(
-            "Shotgun has changed. "
+            "ShotGrid has changed. "
             "Requesting configuration reloads for all active requests."
         )
 

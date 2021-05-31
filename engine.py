@@ -178,7 +178,7 @@ class DesktopEngine2(Engine):
                 # as a workaround, remove all colons
                 cleaned_up_message = record.message.replace(":", ".")
                 # note: toasts support markdown
-                message = "**Shotgun Integration Error**\n\n%s" % (cleaned_up_message,)
+                message = "**ShotGrid Integration Error**\n\n%s" % (cleaned_up_message,)
 
                 self.toolkit_manager.emitToast(
                     message, "error", True  # don't automatically close.

@@ -207,7 +207,7 @@ class WebsocketsConnection(object):
         if request_is_localhost:
             logger.debug("Request's origin site is localhost")
         elif request_is_shotgunsite:
-            logger.debug("Request's origin is the currently logged in Shotgun site")
+            logger.debug("Request's origin is the currently logged in ShotGrid site")
         else:
             logger.debug("{} is an unknown origin".format(self._origin_site))
 
@@ -334,7 +334,7 @@ class WebsocketsConnection(object):
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
 
-        logger.debug("Received Shotgun request: %s" % pprint.pformat(message_obj))
+        logger.debug("Received ShotGrid request: %s" % pprint.pformat(message_obj))
 
         # We expect every response to have the protocol version set earlier
         if message_obj.get("protocol_version") != constants.WEBSOCKETS_PROTOCOL_VERSION:

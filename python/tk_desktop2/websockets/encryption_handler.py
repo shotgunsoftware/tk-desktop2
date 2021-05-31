@@ -87,7 +87,7 @@ class EncryptionHandler(object):
         :param shotgun: Shotugn API instance.
         :returns: Shotgun secret str.
         """
-        logger.debug("Retrieving communication secret from Shotgun")
+        logger.debug("Retrieving communication secret from ShotGrid")
         # Ask for the secret for this server id.
         response = self._bundle.shotgun._call_rpc(
             "retrieve_ws_server_secret", {"ws_server_id": self._unique_server_id}
