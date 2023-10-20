@@ -169,7 +169,6 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
                 output = self._resolved_command.execute(pre_cache=True)
             self._reply_with_status(output=output)
         except Exception as e:
-
             logger.debug("Could not execute action", exc_info=True)
 
             # handle the special case where we are calling an older version of the Shotgun
@@ -225,7 +224,6 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         """
         # locate the requested command in our configuration
         for config in associated_commands:
-
             # this is a zero config setup with no record in Shotgun
             # such a config is expected to be named Primary in Shotgun
             config_name = (
