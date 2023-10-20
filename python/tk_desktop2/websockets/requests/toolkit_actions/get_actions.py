@@ -204,7 +204,6 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         response = {"retcode": 0, "pcs": [], "actions": {}}
 
         for config in associated_commands:
-
             # this is a zero config setup with no record in Shotgun
             # such a config is expected to be named Primary in Shotgun
             config_name = (

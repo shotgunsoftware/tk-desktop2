@@ -261,7 +261,7 @@ class ActionHandler(object):
         # our cached configuration objects are no longer valid
         # disconnect any signals so we no longer get callbacks from
         # these stale items
-        for (_project_id, configurations) in self._cached_configs.items():
+        for _project_id, configurations in self._cached_configs.items():
             for config in configurations:
                 config.commands_loaded.disconnect(self._on_commands_loaded)
                 config.commands_load_failed.disconnect(self._on_commands_load_failed)
@@ -349,7 +349,6 @@ class ActionHandler(object):
             pass
 
         else:
-
             logger.debug(
                 "Requesting commands for project %s, %s %s",
                 project_id,
@@ -444,7 +443,6 @@ class ActionHandler(object):
         )
 
         for command in commands:
-
             if command.display_name in SYSTEM_COMMANDS:
                 continue
 
@@ -481,7 +479,6 @@ class ActionHandler(object):
             # the same configuration. It's silly behavior, but culling the duplicated here
             # is the simplest solution, and works just fine.
             if not self._actions_model.findItems(display_name):
-
                 # Convert the Python Pickle to a JSON string for easier processing from the C++ code
                 pickle_string = command.serialize()
                 pickle_dict = sgtk.util.pickle.loads(pickle_string)
@@ -579,7 +576,6 @@ class ActionHandler(object):
         # just an empty string.
 
         if action_str != "":
-
             # Get the Python pickle string out of the JSON obj comming from C++
             json_obj = json.loads(action_str)
             if self.KEY_PICKLE_STR not in json_obj:

@@ -86,7 +86,6 @@ class DesktopEngine2(Engine):
         try:
             self._initialize_integrations(plugin_id, base_config)
         except Exception as e:
-
             # NOTE: markdown formatting in sgds toast doesn't currently
             # work, so just doing normal text instead of a preformatted
             # segment for the call stack.
