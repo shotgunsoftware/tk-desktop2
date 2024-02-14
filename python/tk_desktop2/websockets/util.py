@@ -36,10 +36,7 @@ def parse_json(payload):
     :param str payload: json payload
     :returns: Dictionary of values
     """
-    # data is sent as utf-8 across the wire
-    message_obj = json.loads(payload, encoding="utf-8")
-    message_obj = _convert(message_obj)
-    return message_obj
+    return _convert(json.loads(payload))
 
 
 def _json_date_handler(obj):
