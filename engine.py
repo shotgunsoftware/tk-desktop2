@@ -220,6 +220,6 @@ class DesktopEngine2(Engine):
         if sys.platform == "win32":
             # use pythonw in order to prevent a shell window from
             # popping up. May need to refine this solution in the future.
-            return os.path.abspath(os.path.join(sys.prefix, "pythonw.exe"))
+            return os.path.abspath(os.path.join(sys.prefix, "bin", "pythonw.exe"))
         else:
             return os.path.abspath(os.path.join(sys.prefix, "bin", "python"))
