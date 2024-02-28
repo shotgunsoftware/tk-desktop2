@@ -14,7 +14,7 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class ShotgunEntityPath(object):
     """
-    Describes a Shotgun Create path that expresses a Shotgun entity.
+    Describes a Create app path that expresses a Shotgun entity.
 
     Examples of paths that are currently supported:
 
@@ -169,7 +169,7 @@ class ShotgunEntityPath(object):
 
     @property
     def project_id(self):
-        """The ShotGrid project id associated with this path"""
+        """The Flow Production Tracking project id associated with this path"""
         return self._project_id
 
     @property

@@ -14,7 +14,7 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
     """
-    Requests that sets the current draft in the Shotgun Create player.
+    Requests that sets the current draft in the Create app player.
 
     This is a 'fire-and-forget' command that doesn't return anything.
 
@@ -79,7 +79,8 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
 
             if task_data is None:
                 raise ValueError(
-                    "Task id %d cannot be found in ShotGrid!" % (self._task_id,)
+                    "Task id %d cannot be found in Flow Production Tracking!"
+                    % (self._task_id,)
                 )
 
             task_path = ShotgunEntityPath()
@@ -92,7 +93,7 @@ class OpenVersionDraftInSGCreateWebsocketsRequest(WebsocketsRequest):
                 )
                 task_path.set_secondary_entity("Task", self._task_id)
 
-            # call out to Shotgun Create UI to set the media path
+            # call out to Create app UI to set the media path
             self._bundle.toolkit_manager.emitOpenVersionDraft(
                 task_path.as_string(), self._draft_path, self._version_data
             )

@@ -1,12 +1,12 @@
 # tk-desktop2
-Toolkit Engine for ShotGrid Create
+Toolkit Engine for Create app
 
 ## Documentation
-This repository is a part of the ShotGrid Pipeline Toolkit.
+This repository is a part of the Flow Production Tracking Toolkit.
 
 - For more information about this app and for release notes, *see the wiki section*.
 - For general information and documentation, click here: https://developer.shotgridsoftware.com/d587be80/?title=Integrations+User+Guide
-- For information about ShotGrid in general, click here: https://www.shotgridsoftware.com/integrations
+- For information about Flow Production Tracking in general, click here: https://www.shotgridsoftware.com/integrations
 
 ## Using this app in your Setup
 All the apps that are part of our standard app suite are pushed to our App Store.

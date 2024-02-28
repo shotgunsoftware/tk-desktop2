@@ -204,7 +204,7 @@ class ActionHandler(object):
             if cache_out_of_date:
                 # time to check with Shotgun if there are updates
                 logger.debug(
-                    "Requesting a check to see if any changes have happened in ShotGrid."
+                    "Requesting a check to see if any changes have happened in Flow Production Tracking."
                 )
                 self._last_update_check = time.time()
                 # refresh - this may trigger a call to _on_configurations_changed
@@ -257,7 +257,9 @@ class ActionHandler(object):
         if current_path is None or current_path == "":
             return
 
-        logger.debug("ShotGrid has changed. Discarding cached configurations.")
+        logger.debug(
+            "Flow Production Tracking has changed. Discarding cached configurations."
+        )
         # our cached configuration objects are no longer valid
         # disconnect any signals so we no longer get callbacks from
         # these stale items
@@ -556,9 +558,10 @@ class ActionHandler(object):
                 in str(e)
             ):
                 logger.error(
-                    "The version of the Toolkit ShotGrid Engine (tk-shotgun) you "
-                    "are running does not support PySide2. Please upgrade your "
-                    "configuration to use version v0.8.0 or above of the engine."
+                    "The version of the Toolkit Flow Production Tracking Engine "
+                    "(tk-shotgun) you are running does not support PySide2. Please "
+                    "upgrade your configuration to use version v0.8.0 or above of "
+                    "the engine."
                 )
 
             else:
@@ -581,7 +584,8 @@ class ActionHandler(object):
             if self.KEY_PICKLE_STR not in json_obj:
                 raise RuntimeError(
                     "The command's serialized Python data could not be found in the action's payload"
-                    "that ShotGrid Create provided. The action cannot be executed as a result."
+                    "that Flow Production Tracking Create provided. The action cannot be executed as "
+                    "a result."
                 )
 
             # and create a command object.

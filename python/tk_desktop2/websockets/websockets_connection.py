@@ -187,7 +187,7 @@ class WebsocketsConnection(object):
         if "id" not in message_obj:
             raise RuntimeError("%s: Invalid websockets request - missing id." % self)
 
-        # The version of Shotgun that Shotgun Create is connected to
+        # The version of Shotgun that Create app is connected to
         shotgun_version = self._bundle.shotgun.server_caps.version or (0, 0, 0)
 
         # Try to get the user information. If that fails, we need to report the error.
@@ -207,7 +207,9 @@ class WebsocketsConnection(object):
         if request_is_localhost:
             logger.debug("Request's origin site is localhost")
         elif request_is_shotgunsite:
-            logger.debug("Request's origin is the currently logged in ShotGrid site")
+            logger.debug(
+                "Request's origin is the currently logged in Flow Production Tracking site"
+            )
         else:
             logger.debug("{} is an unknown origin".format(self._origin_site))
 
@@ -239,7 +241,7 @@ class WebsocketsConnection(object):
 
         # validate that the user of the request matches the sg create user
         # Check so that the user making the request is the same as
-        # the currently logged in user in Shotgun Create.
+        # the currently logged in user in Create app.
         current_user = sgtk.util.get_current_user(self._bundle.sgtk)
         if request_user_id != current_user["id"]:
             # the version of shotgun we are talking to
@@ -334,7 +336,10 @@ class WebsocketsConnection(object):
         # Every message is expected to be in json format
         message_obj = util.parse_json(message)
 
-        logger.debug("Received ShotGrid request: %s" % pprint.pformat(message_obj))
+        logger.debug(
+            "Received Flow Production Tracking request: %s"
+            % pprint.pformat(message_obj)
+        )
 
         # We expect every response to have the protocol version set earlier
         if message_obj.get("protocol_version") != constants.WEBSOCKETS_PROTOCOL_VERSION:

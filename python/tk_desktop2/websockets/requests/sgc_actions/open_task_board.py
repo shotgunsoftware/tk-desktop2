@@ -13,7 +13,7 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
     """
-    Requests that the task board (overview page) is opened in Shotgun Create.
+    Requests that the task board (overview page) is opened in Create app.
 
     This is a 'fire-and-forget' command that doesn't return anything.
 
