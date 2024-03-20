@@ -51,12 +51,12 @@ class DesktopEngine2(Engine):
         """
         A handle to the manager object provided by the host application that exposes
         some necessary functionality. Methods exposed via this object effectively
-        act as the "API" for Shotgun create.
+        act as the "API" for Create app.
 
         .. note:: This property is only set when the tk-desktop2 process is running inside
-                  the Shotgun Create application. The tk-desktop2 engine can also run
+                  the Create application. The tk-desktop2 engine can also run
                   in a separate external process (for example when you launch an app
-                  such as the publisher from Shotgun Create).
+                  such as the publisher from Create app).
         """
         try:
             from sgtk.platform.qt import QtCore
@@ -177,7 +177,9 @@ class DesktopEngine2(Engine):
                 # as a workaround, remove all colons
                 cleaned_up_message = record.message.replace(":", ".")
                 # note: toasts support markdown
-                message = "**ShotGrid Integration Error**\n\n%s" % (cleaned_up_message,)
+                message = "**Flow Production Tracking Integration Error**\n\n%s" % (
+                    cleaned_up_message,
+                )
 
                 self.toolkit_manager.emitToast(
                     message, "error", True  # don't automatically close.

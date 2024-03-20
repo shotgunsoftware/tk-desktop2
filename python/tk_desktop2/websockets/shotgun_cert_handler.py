@@ -30,7 +30,7 @@ class ShotgunCertificateHandler(object):
         # ensure we support this
         if not self._site_supports_shotgunlocalhost():
             raise ShotgunLocalHostCertNotSupportedError(
-                "ShotGrid site does not support Certificate download."
+                "Flow Production Tracking site does not support Certificate download."
             )
 
         # ensure we have fresh certs
@@ -54,7 +54,7 @@ class ShotgunCertificateHandler(object):
         """
         Retrieves certificates from Shotgun.
         """
-        logger.debug("Retrieving certificates from ShotGrid")
+        logger.debug("Retrieving certificates from Flow Production Tracking")
         certs = self._bundle.shotgun._call_rpc("sg_desktop_certificates", {})
         self._write_cert(
             self.cert_path, certs["sg_desktop_cert"] + "\n" + certs["sg_desktop_ca"]
@@ -92,7 +92,7 @@ class ShotgunCertificateHandler(object):
         # the preference data.
         if len(cert) < 5:
             raise ValueError(
-                "Invalid localhost certificate data in ShotGrid! "
+                "Invalid localhost certificate data in Flow Production Tracking! "
                 "Please contact support."
             )
 

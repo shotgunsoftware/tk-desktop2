@@ -78,7 +78,9 @@ class WebsocketsServer(object):
         self._ws_server.sslErrors.connect(self._on_ssl_errors)
 
         # Determine which port to run on
-        logger.debug("Retreiving websockets port preference from ShotGrid.")
+        logger.debug(
+            "Retreiving websockets port preference from Flow Production Tracking."
+        )
 
         # populate default value
         websockets_port = constants.WEBSOCKETS_PORT_NUMBER
@@ -102,7 +104,8 @@ class WebsocketsServer(object):
                     constants.SHOTGUN_CREATE_PREFS_WEBSOCKETS_PORT_KEY
                 ]
                 logger.debug(
-                    "...retrieved port value '%s' from ShotGrid prefs" % websockets_port
+                    "...retrieved port value '%s' from Flow Production Tracking prefs"
+                    % websockets_port
                 )
 
         # Tell the server to listen to the given port
@@ -128,8 +131,8 @@ class WebsocketsServer(object):
                 logger.warning(
                     "Details: The server could not be started because it appears that something is "
                     "already making use of port %d. The most likely cause of this would be "
-                    "having more than one instance of ShotGrid Create open at the same time, "
-                    "or running ShotGrid Create and ShotGrid "
+                    "having more than one instance of Flow Production Tracking Create open at the "
+                    "same time, or running Create app and Flow Production Tracking "
                     "Desktop simultaneously." % websockets_port
                 )
             else:

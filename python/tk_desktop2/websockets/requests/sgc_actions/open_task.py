@@ -14,7 +14,7 @@ logger = sgtk.LogManager.get_logger(__name__)
 
 class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
     """
-    Requests that a task or version is opened in Shotgun create.
+    Requests that a task or version is opened in Create app.
 
     This is a 'fire-and-forget' command that doesn't return anything.
 
@@ -73,7 +73,8 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
 
             if task_data is None:
                 raise ValueError(
-                    "Task id %d cannot be found in ShotGrid!" % (self._task_id,)
+                    "Task id %d cannot be found in Flow Production Tracking!"
+                    % (self._task_id,)
                 )
 
             task_path = ShotgunEntityPath()
@@ -102,7 +103,8 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
                 if version_data is None:
                     raise ValueError(
                         "Version %d with task %d cannot be "
-                        "found in ShotGrid!" % (self._version_id, self._task_id)
+                        "found in Flow Production Tracking!"
+                        % (self._version_id, self._task_id)
                     )
 
                 version_path = ShotgunEntityPath()
@@ -117,7 +119,7 @@ class OpenTaskInSGCreateWebsocketsRequest(WebsocketsRequest):
 
                 version_path_str = version_path.as_string()
 
-            # call out to Shotgun Create UI to focus on the task
+            # call out to Create app UI to focus on the task
             self._bundle.toolkit_manager.emitOpenTaskRequest(
                 task_path.as_string(), version_path_str
             )
