@@ -13,7 +13,11 @@ import threading
 from sgtk.platform.qt import QtCore, QtGui
 from . import constants
 from .shotgun_entity_path import ShotgunEntityPath
-from tank_vendor import six
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 logger = sgtk.LogManager.get_logger(__name__)
 external_config = sgtk.platform.import_framework(
@@ -574,7 +578,7 @@ class ActionHandler(object):
         :param str path: entity path representation.
         :param str action_str: serialized :class:`ExternalCommand` payload.
         """
-        action_str = six.ensure_str(action_str)
+        action_str = sgutils.ensure_str(action_str)
         # the 'loading' menu items currently don't have an action payload,
         # just an empty string.
 

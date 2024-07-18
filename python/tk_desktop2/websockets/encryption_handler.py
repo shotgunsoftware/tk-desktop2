@@ -7,9 +7,13 @@
 
 import os
 import sgtk
-from tank_vendor import six
 import base64
 from cryptography.fernet import Fernet  # included as part of main application build
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -34,7 +38,7 @@ class EncryptionHandler(object):
         # Compute a server id and retrieve the secret associated to it.
         # urandom is considered cryptographically secure as it calls the OS's CSRNG, so we can
         # use that to generate our own server id.
-        self._unique_server_id = six.ensure_str(
+        self._unique_server_id = sgutils.ensure_str(
             base64.urlsafe_b64encode(os.urandom(16))
         )
 
@@ -67,8 +71,8 @@ class EncryptionHandler(object):
         :returns: Encrypted string
         """
 
-        b = six.ensure_binary(payload)
-        return six.ensure_str(self._fernet.encrypt(b))
+        b = sgutils.ensure_binary(payload)
+        return sgutils.ensure_str(self._fernet.encrypt(b))
 
     def decrypt(self, payload):
         """
@@ -77,8 +81,8 @@ class EncryptionHandler(object):
         :param str payload: String to decrypt.
         :returns: Decrypted string
         """
-        b = six.ensure_binary(payload)
-        return six.ensure_str(self._fernet.decrypt(b))
+        b = sgutils.ensure_binary(payload)
+        return sgutils.ensure_str(self._fernet.decrypt(b))
 
     def _retrieve_server_secret(self):
         """

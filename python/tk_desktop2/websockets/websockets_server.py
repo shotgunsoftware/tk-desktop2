@@ -12,14 +12,17 @@ import traceback
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk.platform.qt5 import QtNetwork, QtWebSockets
 
-from tank_vendor import six
-
 from .shotgun_cert_handler import ShotgunCertificateHandler
 from .errors import ShotgunLocalHostCertNotSupportedError
 from .websockets_connection import WebsocketsConnection
 from .encryption_handler import EncryptionHandler
 
 from . import constants
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -213,7 +216,7 @@ class WebsocketsServer(object):
         origin_site = request.rawHeader(b"origin").data()
 
         self._connections[socket_id] = WebsocketsConnection(
-            socket_id, six.ensure_str(origin_site), self._encryption_handler, self
+            socket_id, sgutils.ensure_str(origin_site), self._encryption_handler, self
         )
 
     def _process_message(self, socket_id, message):
