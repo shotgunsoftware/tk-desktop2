@@ -8,7 +8,7 @@
 import sgtk
 import json
 
-from collections.abc import Mapping, Iterable
+from tank_vendor import six
 
 try:
     from tank_vendor import sgutils
@@ -69,9 +69,9 @@ def _convert(data):
 
     if isinstance(data, str):
         return sgutils.ensure_str(data)
-    if isinstance(data, Mapping):
+    if isinstance(data, six.moves.collections_abc.Mapping):
         return {k: _convert(v) for k, v in data.items()}
-    elif isinstance(data, Iterable):
+    elif isinstance(data, six.moves.collections_abc.Iterable):
         return [_convert(v) for v in data]
     else:
         return data
