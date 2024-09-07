@@ -7,9 +7,13 @@
 
 import sgtk
 import json
-import collections
 
 from tank_vendor import six
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -63,8 +67,8 @@ def _convert(data):
     :returns: Object with only utf-8 encoded strings
     """
 
-    if isinstance(data, six.string_types):
-        return six.ensure_str(data)
+    if isinstance(data, str):
+        return sgutils.ensure_str(data)
     if isinstance(data, six.moves.collections_abc.Mapping):
         return {k: _convert(v) for k, v in data.items()}
     elif isinstance(data, six.moves.collections_abc.Iterable):

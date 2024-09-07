@@ -8,10 +8,14 @@ import sgtk
 import pprint
 import datetime
 import re
-from tank_vendor import six
 from . import util
 from . import requests
 from . import constants
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -82,7 +86,7 @@ class WebsocketsConnection(object):
         :param str message: Raw message payload as sent by client.
         :raises: RuntimeError
         """
-        message = six.ensure_str(message)
+        message = sgutils.ensure_str(message)
 
         if self._state == self.AWAITING_HANDSHAKE:
             self._handle_protocol_handshake_request(message)
