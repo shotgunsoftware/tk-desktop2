@@ -27,7 +27,7 @@ class PickFileOrFilesWebsocketsRequest(WebsocketsRequest):
         :param bool pick_multiple: Flag to indicate whether multi select should be enabled.
         """
         self._pick_multiple = pick_multiple
-        super(PickFileOrFilesWebsocketsRequest, self).__init__(connection, id)
+        super().__init__(connection, id)
 
     def execute(self):
         """
@@ -78,9 +78,7 @@ class PickFilesOrDirectoriesWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
         :param dict parameters: Command parameters (see syntax above)
         :raises: ValueError
         """
-        super(PickFilesOrDirectoriesWebsocketsRequest, self).__init__(
-            connection, id, pick_multiple=True
-        )
+        super().__init__(connection, id, pick_multiple=True)
 
     @property
     def analytics_command_name(self):
@@ -114,9 +112,7 @@ class PickFileOrDirectoryWebsocketsRequest(PickFileOrFilesWebsocketsRequest):
         :param dict parameters: Command parameters (see syntax above)
         :raises: ValueError
         """
-        super(PickFileOrDirectoryWebsocketsRequest, self).__init__(
-            connection, id, pick_multiple=False
-        )
+        super().__init__(connection, id, pick_multiple=False)
 
     @property
     def analytics_command_name(self):

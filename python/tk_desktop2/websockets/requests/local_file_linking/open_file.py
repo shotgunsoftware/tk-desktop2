@@ -53,7 +53,7 @@ class OpenFileWebsocketsRequest(WebsocketsRequest):
         :param dict parameters: Command parameters (see syntax above)
         :raises: ValueError
         """
-        super(OpenFileWebsocketsRequest, self).__init__(connection, id)
+        super().__init__(connection, id)
 
         if sys.platform.startswith("linux"):
             self._launcher = "xdg-open"

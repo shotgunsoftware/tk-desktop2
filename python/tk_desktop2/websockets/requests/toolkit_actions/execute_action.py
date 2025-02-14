@@ -63,7 +63,7 @@ class ExecuteActionWebsocketsRequest(WebsocketsRequest):
         :param dict parameters: Command parameters (see syntax above)
         :raises: ValueError
         """
-        super(ExecuteActionWebsocketsRequest, self).__init__(connection, id)
+        super().__init__(connection, id)
 
         self._bundle = sgtk.platform.current_bundle()
 

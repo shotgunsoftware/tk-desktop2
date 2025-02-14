@@ -92,7 +92,7 @@ class GetActionsWebsocketsRequest(WebsocketsRequest):
         :param int id: Id for this request.
         :param dict parameters: Command parameters (see syntax above)
         """
-        super(GetActionsWebsocketsRequest, self).__init__(connection, id)
+        super().__init__(connection, id)
 
         self._bundle = sgtk.platform.current_bundle()
 

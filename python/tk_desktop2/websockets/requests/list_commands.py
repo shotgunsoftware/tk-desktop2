@@ -29,7 +29,7 @@ class ListSupportedCommandsWebsocketsRequest(WebsocketsRequest):
         :param dict parameters: Command parameters (see syntax above)
         :raises: ValueError
         """
-        super(ListSupportedCommandsWebsocketsRequest, self).__init__(connection, id)
+        super().__init__(connection, id)
 
     def execute(self):
         """

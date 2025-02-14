@@ -37,7 +37,7 @@ class OpenTaskBoardInSGCreateWebsocketsRequest(WebsocketsRequest):
         :param int id: Id for this request.
         :param dict params: Parameters payload from websockets.
         """
-        super(OpenTaskBoardInSGCreateWebsocketsRequest, self).__init__(connection, id)
+        super().__init__(connection, id)
 
         self._bundle = sgtk.platform.current_bundle()
 
