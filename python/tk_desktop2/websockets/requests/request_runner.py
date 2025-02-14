@@ -38,7 +38,7 @@ class RequestRunner(QtCore.QObject):
         """
         qt_parent = QtCore.QCoreApplication.instance()
 
-        super(RequestRunner, self).__init__(qt_parent)
+        super().__init__(qt_parent)
 
         logger.debug("Begin initializing RequestRunner")
         logger.debug("Engine instance name: %s" % engine_instance_name)
