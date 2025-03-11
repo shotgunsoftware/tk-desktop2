@@ -8,8 +8,6 @@
 import sgtk
 import json
 
-from tank_vendor import six
-
 try:
     from tank_vendor import sgutils
 except ImportError:
@@ -69,9 +67,9 @@ def _convert(data):
 
     if isinstance(data, str):
         return sgutils.ensure_str(data)
-    if isinstance(data, six.moves.collections_abc.Mapping):
+    if isinstance(data, dict):
         return {k: _convert(v) for k, v in data.items()}
-    elif isinstance(data, six.moves.collections_abc.Iterable):
+    elif isinstance(data, list):
         return [_convert(v) for v in data]
     else:
         return data

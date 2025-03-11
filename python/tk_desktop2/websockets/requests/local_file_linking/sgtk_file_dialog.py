@@ -33,7 +33,7 @@ class SgtkFileDialog(QtGui.QFileDialog):
 
         :param multi: Allow extended selection
         """
-        super(SgtkFileDialog, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # set the browsing mode (single or multi files)
         if multi:
