@@ -10,11 +10,6 @@ import sgtk
 import base64
 from cryptography.fernet import Fernet  # included as part of main application build
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 logger = sgtk.LogManager.get_logger(__name__)
 
 
@@ -71,8 +66,8 @@ class EncryptionHandler(object):
         :returns: Encrypted string
         """
 
-        b = sgutils.ensure_binary(payload)
-        return sgutils.ensure_str(self._fernet.encrypt(b))
+        b = payload.encode("utf-8")
+        return self._fernet.encrypt(b).decode("utf-8")
 
     def decrypt(self, payload):
         """
@@ -81,8 +76,8 @@ class EncryptionHandler(object):
         :param str payload: String to decrypt.
         :returns: Decrypted string
         """
-        b = sgutils.ensure_binary(payload)
-        return sgutils.ensure_str(self._fernet.decrypt(b))
+        b = payload.encode("utf-8")
+        return self._fernet.decrypt(b).decode("utf-8")
 
     def _retrieve_server_secret(self):
         """

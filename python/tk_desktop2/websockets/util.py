@@ -8,11 +8,6 @@
 import sgtk
 import json
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 logger = sgtk.LogManager.get_logger(__name__)
 
 
@@ -30,17 +25,6 @@ def create_reply(data, encrypt_fn=None):
     return payload
 
 
-def parse_json(payload):
-    """
-    Parses a json string in utf-8 encoded format,
-    as expected from the Shotgun site.
-
-    :param str payload: json payload
-    :returns: Dictionary of values
-    """
-    return _convert(json.loads(payload))
-
-
 def _json_date_handler(obj):
     """
     JSON stringify python date handler from:
@@ -54,25 +38,6 @@ def _json_date_handler(obj):
         return obj.isoformat()
     else:
         return json.JSONEncoder().default(obj)
-
-
-def _convert(data):
-    """
-    Converts all keys/values in a dictionary from unicode
-    to utf-8 encoded strings.
-
-    :param dict data: Object with unicode values
-    :returns: Object with only utf-8 encoded strings
-    """
-
-    if isinstance(data, str):
-        return sgutils.ensure_str(data)
-    if isinstance(data, dict):
-        return {k: _convert(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [_convert(v) for v in data]
-    else:
-        return data
 
 
 def show_user_mismatch_popup(bundle, user_id):

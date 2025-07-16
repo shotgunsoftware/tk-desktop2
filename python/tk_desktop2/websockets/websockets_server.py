@@ -19,11 +19,6 @@ from .encryption_handler import EncryptionHandler
 
 from . import constants
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 logger = sgtk.LogManager.get_logger(__name__)
 
 
@@ -216,7 +211,7 @@ class WebsocketsServer(object):
         origin_site = request.rawHeader(b"origin").data()
 
         self._connections[socket_id] = WebsocketsConnection(
-            socket_id, sgutils.ensure_str(origin_site), self._encryption_handler, self
+            socket_id, origin_site.decode("utf-8"), self._encryption_handler, self
         )
 
     def _process_message(self, socket_id, message):

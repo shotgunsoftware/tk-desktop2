@@ -4,18 +4,14 @@
 # provided at the time of installation or download, or which otherwise accompanies
 # this software in either electronic or hard copy form.
 #
-import sgtk
-import pprint
 import datetime
+import json
+import pprint
 import re
-from . import util
-from . import requests
-from . import constants
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
+import sgtk
+
+from . import constants, requests, util
 
 logger = sgtk.LogManager.get_logger(__name__)
 
@@ -86,8 +82,6 @@ class WebsocketsConnection(object):
         :param str message: Raw message payload as sent by client.
         :raises: RuntimeError
         """
-        message = sgutils.ensure_str(message)
-
         if self._state == self.AWAITING_HANDSHAKE:
             self._handle_protocol_handshake_request(message)
         elif self._state == self.AWAITING_SERVER_ID_REQUEST:
@@ -184,7 +178,7 @@ class WebsocketsConnection(object):
         # }
 
         # Every message is expected to be in json format
-        message_obj = util.parse_json(message)
+        message_obj = json.loads(message)
         logger.debug("Received server id request: %s" % pprint.pformat(message_obj))
 
         # make sure the client has provided an id for the request
@@ -338,7 +332,7 @@ class WebsocketsConnection(object):
             raise RuntimeError("%s: Could not decrypt payload: %s" % (self, e))
 
         # Every message is expected to be in json format
-        message_obj = util.parse_json(message)
+        message_obj = json.loads(message)
 
         logger.debug(
             "Received Flow Production Tracking request: %s"
